@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Flap</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js CDN for audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Supabase Client CDN -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        window.supabase = createClient(
+            'https://ahnpnodecccftvscffbx.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobnBub2RlY2NjZnR2c2NmZmJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4OTc4NTgsImV4cCI6MjA2NTQ3Mzg1OH0.hsGLtErR5gfySWetNGrdo-EjoOl2kuCnOAU4q0Zu_SY'
+        );
+        console.log("Supabase client initialized.");
+    </script>
+    <style>
+        /* Import Luckiest Guy font */
+        @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
+        /* Apply Inter font family to the entire body */
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            width: 100vw;
+            background-image: url('https://i.imgur.com/ESwrOre.png'); 
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background-image: none;
+            background-color: transparent;
+            overflow: hidden;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: none;
+            box-sizing: border-box;
+        }
+        canvas#particleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 25;
+            pointer-events: none;
+            display: none;
+        }
+        .player {
+            position: absolute;
+            background-image: url('https://i.imgur.com/N3fsA36.png'); 
+            background-size: auto 100%;
+            background-repeat: no-repeat;
+            background-position: 0 0;
+            z-index: 10;
+            will-change: transform, top, left, background-position;
+        }
+        .player.shielded {
+            box-shadow: 0 0 15px 8px rgba(0, 255, 255, 0.7);
+            outline: 3px solid cyan;
+            outline-offset: -3px;
+        }
+        .candle-obstacle {
+            position: absolute;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 5;
+        }
+        .candle-obstacle.red-candle { 
+            background-image: url('https://i.imgur.com/yCs6SVg.png');
+        }
+        .candle-obstacle.green-candle { 
+            background-image: url('https://i.imgur.com/uUbXFff.png');
+        }
+        .collectible-item {
+            position: absolute;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 7;
+        }
+        .collectible-item.potion {
+            background-image: url('https://i.imgur.com/cL2ndoI.png');
+        }
+        .collectible-item.flappy-coin {
+            background-image: url('https://i.imgur.com/JZRXMxr.png');
+        }
+        .top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-bottom-left-radius: 1rem;
+            border-bottom-right-radius: 1rem;
+            z-index: 20;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        .score {
+            font-family: 'Inter', monospace, sans-serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: white;
+            text-shadow: 
+                0 0 5px #fff,    
+                0 0 10px #FFD700, 
+                0 0 20px #FFD700, 
+                0 0 30px #FFD700, 
+                0 0 40px rgba(0, 0, 0, 0.7); 
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .score .player-icon {
+            background-image: url('https://i.imgur.com/N3fsA36.png'); 
+            background-size: auto 100%;
+            background-position: 0 0;
+            background-repeat: no-repeat;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+        .market-cap {
+            font-family: 'Inter', monospace, sans-serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #FFD700;
+            text-shadow: 
+                0 0 5px #fff,    
+                0 0 10px #FFD700, 
+                0 0 20px #FFD700, 
+                0 0 30px #FFD700, 
+                0 0 40px rgba(0, 0, 0, 0.7); 
+        }
+        .user-info {
+            position: absolute;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            text-shadow: 
+                0 0 3px #fff, 
+                0 0 7px rgba(0, 0, 0, 0.8); 
+            z-index: 21;
+            background-color: rgba(0,0,0,0.4);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            display: flex; /* Changed to flex by default, JS will toggle display property explicitly */
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .user-info.in-game {
+            display: none !important;
+        }
+        .user-info.in-game-over { 
+            display: none !important;
+        }
+        .user-info button {
+            background: none;
+            border: 1px solid #FFD700;
+            color: #FFD700;
+            border-radius: 0.3rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 600; 
+        }
+        .user-info button:hover {
+            background-color: #FFD700;
+            color: #1a202c;
+        }
+        .powerup-status {
+            font-weight: 800;
+            color: #FFD700;
+            text-shadow: 
+                0 0 5px #fff,    
+                0 0 10px #00FFFF, 
+                0 0 20px #00FFFF, 
+                0 0 30px rgba(0, 0, 0, 0.7); 
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 0.5rem;
+            display: none; 
+            position: absolute;
+            z-index: 20;
+        }
+        .message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); 
+            background-color: rgba(0, 0, 0, 0.95);
+            color: white;
+            border-radius: 1.5rem; 
+            text-align: center;
+            z-index: 30;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7); 
+            display: none;
+            max-width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+            border: 3px solid #FFD700;
+            box-sizing: border-box; 
+        }
+        .message-box h2 {
+            font-weight: 900;
+            color: #FFD700;
+            text-shadow: 
+                0 0 7px #fff,     
+                0 0 15px #FFD700, 
+                0 0 30px #FFD700, 
+                0 0 45px #FFD700, 
+                0 0 60px rgba(0, 0, 0, 0.8); 
+            font-family: 'Inter', monospace, sans-serif; 
+        }
+        .message-box p {
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7); 
+            font-family: 'Inter', monospace, sans-serif; 
+        }
+        .message-box input {
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #ddd;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+            background-color: #333;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            text-shadow: 0 0 2px rgba(0,0,0,0.5);
+        }
+        .message-box input::placeholder {
+            color: #bbb;
+        }
+        .flappy-button {
+            background: linear-gradient(to right, #ffe600, #ff9900);
+            color: #000;
+            font-family: 'Luckiest Guy', cursive;
+            border: 4px solid #fff;
+            border-radius: 18px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.4), 0 0 10px #ff0 inset;
+            text-shadow: 2px 2px #fff;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            margin: 6px;
+            -webkit-appearance: none; 
+            -moz-appearance: none;    
+            appearance: none;         
+        }
+        .flappy-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #ff0, 0 0 40px #ff9900;
+        }
+        .flappy-button:active {
+            transform: scale(0.98);
+        }
+        .leaderboard-modal, .profile-modal { 
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 40;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            display: none; 
+        }
+        .leaderboard-content, .profile-content { 
+            background-color: rgba(26, 32, 44, 0.98); 
+            color: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            text-align: center;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            border: 3px solid #FFD700;
+            box-sizing: border-box;
+        }
+        .leaderboard-content h3, .profile-content h3 { 
+            font-size: 2.8rem;
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+            color: #FFD700;
+            text-shadow: 
+                0 0 5px #fff,    
+                0 0 10px #FFD700, 
+                0 0 20px #FFD700, 
+                0 0 30px rgba(0, 0, 0, 0.7); 
+        }
+        .leaderboard-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 1.5rem 0;
+            width: 100%;
+        }
+        .leaderboard-list li {
+            background-color: rgba(45, 55, 72, 0.8); 
+            margin-bottom: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.6); 
+        }
+        .leaderboard-list li:hover {
+            transform: translateX(5px);
+            background-color: rgba(45, 55, 72, 0.9);
+        }
+        .leaderboard-list li.current-user {
+            background-color: #3B82F6; 
+            color: white;
+            font-weight: bold;
+            border: 2px solid #FFD700;
+            transform: scale(1.02);
+            text-shadow: 0 0 5px #fff, 0 0 10px #FFD700; 
+        }
+        .leaderboard-list li span:first-child {
+            width: 15%; 
+            text-align: left;
+            color: #FFD700; 
+            font-weight: 700;
+        }
+        .leaderboard-list li span:nth-child(2) {
+            width: 55%; 
+            text-align: left;
+            font-weight: bold;
+        }
+        .leaderboard-list li span:last-child {
+            width: 30%; 
+            text-align: right;
+            color: #A0AEC0;
+            font-weight: 700; 
+        }
+        .profile-content p {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #CBD5E0; 
+        }
+        .profile-content input {
+            margin-top: 1rem;
+        }
+        .close-button {
+            background-color: #E53E3E; 
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: 700; 
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+            margin-top: 1.5rem;
+        }
+        .close-button:hover {
+            background-color: #C53030;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-size: 2rem;
+            font-family: 'Luckiest Guy', cursive;
+            display: none; /* Hidden by default */
+        }
+        .loading-overlay img {
+            width: 80px;
+            height: 80px;
+            animation: spin 1s linear infinite;
+            margin-right: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Main game container -->
+    <div id="gameContainer" class="game-container">
+        <!-- Canvas for particle effects -->
+        <canvas id="particleCanvas"></canvas>
+
+        <!-- User Info & Profile/Logout Buttons -->
+        <div id="userInfo" class="user-info">
+            Welcome, <span id="userNameDisplay">Guest</span>!
+            <button id="profileButton" class="flappy-button small-button">👤 Profile</button>
+            <button id="logoutButton" class="flappy-button small-button">🚪 Logout</button>
+        </div>
+
+        <!-- Top bar for scores and market cap -->
+        <div class="top-bar">
+            <!-- Score display with player icon -->
+            <div id="score" class="score">
+                <span id="playerIcon" class="player-icon"></span>
+                $FLAPPY: <span id="flappyScoreCounter">0</span>
+            </div>
+            <!-- Market Cap display -->
+            <div id="marketCap" class="market-cap">MC: $100,000</div>
+        </div>
+
+        <!-- Power-up status display -->
+        <div id="powerupStatus" class="powerup-status"></div>
+        <!-- Player character -->
+        <div id="player" class="player"></div>
+
+        <!-- Main Message Box (Start, Game Over, Auth) -->
+        <div id="messageBox" class="message-box">
+            <h2 id="messageTitle"></h2>
+            <p id="messageText"></p>
+            <input type="email" id="emailInput" placeholder="Enter your email">
+            <input type="text" id="xAccountNameInput" placeholder="Enter your X (Twitter) handle (e.g., @MyFlappyX)">
+            <div id="authButtons" class="flex flex-col items-center">
+                <button id="signInEmailLinkButton" class="flappy-button">📧 SIGN IN WITH EMAIL LINK</button>
+                <button id="registerButton" class="flappy-button hidden">REGISTER (AUTO-LOGIN)</button>
+            </div>
+            <button id="startButton" class="flappy-button">🕹️ START GAME (GUEST)</button>
+            <button id="leaderboardButton" class="flappy-button">🏆 LEADERBOARD</button>
+            <button id="backToWelcomeButton" class="flappy-button hidden">🔙 BACK TO WELCOME</button>
+        </div>
+
+        <!-- Leaderboard Modal -->
+        <div id="leaderboardModal" class="leaderboard-modal">
+            <div class="leaderboard-content">
+                <h3>🏆 Global Leaderboard</h3>
+                <ul id="leaderboardList" class="leaderboard-list">
+                    <li>Loading Leaderboard...</li>
+                </ul>
+                <button id="leaderboardCloseButton" class="close-button">🔙 BACK</button>
+            </div>
+        </div>
+
+        <!-- Profile Modal -->
+        <div id="profileModal" class="profile-modal">
+            <div class="profile-content">
+                <h3>👤 Your Profile</h3>
+                <p id="profileEmailDisplay">Email: Not logged in</p>
+                <p id="profileXAccountDisplay">X Handle: Not set</p>
+                <p id="profileRankDisplay">Rank: Not available</p> <!-- New Rank Display -->
+                <input type="text" id="profileXAccountNameInput" placeholder="Enter your X (Twitter) handle">
+                <button id="profileSetXAccountNameButton" class="flappy-button">Update X Handle</button>
+                <div class="flex flex-col items-center mt-4">
+                    <button id="profileSignInEmailLinkButton" class="flappy-button">📧 Sign In</button>
+                    <button id="profileLogoutButton" class="flappy-button">🚪 Logout</button>
+                </div>
+                <button id="profileCloseButton" class="close-button">🔙 BACK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <img src="https://i.imgur.com/N3fsA36.png" alt="Loading Coin">
+        Loading...
+    </div>
+
+    <script>
+        // Game constants
+        const BASE_GAME_WIDTH = 626; 
+        const BASE_GAME_HEIGHT = 1131;
+
+        let GAME_WIDTH = window.innerWidth;
+        let GAME_HEIGHT = window.innerHeight;
+
+        let PLAYER_GRAVITY_BASE = 0.18; 
+        let PLAYER_FLAP_STRENGTH_BASE = -4.5; 
+        const PLAYER_SIZE_BASE = 80; 
+
+        const MAX_ROTATION_DEGREES = 35;
+        
+        const CANDLE_WIDTH_BASE = 150; 
+        const DESIRED_GAP_HEIGHT_RATIO = 0.25; 
+        const MIN_CANDLE_SECTION_HEIGHT_PX_BASE = 50; 
+        const MIN_GAP_HEIGHT_BASE = 180; 
+
+        const INITIAL_OBSTACLE_SPEED_BASE = 2.5; 
+        const OBSTACLE_INTERVAL_MIN = 3000; 
+        const OBSTACLE_INTERVAL_MAX = 4500; 
+        const FLAP_SOUND_COOLDOWN = 150; 
+
+        const POTION_SPAWN_CHANCE_RATE = 0.10; 
+
+        const SHIELD_DURATION = 5000;
+        const INITIAL_MARKET_CAP = 100000;
+        const MARKET_CAP_PER_BASE_CANDLE_WIDTH = 1000; 
+
+        const PLAYER_SPRITE_SHEET_URL = "https://i.imgur.com/N3fsA36.png"; 
+        const PLAYER_SPRITE_FRAME_COUNT = 4; 
+        let PLAYER_SPRITE_WIDTH = PLAYER_SIZE_BASE; 
+        let PLAYER_SPRITE_HEIGHT = PLAYER_SIZE_BASE; 
+
+        let currentScaledCandleWidth;
+        let currentScaledMinGapHeight;
+        let currentScaledMinCandleSectionHeight;
+
+        const BACKGROUND_IMAGE_URL = "https://i.imgur.com/ESwrOre.png"; 
+        const RED_CANDLE_IMAGE_URL = "https://i.imgur.com/yCs6SVg.png";
+        const GREEN_CANDLE_IMAGE_URL = "https://i.imgur.com/uUbXFff.png"; 
+        const POTION_IMAGE_URL = "https://i.imgur.com/cL2ndoI.png";
+        const FLAPPY_COIN_IMAGE_URL = "https://i.imgur.com/JZRXMxr.png";
+
+        const SPRITE_ANIMATION_SPEED = 200; 
+
+        // DOM element references
+        const gameContainer = document.getElementById('gameContainer');
+        const player = document.getElementById('player');
+        const flappyScoreCounter = document.getElementById('flappyScoreCounter'); 
+        const playerIcon = document.getElementById('playerIcon');
+        const marketCapDisplay = document.getElementById('marketCap');
+        const powerupStatusDisplay = document.getElementById('powerupStatus');
+
+        const messageBox = document.getElementById('messageBox');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageText = document.getElementById('messageText');
+        const emailInput = document.getElementById('emailInput'); 
+        const xAccountNameInput = document.getElementById('xAccountNameInput'); 
+        const authButtonsDiv = document.getElementById('authButtons'); 
+
+        // Main screen buttons
+        const signInEmailLinkButton = document.getElementById('signInEmailLinkButton'); 
+        const registerButton = document.getElementById('registerButton');
+        const startButton = document.getElementById('startButton'); 
+        const leaderboardButton = document.getElementById('leaderboardButton');
+        const backToWelcomeButton = document.getElementById('backToWelcomeButton'); 
+
+        // User info area buttons
+        const userInfoDisplay = document.getElementById('userInfo');
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const profileButton = document.getElementById('profileButton'); 
+        const logoutButton = document.getElementById('logoutButton');
+
+        // Modals and their elements
+        const leaderboardModal = document.getElementById('leaderboardModal');
+        const leaderboardList = document.getElementById('leaderboardList');
+        const leaderboardCloseButton = document.getElementById('leaderboardCloseButton');
+
+        const profileModal = document.getElementById('profileModal'); 
+        const profileEmailDisplay = document.getElementById('profileEmailDisplay'); 
+        const profileXAccountDisplay = document.getElementById('profileXAccountDisplay'); 
+        const profileRankDisplay = document.getElementById('profileRankDisplay'); // New rank display
+        const profileXAccountNameInput = document.getElementById('profileXAccountNameInput'); 
+        const profileSetXAccountNameButton = document.getElementById('profileSetXAccountNameButton'); 
+        const profileSignInEmailLinkButton = document.getElementById('profileSignInEmailLinkButton'); // Added
+        const profileLogoutButton = document.getElementById('profileLogoutButton'); // Added
+        const profileCloseButton = document.getElementById('profileCloseButton'); 
+
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // Canvas related elements
+        const particleCanvas = document.getElementById('particleCanvas');
+        const particleCtx = particleCanvas.getContext('2d');
+        let particles = [];
+        let particleAnimationFrameId = null;
+
+        // Game state variables
+        window.playerY = GAME_HEIGHT / 2;
+        window.playerVelocity = 0;
+        window.obstacles = []; 
+        window.items = []; 
+        window.score = 0;
+        window.marketCap = INITIAL_MARKET_CAP;
+        window.gameStarted = false;
+        window.gameOver = false;
+        window.lastObstacleTime = 0;
+        window.animationFrameId;
+
+        window.shieldActive = false;
+        window.shieldTimer = null;
+        window.currentObstacleSpeed = 0; 
+
+        window.currentSpriteFrameIndex = 0;
+        window.spriteAnimationInterval = null;
+
+        // Tone.js specific variables
+        let flapSynth = null; 
+
+        window.isStartingGame = false; 
+        window.lastFlapSoundTime = 0;  
+
+        // Supabase related variables
+        let currentUser = null;
+        let currentProfile = null;
+        let isLoggedIn = false;
+
+        /**
+         * Shows the loading overlay.
+         * @param {string} message - The message to display on the loading screen.
+         */
+        function showLoading(message = "Loading...") {
+            loadingOverlay.querySelector('img').style.display = 'block'; // Show spinner
+            loadingOverlay.innerHTML = `<img src="https://i.imgur.com/N3fsA36.png" alt="Loading Coin"> ${message}`;
+            loadingOverlay.style.display = 'flex';
+        }
+
+        /**
+         * Hides the loading overlay.
+         */
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
+
+        /**
+         * Formats a number as currency with commas.
+         * @param {number} num - The number to format.
+         * @returns {string} The formatted currency string.
+         */
+        function formatCurrency(num) {
+            return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+        }
+        
+        /**
+         * Initializes Tone.js audio context and synths.
+         * This must be called after a user gesture to avoid browser autoplay policies.
+         * Synths are disposed and recreated to ensure a clean state between games.
+         */
+        async function initAudio() {
+            console.log("initAudio called. Tone.context.state:", Tone.context.state);
+            if (flapSynth) { 
+                flapSynth.dispose();
+                flapSynth = null;
+            }
+
+            if (Tone.context.state === 'suspended') {
+                try {
+                    await Tone.start();
+                    console.log('Audio context resumed after user gesture.');
+                } catch (e) {
+                    console.error('Failed to resume audio context:', e);
+                }
+            } else {
+                console.log('Audio context state:', Tone.context.state);
+            }
+
+            flapSynth = new Tone.MembraneSynth({ 
+                pitchDecay: 0.05, octaves: 8,
+                envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 0.4, attackCurve: "exponential" },
+                volume: -10
+            }).toDestination();
+            console.log('Flap synth created.');
+        }
+
+        /**
+         * Calculates the actual rendered dimensions of the game area and adjusts all dynamic elements.
+         * This ensures everything scales proportionally to the current screen size.
+         */
+        function calculateGameDimensions() {
+            GAME_WIDTH = window.innerWidth;
+            GAME_HEIGHT = window.innerHeight;
+
+            // Player dimensions scale with GAME_HEIGHT
+            PLAYER_SPRITE_HEIGHT = Math.max(40, GAME_HEIGHT * (PLAYER_SIZE_BASE / BASE_GAME_HEIGHT)); 
+            PLAYER_SPRITE_WIDTH = PLAYER_SPRITE_HEIGHT; // Keep player square
+            player.style.width = `${PLAYER_SPRITE_WIDTH}px`;
+            player.style.height = `${PLAYER_SPRITE_HEIGHT}px`;
+
+            // Adjust physics constants based on new height
+            PLAYER_GRAVITY = PLAYER_GRAVITY_BASE * (GAME_HEIGHT / BASE_GAME_HEIGHT);
+            PLAYER_FLAP_STRENGTH = PLAYER_FLAP_STRENGTH_BASE * (GAME_HEIGHT / BASE_GAME_HEIGHT);
+            window.currentObstacleSpeed = INITIAL_OBSTACLE_SPEED_BASE * (GAME_WIDTH / BASE_GAME_WIDTH); // Scale speed too
+
+            // Calculate current scaled candle width, min gap, and min candle section height
+            currentScaledCandleWidth = GAME_WIDTH * (CANDLE_WIDTH_BASE / BASE_GAME_WIDTH);
+            const scaleFactorForHeight = GAME_HEIGHT / BASE_GAME_HEIGHT;
+            currentScaledMinGapHeight = MIN_GAP_HEIGHT_BASE * scaleFactorForHeight;
+            currentScaledMinCandleSectionHeight = MIN_CANDLE_SECTION_HEIGHT_PX_BASE * scaleFactorForHeight;
+
+            // Adjust player initial position based on new GAME_HEIGHT
+            window.playerY = (GAME_HEIGHT / 2) - (player.offsetHeight / 2);
+            player.style.top = `${window.playerY}px`; 
+            player.style.left = `${(GAME_WIDTH / 2) - (player.offsetWidth / 2)}px`;
+
+            // Adjust UI element sizes and positions based on a common scale factor
+            const scaleFactor = Math.min(GAME_WIDTH / BASE_GAME_WIDTH, GAME_HEIGHT / BASE_GAME_HEIGHT);
+            
+            // Top Bar
+            const topBarPadding = 1 * scaleFactor; 
+            document.querySelector('.top-bar').style.padding = `${topBarPadding}rem`;
+            document.querySelector('.score').style.fontSize = `${2.2 * scaleFactor}rem`;
+            document.querySelector('.score .player-icon').style.width = `${40 * scaleFactor}px`;
+            document.querySelector('.score .player-icon').style.height = `${40 * scaleFactor}px`;
+            document.querySelector('.market-cap').style.fontSize = `${2.2 * scaleFactor}rem`;
+
+            // User Info (Profile/Logout)
+            document.querySelector('.user-info').style.top = `${1 * scaleFactor}rem`;
+            document.querySelector('.user-info').style.right = `${1 * scaleFactor}rem`;
+            document.querySelector('.user-info').style.fontSize = `${1.2 * scaleFactor}rem`;
+            document.querySelector('.user-info').style.padding = `${0.5 * scaleFactor}rem ${1 * scaleFactor}rem`;
+            document.querySelector('.user-info').style.borderRadius = `${0.5 * scaleFactor}rem`;
+            
+            // Re-apply button styles as they are globally affected
+            document.querySelectorAll('.user-info button').forEach(btn => {
+                btn.style.padding = `${0.2 * scaleFactor}rem ${0.6 * scaleFactor}rem`;
+                btn.style.fontSize = `${0.9 * scaleFactor}rem`;
+                btn.style.borderRadius = `${0.3 * scaleFactor}rem`;
+            });
+
+
+            // Powerup Status
+            powerupStatusDisplay.style.top = `${(70 * scaleFactor)}px`; 
+            powerupStatusDisplay.style.right = `${1 * scaleFactor}rem`;
+            powerupStatusDisplay.style.fontSize = `${1.8 * scaleFactor}rem`;
+            powerupStatusDisplay.style.padding = `${0.5 * scaleFactor}rem ${1 * scaleFactor}rem`;
+            powerupStatusDisplay.style.borderRadius = `${0.5 * scaleFactor}rem`;
+
+
+            // Message Box
+            messageBox.style.padding = `${1 * scaleFactor}rem ${1.5 * scaleFactor}rem`;
+            messageBox.style.borderRadius = `${1.5 * scaleFactor}rem`;
+            messageBox.style.borderWidth = `${3 * scaleFactor}px`;
+            messageTitle.style.fontSize = `${2 * scaleFactor}rem`;
+            messageTitle.style.marginBottom = `${0.6 * scaleFactor}rem`;
+            messageText.style.fontSize = `${1 * scaleFactor}rem`;
+            messageText.style.marginBottom = `${0.8 * scaleFactor}rem`;
+            
+            // Buttons
+            const buttonFontSize = 20 * scaleFactor;
+            const buttonPaddingY = 14 * scaleFactor;
+            const buttonPaddingX = 30 * scaleFactor;
+            const buttonBorder = 4 * scaleFactor;
+            const buttonRadius = 18 * scaleFactor;
+            const buttonMargin = 6 * scaleFactor;
+
+            document.querySelectorAll('.flappy-button').forEach(btn => {
+                btn.style.fontSize = `${buttonFontSize}px`;
+                btn.style.padding = `${buttonPaddingY}px ${buttonPaddingX}px`;
+                btn.style.borderWidth = `${buttonBorder}px`;
+                btn.style.borderRadius = `${buttonRadius}px`;
+                btn.style.margin = `${buttonMargin}px`;
+            });
+            // Specific close button adjustments
+            document.querySelectorAll('.close-button').forEach(btn => {
+                btn.style.padding = `${0.8 * scaleFactor}rem ${1.5 * scaleFactor}rem`;
+                btn.style.fontSize = `${1.2 * scaleFactor}rem`;
+                btn.style.borderRadius = `${0.75 * scaleFactor}rem`;
+                btn.style.marginTop = `${1.5 * scaleFactor}rem`;
+            });
+            
+            // Input fields
+            document.querySelectorAll('.message-box input, .profile-content input').forEach(input => {
+                input.style.padding = `${0.75 * scaleFactor}rem ${1 * scaleFactor}rem`;
+                input.style.marginBottom = `${1 * scaleFactor}rem`;
+                input.style.borderRadius = `${0.5 * scaleFactor}rem`;
+                input.style.fontSize = `${1 * scaleFactor}rem`;
+                input.style.marginTop = `${1 * scaleFactor}rem`;
+            });
+
+            // Modals
+            document.querySelectorAll('.leaderboard-content, .profile-content').forEach(modal => {
+                modal.style.padding = `${2 * scaleFactor}rem`;
+                modal.style.borderRadius = `${1.5 * scaleFactor}rem`;
+                modal.style.borderWidth = `${3 * scaleFactor}px`;
+            });
+            document.querySelectorAll('.leaderboard-content h3, .profile-content h3').forEach(h3 => {
+                h3.style.fontSize = `${2.8 * scaleFactor}rem`;
+                h3.style.marginBottom = `${1.5 * scaleFactor}rem`;
+            });
+            document.querySelectorAll('.leaderboard-list li').forEach(li => {
+                li.style.marginBottom = `${0.75 * scaleFactor}rem`;
+                li.style.padding = `${0.75 * scaleFactor}rem ${1.25 * scaleFactor}rem`;
+                li.style.borderRadius = `${0.75 * scaleFactor}rem`;
+                li.style.fontSize = `${1.2 * scaleFactor}rem`;
+            });
+            document.querySelectorAll('.leaderboard-list li.current-user').forEach(li => {
+                li.style.borderWidth = `${2 * scaleFactor}px`;
+            });
+            document.querySelectorAll('.profile-content p').forEach(p => {
+                p.style.fontSize = `${1.2 * scaleFactor}rem`;
+                p.style.marginBottom = `${1 * scaleFactor}rem`;
+            });
+
+            // Canvas for particles
+            particleCanvas.width = GAME_WIDTH;
+            particleCanvas.height = GAME_HEIGHT;
+            createParticles(); 
+        }
+        
+        /**
+         * Initializes Tone.js audio context and synths.
+         * This must be called after a user gesture to avoid browser autoplay policies.
+         * Synths are disposed and recreated to ensure a clean state between games.
+         */
+        async function initAudio() {
+            console.log("initAudio called. Tone.context.state:", Tone.context.state);
+            if (flapSynth) { 
+                flapSynth.dispose();
+                flapSynth = null;
+            }
+
+            if (Tone.context.state === 'suspended') {
+                try {
+                    await Tone.start();
+                    console.log('Audio context resumed after user gesture.');
+                } catch (e) {
+                    console.error('Failed to resume audio context:', e);
+                }
+            } else {
+                console.log('Audio context state:', Tone.context.state);
+            }
+
+            flapSynth = new Tone.MembraneSynth({ 
+                pitchDecay: 0.05, octaves: 8,
+                envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 0.4, attackCurve: "exponential" },
+                volume: -10
+            }).toDestination();
+            console.log('Flap synth created.');
+        }
+
+        /**
+         * Updates the player's size based on sprite dimensions.
+         */
+        const updatePlayerSize = () => {
+            player.style.left = `${(GAME_WIDTH - player.offsetWidth) / 2}px`; 
+        };
+
+        /**
+         * Updates the player's vertical position based on gravity and velocity,
+         * handles boundary checks, and applies rotation based on vertical movement.
+         */
+        function updatePlayer() {
+            if (!window.gameStarted || window.gameOver) return;
+
+            window.playerVelocity += PLAYER_GRAVITY; 
+            window.playerY += window.playerVelocity; 
+
+            const rotationFactor = 0.5;
+            const normalizedVelocity = Math.max(-1, Math.min(1, window.playerVelocity * rotationFactor)); 
+            const rotationAngle = normalizedVelocity * MAX_ROTATION_DEGREES;
+
+            if (window.playerY < 0) { 
+                window.playerY = 0; 
+                window.playerVelocity = 0; 
+            }
+            if (window.playerY > GAME_HEIGHT - player.offsetHeight) { 
+                window.playerY = GAME_HEIGHT - player.offsetHeight; 
+                window.playerVelocity = 0; 
+                endGame(); 
+                return; 
+            }
+            player.style.top = `${window.playerY}px`; 
+            player.style.left = `${(GAME_WIDTH - player.offsetWidth) / 2}px`;
+            player.style.transform = `rotateZ(${rotationAngle}deg)`; 
+        }
+
+        /**
+         * Creates a new collectible item (potion or flappy coin).
+         * @param {number} xPos - The x-position for the item.
+         * @param {number} gapY - The y-position of the gap for placement.
+         * @param {number} gapHeight - The height of the gap.
+         */
+        function createCollectible(xPos, gapY, gapHeight) {
+            const itemElement = document.createElement('div');
+            const roll = Math.random();
+            let itemType;
+            if (roll < POTION_SPAWN_CHANCE_RATE) { 
+                itemType = 'potion';
+            } else { 
+                itemType = 'flappy-coin';
+            }
+            itemElement.classList.add('collectible-item', itemType);
+            
+            const itemWidth = PLAYER_SPRITE_WIDTH * 0.9; 
+            const itemHeight = PLAYER_SPRITE_HEIGHT * 0.9; 
+
+            const itemY = gapY + (gapHeight / 2) - (itemHeight / 2);
+            
+            itemElement.style.width = `${itemWidth}px`;
+            itemElement.style.height = `${itemHeight}px`;
+            itemElement.style.left = `${xPos - (itemWidth / 2)}px`; 
+            itemElement.style.top = `${itemY}px`;
+
+            gameContainer.appendChild(itemElement);
+            window.items.push({ 
+                element: itemElement,
+                x: xPos - (itemWidth / 2),
+                y: itemY,
+                width: itemWidth,
+                height: itemHeight,
+                type: itemType
+            });
+        }
+        
+        /**
+         * Creates a new candle obstacle (pair of red and green) with a random gap.
+         * Red candles from top, Green candles from bottom.
+         */
+        function createCandleObstacle() {
+            // Calculate available vertical space for the gap and candles
+            const availableVerticalSpace = GAME_HEIGHT - (player.offsetHeight * 2); 
+            
+            // Determine the actual minimum gap, ensuring it's at least currentScaledMinGapHeight
+            const currentMinGap = Math.max(currentScaledMinGapHeight, player.offsetHeight * 2.5); 
+            
+            // Randomly determine the gap height, making it between currentMinGap and
+            // currentMinGap + 30% of the remaining available vertical space.
+            const gapHeight = currentMinGap + Math.random() * (availableVerticalSpace * 0.3); 
+
+            // Calculate the maximum possible height for the top candle
+            const maxTopCandleHeight = GAME_HEIGHT - gapHeight - currentScaledMinCandleSectionHeight; 
+            
+            const minTopCandleHeight = currentScaledMinCandleSectionHeight; 
+
+            let topCandleHeight;
+            if (maxTopCandleHeight <= minTopCandleHeight) { 
+                topCandleHeight = GAME_HEIGHT / 2 - (gapHeight / 2);
+            } else {
+                topCandleHeight = minTopCandleHeight + Math.random() * (maxTopCandleHeight - minTopCandleHeight);
+            }
+            
+            const bottomCandleHeight = GAME_HEIGHT - topCandleHeight - gapHeight;
+
+            const gapY = topCandleHeight; 
+
+            // --- Create the Red (Top) Candle ---
+            const redCandle = document.createElement('div');
+            redCandle.classList.add('candle-obstacle', 'red-candle'); 
+            redCandle.style.height = `${topCandleHeight}px`; 
+            redCandle.style.width = `${currentScaledCandleWidth}px`; 
+            redCandle.style.left = `${GAME_WIDTH}px`; 
+            redCandle.style.top = `0px`; 
+
+            // --- Create the Green (Bottom) Candle ---
+            const greenCandle = document.createElement('div');
+            greenCandle.classList.add('candle-obstacle', 'green-candle'); 
+            greenCandle.style.height = `${bottomCandleHeight}px`; 
+            greenCandle.style.width = `${currentScaledCandleWidth}px`; 
+            greenCandle.style.left = `${GAME_WIDTH}px`; 
+            greenCandle.style.top = `${topCandleHeight + gapHeight}px`; 
+
+            gameContainer.appendChild(redCandle);
+            gameContainer.appendChild(greenCandle);
+
+            window.obstacles.push({ 
+                redElement: redCandle,
+                greenElement: greenCandle,
+                x: GAME_WIDTH, 
+                gapY: gapY,
+                gapHeight: gapHeight,
+                width: currentScaledCandleWidth, 
+                passed: false,
+            });
+
+            // Always create a collectible here
+            createCollectible(redCandle.offsetLeft + currentScaledCandleWidth / 2, gapY, gapHeight);
+        }
+
+        /**
+         * Updates the position of all active obstacles and items, handles removal,
+         * and updates score/market cap.
+         */
+        function updateObstaclesAndItems() {
+            if (!window.gameStarted || window.gameOver) return; 
+
+            for (let i = 0; i < window.obstacles.length; i++) { 
+                const obstacle = window.obstacles[i]; 
+                obstacle.x -= window.currentObstacleSpeed; 
+                obstacle.greenElement.style.left = `${obstacle.x}px`; 
+                obstacle.redElement.style.left = `${obstacle.x}px`; 
+
+                if (obstacle.x + obstacle.width < 0) {
+                    if (gameContainer.contains(obstacle.greenElement)) gameContainer.removeChild(obstacle.greenElement);
+                    if (gameContainer.contains(obstacle.redElement)) gameContainer.removeChild(obstacle.redElement);
+                    window.obstacles.splice(i, 1); 
+                    i--;
+                }
+            }
+
+            for (let i = 0; i < window.items.length; i++) { 
+                const item = window.items[i]; 
+                item.x -= window.currentObstacleSpeed; 
+                item.element.style.left = `${item.x}px`;
+
+                if (item.x + item.width < 0) {
+                    if (gameContainer.contains(item.element)) gameContainer.removeChild(item.element);
+                    window.items.splice(i, 1); 
+                    i--;
+                }
+            }
+
+            const currentTime = Date.now();
+            if (currentTime - window.lastObstacleTime > Math.random() * (OBSTACLE_INTERVAL_MAX - OBSTACLE_INTERVAL_MIN) + OBSTACLE_INTERVAL_MIN) { 
+                createCandleObstacle();
+                window.lastObstacleTime = currentTime; 
+            }
+        }
+
+        /**
+         * Checks for collisions between the player and candles or items.
+         */
+        function checkCollisions() {
+            if (!window.gameStarted || window.gameOver) return; 
+
+            const playerRect = player.getBoundingClientRect();
+            const playerHitboxShrinkAmountX = playerRect.width * 0.40; 
+            const playerHitboxShrinkAmountY = playerRect.height * 0.40;
+
+            const playerCollisionRect = {
+                left: playerRect.left + playerHitboxShrinkAmountX,
+                right: playerRect.right - playerHitboxShrinkAmountX,
+                top: playerRect.top + playerHitboxShrinkAmountY,
+                bottom: playerRect.bottom - playerHitboxShrinkAmountY,
+                width: playerRect.width - (2 * playerHitboxShrinkAmountX),
+                height: playerRect.height - (2 * playerHitboxShrinkAmountY)
+            };
+
+            for (let i = 0; i < window.obstacles.length; i++) { 
+                const obstacle = window.obstacles[i]; 
+                if (!obstacle.greenElement || !obstacle.redElement) continue; 
+
+                const greenRect = obstacle.greenElement.getBoundingClientRect(); 
+                const redRect = obstacle.redElement.getBoundingClientRect(); 
+
+                // Collision with red (top) candle
+                if (
+                    playerCollisionRect.left < redRect.right &&
+                    playerCollisionRect.right > redRect.left &&
+                    playerCollisionRect.top < redRect.bottom &&
+                    playerCollisionRect.bottom > redRect.top
+                ) {
+                    console.log("Collision detected with RED (TOP) candle!");
+                    if (!window.shieldActive) { 
+                        endGame(); 
+                        return; 
+                    }
+                }
+                // Collision with green (bottom) candle
+                if (
+                    playerCollisionRect.left < greenRect.right &&
+                    playerCollisionRect.right > greenRect.left &&
+                    playerCollisionRect.top < greenRect.bottom &&
+                    playerCollisionRect.bottom > greenRect.top
+                ) {
+                    console.log("Collision detected with GREEN (BOTTOM) candle!");
+                    if (!window.shieldActive) { 
+                        endGame(); 
+                        return; 
+                    }
+                }
+            }
+
+            for (let i = 0; i < window.items.length; i++) { 
+                const item = window.items[i]; 
+                if (!item.element) continue; 
+
+                const itemRect = item.element.getBoundingClientRect();
+                const itemHitboxShrinkAmount = itemRect.width * 0.10; 
+                const itemCollisionRect = {
+                    left: itemRect.left + itemHitboxShrinkAmount,
+                    right: itemRect.right - itemHitboxShrinkAmount,
+                    top: itemRect.top + itemHitboxShrinkAmount,
+                    bottom: itemRect.bottom - itemHitboxShrinkAmount,
+                    width: itemRect.width - (2 * itemHitboxShrinkAmount), 
+                    height: itemRect.height - (2 * itemHitboxShrinkAmount)
+                };
+
+                if (
+                    playerCollisionRect.left < itemCollisionRect.right &&
+                    playerCollisionRect.right > itemCollisionRect.left &&
+                    playerCollisionRect.top < itemCollisionRect.bottom &&
+                    playerCollisionRect.bottom > itemCollisionRect.top
+                ) {
+                    console.log("Collected item:", item.type);
+                    if (item.type === 'potion') {
+                        activateShield();
+                    } else if (item.type === 'flappy-coin') {
+                        window.score++; 
+                        updateScoreDisplay(); 
+                    }
+                    if (gameContainer.contains(item.element)) { 
+                        gameContainer.removeChild(item.element);
+                    }
+                    window.items.splice(i, 1); 
+                    i--;
+                }
+            }
+        }
+
+        /**
+         * Activates the shield power-up.
+         */
+        function activateShield() {
+            if (window.shieldTimer) clearTimeout(window.shieldTimer); 
+            window.shieldActive = true; 
+            player.classList.add('shielded');
+            powerupStatusDisplay.textContent = "SHIELD ACTIVE!";
+            powerupStatusDisplay.style.display = 'block';
+            window.shieldTimer = setTimeout(() => { deactivateShield(); }, SHIELD_DURATION); 
+        }
+
+        /**
+         * Deactivates the shield power-up.
+         */
+        function deactivateShield() {
+            window.shieldActive = false; 
+            player.classList.remove('shielded');
+            powerupStatusDisplay.style.display = 'none'; 
+            if (window.shieldTimer) clearTimeout(window.shieldTimer); 
+            window.shieldTimer = null; 
+        }
+
+        /**
+         * Starts the sprite animation for the player.
+         */
+        function startSpriteAnimation() {
+            if (window.spriteAnimationInterval) clearInterval(window.spriteAnimationInterval); 
+            window.spriteAnimationInterval = setInterval(() => { 
+                window.currentSpriteFrameIndex = (window.currentSpriteFrameIndex + 1) % PLAYER_SPRITE_FRAME_COUNT; 
+                player.style.backgroundPosition = `-${window.currentSpriteFrameIndex * PLAYER_SPRITE_WIDTH}px 0`; 
+            }, SPRITE_ANIMATION_SPEED);
+        }
+
+        /**
+         * Stops the sprite animation and resets to the first frame.
+         */
+        function stopSpriteAnimation() {
+            if (window.spriteAnimationInterval) clearInterval(window.spriteAnimationInterval); 
+            window.spriteAnimationInterval = null; 
+            window.currentSpriteFrameIndex = 0; 
+            player.style.backgroundPosition = `0 0`; 
+            player.style.transform = `rotateZ(0deg)`;
+        }
+
+        /**
+         * Calculates the final score based on Flappy score and Market Cap.
+         * @param {number} flappyScore
+         * @param {number} marketCap
+         * @returns {number} Combined final score.
+         */
+        function calculateCombinedFinalScore(flappyScore, marketCap) {
+            return flappyScore + (marketCap / 1000);
+        }
+        
+        // === Particle System for Welcome/Game Over Screens ===
+        function createParticles() {
+            particles = []; 
+            const numParticles = 100; 
+            for (let i = 0; i < numParticles; i++) {
+                particles.push({
+                    x: Math.random() * particleCanvas.width,
+                    y: Math.random() * particleCanvas.height,
+                    radius: Math.random() * 2 + 1, 
+                    color: `hsl(${Math.random() * 360}, 100%, 70%)`, 
+                    speedX: (Math.random() - 0.5) * 0.8, 
+                    speedY: (Math.random() - 0.5) * 0.8
+                });
+            }
+        }
+
+        function updateParticles() {
+            for (let p of particles) {
+                p.x += p.speedX;
+                p.y += p.speedY;
+                if (p.x < 0) p.x = particleCanvas.width;
+                if (p.x > particleCanvas.width) p.x = 0;
+                if (p.y < 0) p.y = particleCanvas.height;
+                if (p.y > particleCanvas.height) p.y = 0;
+            }
+        }
+
+        function drawParticles() {
+            particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height); 
+            for (let p of particles) {
+                particleCtx.beginPath();
+                particleCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                particleCtx.fillStyle = p.color;
+                particleCtx.fill();
+            }
+        }
+
+        function particleAnimationLoop() {
+            if (messageBox.style.display !== 'none' || leaderboardModal.style.display !== 'none' || profileModal.style.display !== 'none') { 
+                updateParticles();
+                drawParticles();
+                particleAnimationFrameId = requestAnimationFrame(particleAnimationLoop);
+            } else {
+                cancelAnimationFrame(particleAnimationFrameId);
+                particleAnimationFrameId = null;
+                particleCanvas.style.display = 'none'; 
+            }
+        }
+        // === End Particle System ===
+
+        /**
+         * Updates the score display on the top bar.
+         */
+        function updateScoreDisplay() {
+            flappyScoreCounter.textContent = window.score;
+            playerIcon.style.backgroundImage = `url('${PLAYER_SPRITE_SHEET_URL}')`;
+            playerIcon.style.backgroundPosition = `0 0`; 
+        }
+
+        /**
+         * The main game loop.
+         */
+        function gameLoop() {
+            if (window.gameOver) { 
+                cancelAnimationFrame(window.animationFrameId); 
+                return;
+            }
+
+            window.marketCap += (MARKET_CAP_PER_BASE_CANDLE_WIDTH / CANDLE_WIDTH_BASE) * window.currentObstacleSpeed; 
+            marketCapDisplay.textContent = `MC: ${formatCurrency(window.marketCap)}`; 
+
+            updatePlayer();
+            updateObstaclesAndItems();
+            checkCollisions();
+
+            window.animationFrameId = requestAnimationFrame(gameLoop); 
+        }
+
+        /**
+         * Initiates the 'flap' action. Includes audio cooldown.
+         */
+        function flap() {
+            if (flapSynth && Tone.context.state === 'running' && (Date.now() - window.lastFlapSoundTime >= FLAP_SOUND_COOLDOWN)) { 
+                flapSynth.triggerAttackRelease("C4", "8n"); 
+                window.lastFlapSoundTime = Date.now(); 
+            }
+            
+            if (!window.gameStarted && !window.gameOver && !window.isStartingGame && 
+                messageBox.style.display === 'block' && 
+                leaderboardModal.style.display !== 'flex' && /* Check if modals are NOT open */
+                profileModal.style.display !== 'flex') { /* Check if modals are NOT open */
+                
+                window.isStartingGame = true; 
+                startGame(); 
+                window.playerVelocity = PLAYER_FLAP_STRENGTH; 
+            } else if (window.gameStarted && !window.gameOver) { 
+                window.playerVelocity = PLAYER_FLAP_STRENGTH; 
+            }
+            if (Tone.context.state === 'suspended') {
+                 Tone.start().then(() => {
+                 }).catch(e => console.error("Failed to resume Tone.context on flap:", e));
+            }
+        }
+
+        /**
+         * Resets game state and starts the game.
+         */
+        function startGame() {
+            if (window.isStartingGame && window.gameStarted) { 
+                return; 
+            }
+
+            window.isStartingGame = true; 
+            window.gameStarted = true; 
+            window.gameOver = false; 
+            window.score = 0; 
+            updateScoreDisplay(); 
+            window.marketCap = INITIAL_MARKET_CAP; 
+            marketCapDisplay.textContent = `MC: ${formatCurrency(window.marketCap)}`; 
+            
+            calculateGameDimensions(); 
+
+            window.playerY = (GAME_HEIGHT / 2) - (player.offsetHeight / 2);
+            player.style.top = `${window.playerY}px`; 
+            player.style.left = `${(GAME_WIDTH / 2) - (player.offsetWidth / 2)}px`;
+
+            window.playerVelocity = 0; 
+
+            deactivateShield();
+            powerupStatusDisplay.style.display = 'none';
+
+            window.obstacles.forEach(o => { 
+                if (gameContainer.contains(o.greenElement)) gameContainer.removeChild(o.greenElement); 
+                if (gameContainer.contains(o.redElement)) gameContainer.removeChild(o.redElement); 
+            });
+            window.obstacles = []; 
+            window.items.forEach(item => { 
+                if (gameContainer.contains(item.element)) gameContainer.removeChild(item.element);
+            });
+            window.items = []; 
+
+            messageBox.style.display = 'none'; 
+            leaderboardModal.style.display = 'none'; 
+            profileModal.style.display = 'none'; 
+            particleCanvas.style.display = 'none'; 
+            if (particleAnimationFrameId) cancelAnimationFrame(particleAnimationFrameId); 
+
+            // Hide PROFILE and LOGOUT buttons during game
+            userInfoDisplay.classList.add('in-game');
+            userInfoDisplay.classList.add('in-game-over'); 
+
+            window.lastObstacleTime = Date.now(); 
+            
+            initAudio().then(() => { 
+                gameLoop(); 
+                startSpriteAnimation();
+                window.isStartingGame = false; 
+            }).catch(e => {
+                console.error("Failed to ensure audio started on game start:", e);
+                window.isStartingGame = false; 
+            });
+        }
+
+        /**
+         * Ends the game and displays game over message.
+         */
+        async function endGame() {
+            if (window.gameOver) { 
+                return; 
+            }
+
+            window.gameOver = true; 
+            window.gameStarted = false; 
+            cancelAnimationFrame(window.animationFrameId); 
+            stopSpriteAnimation();
+            deactivateShield();
+
+            if (flapSynth) { 
+                flapSynth.dispose(); 
+                flapSynth = null; 
+            }
+
+            const finalCombinedScore = calculateCombinedFinalScore(window.score, window.marketCap); 
+            
+            messageTitle.textContent = "💀 𝗚𝗔𝗠𝗘 𝗢𝗩𝗘𝗥!"; 
+            messageText.innerHTML = `
+                🪙 Your $FLAPPY: ${window.score}<br>
+                📊 Final Market Cap: ${formatCurrency(window.marketCap)}<br><br>
+                💥 Combined Score: <b>${finalCombinedScore.toFixed(0)}</b><br>
+            `;
+            
+            // Save score to Supabase if logged in
+            if (isLoggedIn && currentUser && currentUser.id) {
+                showLoading("Saving score...");
+                const { error } = await supabase
+                    .from('scores')
+                    .insert([
+                        { user_id: currentUser.id, score: window.score, market_cap: window.marketCap, combined_score: finalCombinedScore.toFixed(0) }
+                    ]);
+                hideLoading();
+                if (error) {
+                    console.error("Error saving score:", error);
+                    messageText.innerHTML += `<br><span style="color:red;">Error saving score: ${error.message}</span>`;
+                } else {
+                    messageText.innerHTML += `<br><span style="color:lime;">Score saved!</span>`;
+                }
+            } else {
+                messageText.innerHTML += `<br>Sign in to save your score and appear on the leaderboard!`;
+            }
+
+            signInEmailLinkButton.textContent = "📧 SIGN IN"; 
+            startButton.textContent = "🕹️ PLAY AGAIN"; 
+            leaderboardButton.textContent = "🏆 LEADERBOARD"; 
+            backToWelcomeButton.textContent = "🔙 BACK TO WELCOME"; 
+
+            showAuthScreen(true); 
+        }
+
+        /**
+         * Fetches user profile from Supabase.
+         * @param {string} userId - The ID of the user.
+         * @returns {Promise<object|null>} The user's profile data or null if not found/error.
+         */
+        async function fetchUserProfile(userId) {
+            showLoading("Fetching profile...");
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+            hideLoading();
+            if (error && error.code !== 'PGRST116') { // PGRST116 means no row found, which is fine
+                console.error("Error fetching profile:", error);
+                return null;
+            }
+            return data;
+        }
+
+        /**
+         * Upserts user profile in Supabase.
+         * @param {object} profileData - Data to insert/update.
+         */
+        async function upsertUserProfile(profileData) {
+            showLoading("Updating profile...");
+            const { error } = await supabase
+                .from('profiles')
+                .upsert(profileData, { onConflict: 'id' });
+            hideLoading();
+            if (error) {
+                console.error("Error upserting profile:", error);
+                alert("Error updating profile: " + error.message);
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * Updates the user's X (Twitter) account name.
+         * @param {string} xAccountName - The new X account name.
+         */
+        async function updateXAccountName(xAccountName) {
+            if (!currentUser) {
+                alert("You must be logged in to update your X account name.");
+                return;
+            }
+
+            showLoading("Updating X handle...");
+            // Supabase auth.updateUser can directly update 'user_metadata'
+            const { data: updatedUser, error: updateError } = await supabase.auth.updateUser({
+                data: { x_account_name: xAccountName }
+            });
+            hideLoading();
+
+            if (updateError) {
+                console.error("Error updating user metadata:", updateError);
+                alert("Error updating X handle: " + updateError.message);
+                return;
+            }
+
+            // Also update the public profiles table for leaderboard display
+            const success = await upsertUserProfile({ 
+                id: currentUser.id, 
+                email: currentUser.email, // Keep email updated in profiles table
+                x_account_name: xAccountName 
+            });
+
+            if (success) {
+                currentProfile = { ...currentProfile, x_account_name: xAccountName };
+                profileXAccountDisplay.textContent = `X Handle: ${xAccountName}`;
+                updateAuthUI(); // Refresh UI after update
+                alert("X (Twitter) handle updated successfully!");
+            }
+        }
+
+        /**
+         * Fetches and displays the leaderboard.
+         */
+        async function displayLeaderboard() {
+            showLoading("Fetching leaderboard...");
+            const { data, error } = await supabase
+                .from('scores')
+                .select(`
+                    combined_score,
+                    profiles (
+                        x_account_name,
+                        email,
+                        id
+                    )
+                `)
+                .order('combined_score', { ascending: false })
+                .limit(10);
+            hideLoading();
+
+            if (error) {
+                console.error("Error fetching leaderboard:", error);
+                leaderboardList.innerHTML = `<li>Error loading leaderboard: ${error.message}</li>`;
+                return;
+            }
+
+            leaderboardList.innerHTML = ''; // Clear previous list
+
+            if (data.length === 0) {
+                leaderboardList.innerHTML = '<li>No scores yet! Be the first to play.</li>';
+                return;
+            }
+
+            data.forEach((entry, index) => {
+                const li = document.createElement('li');
+                const rank = index + 1;
+                // Use x_account_name if available, otherwise email for display
+                const username = entry.profiles ? (entry.profiles.x_account_name || entry.profiles.email) : 'Unknown Player';
+                li.innerHTML = `<span>#${rank}</span><span>${username}</span><span>${entry.combined_score}</span>`;
+                if (currentUser && entry.profiles && entry.profiles.id === currentUser.id) { 
+                    li.classList.add('current-user');
+                }
+                leaderboardList.appendChild(li);
+            });
+            leaderboardModal.style.display = 'flex';
+        }
+
+        /**
+         * Calculates and displays the current user's rank.
+         */
+        async function displayUserRank() {
+            if (!currentUser) {
+                profileRankDisplay.textContent = 'Rank: N/A (Sign in to see)';
+                return;
+            }
+
+            showLoading("Calculating rank...");
+            // Get the user's highest score
+            const { data: userScores, error: userScoresError } = await supabase
+                .from('scores')
+                .select('combined_score')
+                .eq('user_id', currentUser.id)
+                .order('combined_score', { ascending: false })
+                .limit(1)
+                .single();
+            
+            if (userScoresError && userScoresError.code !== 'PGRST116') {
+                console.error("Error fetching user's highest score:", userScoresError);
+                profileRankDisplay.textContent = 'Rank: Error loading';
+                hideLoading();
+                return;
+            }
+
+            if (!userScores) {
+                profileRankDisplay.textContent = 'Rank: No scores yet';
+                hideLoading();
+                return;
+            }
+
+            const userHighestScore = userScores.combined_score;
+
+            // Count how many scores are greater than or equal to the user's score
+            const { count, error: countError } = await supabase
+                .from('scores')
+                .select('id', { count: 'exact' })
+                .gte('combined_score', userHighestScore); // Count scores >= user's score
+
+            hideLoading();
+
+            if (countError) {
+                console.error("Error counting scores for rank:", countError);
+                profileRankDisplay.textContent = 'Rank: Error loading';
+                return;
+            }
+
+            // The rank is the count of scores that are equal to or higher than the user's score
+            profileRankDisplay.textContent = `Rank: ${count}`;
+        }
+
+
+        /**
+         * Handles the sign-in with email magic link process.
+         */
+        async function handleSignInWithEmailLink() {
+            const email = emailInput.value.trim();
+            if (!email) {
+                alert("Please enter your email address.");
+                return;
+            }
+
+            showLoading("Sending magic link...");
+            const { error } = await supabase.auth.signInWithOtp({
+                email: email,
+                options: {
+                    emailRedirectTo: window.location.origin // Redirect back to this page
+                }
+            });
+            hideLoading();
+
+            if (error) {
+                console.error("Error sending magic link:", error);
+                alert("Error sending magic link: " + error.message);
+            } else {
+                alert("Magic link sent to your email! Check your inbox to sign in.");
+                messageText.textContent = `Magic link sent to ${email}. Check your inbox!`;
+                emailInput.value = ''; // Clear input
+                emailInput.classList.add('hidden');
+                xAccountNameInput.classList.add('hidden');
+                authButtonsDiv.classList.add('hidden');
+                startButton.classList.remove('hidden'); // Allow playing as guest
+                leaderboardButton.classList.remove('hidden');
+                startButton.textContent = "🕹️ START GAME (GUEST)";
+            }
+        }
+
+        /**
+         * Verifies the email magic link upon redirect.
+         */
+        async function verifyEmailLink() {
+            showLoading("Verifying magic link...");
+            const { data, error } = await supabase.auth.getSession();
+            hideLoading();
+            if (error) {
+                console.error("Error verifying session:", error);
+                return;
+            }
+
+            if (data.session) {
+                currentUser = data.session.user;
+                isLoggedIn = true;
+                currentProfile = await fetchUserProfile(currentUser.id);
+                if (!currentProfile) {
+                    await upsertUserProfile({ id: currentUser.id, email: currentUser.email, x_account_name: null });
+                    currentProfile = await fetchUserProfile(currentUser.id); 
+                }
+                updateAuthUI();
+                showAuthScreen(false); 
+            }
+        }
+
+        /**
+         * Handles user logout.
+         */
+        async function handleLogout() {
+            showLoading("Logging out...");
+            const { error } = await supabase.auth.signOut();
+            hideLoading();
+            if (error) {
+                console.error("Error logging out:", error);
+                alert("Error logging out: " + error.message);
+            } else {
+                currentUser = null;
+                currentProfile = null;
+                isLoggedIn = false;
+                updateAuthUI();
+                showAuthScreen(false); 
+                alert("Logged out successfully!");
+            }
+        }
+
+        /**
+         * Updates the visibility and content of UI elements based on authentication state.
+         */
+        function updateAuthUI() {
+            if (isLoggedIn && currentUser) {
+                userNameDisplay.textContent = currentProfile && currentProfile.x_account_name ? currentProfile.x_account_name : currentUser.email;
+                profileButton.style.display = 'inline-block';
+                logoutButton.style.display = 'inline-block';
+                signInEmailLinkButton.classList.add('hidden'); 
+                registerButton.classList.add('hidden');
+                startButton.textContent = "🕹️ START GAME"; 
+                emailInput.classList.add('hidden');
+                xAccountNameInput.classList.add('hidden');
+                authButtonsDiv.classList.add('hidden');
+
+                profileEmailDisplay.textContent = `Email: ${currentUser.email}`;
+                profileXAccountDisplay.textContent = `X Handle: ${currentProfile ? (currentProfile.x_account_name || 'Not set') : 'Not set'}`;
+                profileXAccountNameInput.value = currentProfile && currentProfile.x_account_name ? currentProfile.x_account_name : '';
+                profileSignInEmailLinkButton.classList.add('hidden'); // Hide in profile if logged in
+                profileLogoutButton.classList.remove('hidden'); // Show in profile if logged in
+
+            } else {
+                userNameDisplay.textContent = 'Guest';
+                profileButton.style.display = 'none';
+                logoutButton.style.display = 'none';
+                signInEmailLinkButton.classList.remove('hidden'); 
+                registerButton.classList.add('hidden'); 
+                startButton.textContent = "🕹️ START GAME (GUEST)";
+                emailInput.classList.remove('hidden');
+                xAccountNameInput.classList.remove('hidden');
+                authButtonsDiv.classList.remove('hidden');
+
+                profileEmailDisplay.textContent = 'Email: Not logged in';
+                profileXAccountDisplay.textContent = 'X Handle: Not set';
+                profileXAccountNameInput.value = '';
+                profileSignInEmailLinkButton.classList.remove('hidden'); // Show in profile if logged out
+                profileLogoutButton.classList.add('hidden'); // Hide in profile if logged out
+                profileRankDisplay.textContent = 'Rank: Not available'; // Reset rank
+            }
+        }
+
+        /**
+         * Shows the authentication/start screen or game over screen.
+         * @param {boolean} isGameOver - True if showing after game over.
+         */
+        function showAuthScreen(isGameOver = false) {
+            messageBox.style.display = 'block'; 
+            particleCanvas.style.display = 'block'; 
+            if (!particleAnimationFrameId) { 
+                createParticles(); 
+                particleAnimationLoop(); 
+            }
+            
+            if (isGameOver) {
+                userInfoDisplay.classList.add('in-game-over'); 
+                userInfoDisplay.classList.remove('in-game'); 
+                backToWelcomeButton.classList.remove('hidden'); 
+            } else {
+                userInfoDisplay.classList.remove('in-game'); 
+                userInfoDisplay.classList.remove('in-game-over'); 
+                userInfoDisplay.style.display = 'flex'; /* Ensure user info is visible on welcome screen */
+                backToWelcomeButton.classList.add('hidden'); 
+            }
+
+            startButton.classList.remove('hidden');
+            leaderboardButton.classList.remove('hidden');
+
+            xAccountNameInput.classList.add('hidden');
+
+            if (!isLoggedIn) {
+                emailInput.classList.remove('hidden');
+                authButtonsDiv.classList.remove('hidden');
+                signInEmailLinkButton.classList.remove('hidden');
+                registerButton.classList.add('hidden'); 
+            } else {
+                emailInput.classList.add('hidden');
+                authButtonsDiv.classList.add('hidden');
+                signInEmailLinkButton.classList.add('hidden');
+                registerButton.classList.add('hidden');
+            }
+
+            if (!isGameOver) {
+                messageTitle.textContent = "🚀 Welcome to 𝗖𝗥𝗬𝗣𝗧𝗢  𝗟𝗔𝗣!"; 
+                messageText.innerHTML = "⛏️ Flap through green candles, dodge the red ones.<br>💸 Stack up your $FLAPPY and fly to crypto glory!<br><br>Sign in to save your scores!"; 
+            } 
+        }
+
+        // --- Event Listeners ---
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (!window.gameStarted && !window.gameOver && messageBox.style.display === 'block' &&
+                    leaderboardModal.style.display !== 'flex' && profileModal.style.display !== 'flex') { 
+                    flap(); 
+                } else if (window.gameStarted && !window.gameOver) { 
+                    flap(); 
+                }
+            }
+        });
+
+        gameContainer.addEventListener('click', async (e) => {
+            if (e.target.closest('#signInEmailLinkButton')) {
+                e.stopPropagation(); 
+                await handleSignInWithEmailLink();
+            } else if (e.target.closest('#startButton')) { 
+                e.stopPropagation();
+                startGame();
+            } else if (e.target.closest('#leaderboardButton')) {
+                e.stopPropagation();
+                await displayLeaderboard();
+            } else if (e.target.closest('#leaderboardCloseButton')) {
+                leaderboardModal.style.display = 'none';
+                if (window.gameOver) {
+                    showAuthScreen(true); 
+                } else {
+                    showAuthScreen(false); 
+                }
+            } else if (e.target.closest('#profileButton')) { 
+                e.stopPropagation();
+                profileModal.style.display = 'flex';
+                if (currentUser) {
+                    currentProfile = await fetchUserProfile(currentUser.id); 
+                    profileEmailDisplay.textContent = `Email: ${currentUser.email}`;
+                    profileXAccountDisplay.textContent = `X Handle: ${currentProfile ? (currentProfile.x_account_name || 'Not set') : 'Not set'}`;
+                    profileXAccountNameInput.value = currentProfile && currentProfile.x_account_name ? currentProfile.x_account_name : '';
+                    await displayUserRank(); // Fetch and display rank
+                } else {
+                    profileEmailDisplay.textContent = 'Email: Not logged in';
+                    profileXAccountDisplay.textContent = 'X Handle: Not set';
+                    profileXAccountNameInput.value = '';
+                    profileRankDisplay.textContent = 'Rank: N/A (Sign in to see)';
+                }
+                updateAuthUI(); // Ensure profile modal buttons are correct
+            } else if (e.target.closest('#profileSetXAccountNameButton')) {
+                e.stopPropagation();
+                const newXAccountName = profileXAccountNameInput.value.trim();
+                await updateXAccountName(newXAccountName);
+            } else if (e.target.closest('#profileSignInEmailLinkButton')) { // New listener for profile modal sign in
+                e.stopPropagation();
+                // Re-use logic from main sign-in, but need email input from profile modal
+                // For simplicity, we'll just alert and ask them to use the main screen or refresh
+                alert("Please use the main screen's 'Sign In with Email Link' feature or refresh the page to sign in.");
+            } else if (e.target.closest('#profileLogoutButton')) { // New listener for profile modal logout
+                e.stopPropagation();
+                await handleLogout();
+            }
+            else if (e.target.closest('#profileCloseButton')) { 
+                profileModal.style.display = 'none';
+                if (window.gameOver) {
+                    showAuthScreen(true); 
+                } else {
+                    showAuthScreen(false); 
+                }
+            } else if (e.target.closest('#backToWelcomeButton')) { 
+                e.stopPropagation();
+                showAuthScreen(false); 
+            } else if (e.target.closest('#logoutButton')) { 
+                e.stopPropagation();
+                await handleLogout();
+            } else { 
+                if (window.gameStarted && !window.gameOver) { 
+                    flap();
+                }
+            }
+        }, { passive: false }); 
+
+        window.onload = async () => {
+            calculateGameDimensions(); 
+
+            player.style.width = `${PLAYER_SPRITE_WIDTH}px`;
+            player.style.height = `${PLAYER_SPRITE_HEIGHT}px`;
+
+            updatePlayerSize();
+            window.playerY = (GAME_HEIGHT / 2) - (player.offsetHeight / 2);
+            player.style.top = `${window.playerY}px`; 
+            player.style.left = `${(GAME_WIDTH / 2) - (player.offsetWidth / 2)}px`;
+            player.style.transform = `rotateZ(0deg)`;
+            marketCapDisplay.textContent = `MC: ${formatCurrency(INITIAL_MARKET_CAP)}`;
+
+            updateScoreDisplay();
+            
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('type') && params.get('type') === 'magiclink') {
+                await verifyEmailLink();
+            }
+
+            window.supabase.auth.onAuthStateChange(async (event, session) => {
+                console.log("Auth state changed:", event, session);
+                if (session) {
+                    currentUser = session.user;
+                    isLoggedIn = true;
+                    currentProfile = await fetchUserProfile(currentUser.id);
+                    if (!currentProfile) {
+                        await upsertUserProfile({ id: currentUser.id, email: currentUser.email, x_account_name: null });
+                        currentProfile = await fetchUserProfile(currentUser.id); 
+                    }
+                } else {
+                    currentUser = null;
+                    currentProfile = null;
+                    isLoggedIn = false;
+                }
+                updateAuthUI();
+                showAuthScreen(window.gameOver); 
+            });
+
+            updateAuthUI();
+            showAuthScreen(); 
+        };
+
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.closest('button') || e.target.closest('input')) {
+            } else {
+                e.preventDefault(); 
+                if (!window.gameStarted && !window.gameOver && messageBox.style.display === 'block') {
+                    flap(); 
+                } else if (window.gameStarted && !window.gameOver) { 
+                    flap(); 
+                }
+            }
+        }, { passive: false });
+
+        window.addEventListener('resize', () => {
+            calculateGameDimensions(); 
+
+            if (!window.gameStarted || window.gameOver) { 
+                window.playerY = (GAME_HEIGHT / 2) - (player.offsetHeight / 2);
+                player.style.top = `${window.playerY}px`; 
+                player.style.left = `${(GAME_WIDTH / 2) - (player.offsetWidth / 2)}px`;
+            }
+            messageBox.style.top = '50%';
+            messageBox.style.left = '50%';
+            messageBox.style.transform = 'translate(-50%, -50%)';
+            leaderboardModal.style.top = '0'; 
+            leaderboardModal.style.left = '0';
+            profileModal.style.top = '0';
+            profileModal.style.left = '0';
+        });
+    </script>
+</body>
+</html>
+ 
