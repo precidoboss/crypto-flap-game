@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>Crypto Flap</title>
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,9 +13,14 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         window.supabase = createClient(
             'https://ahnpnodecccftvscffbx.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobnBub2RlY2NjZnR2c2NmZmJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4OTc4NTgsImV4cCI6MjA2NTQ3Mzg1OH0.hsGLtErR5gfySWetNGrdo-EjoOl2kuCnOAU4q0Zu_SY'
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobnBub2RlY2NjZnR2c2NmZmJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4OTc4NTgsImV4cCI6MjA2NTQ3Mzg1OH0.hsGLtErR5gfySWetNGrdo-EjoOl2kuCnOAU4q0Zu_SY',
+            {
+                auth: {
+                    persistSession: true // This ensures the session persists across browser closures
+                }
+            }
         );
-        console.log("Supabase client initialized.");
+        console.log("Supabase client initialized with session persistence.");
     </script>
     <style>
         /* Import Luckiest Guy font */
@@ -1253,15 +1258,8 @@
                 window.lastFlapSoundTime = Date.now(); 
             }
             
-            if (!window.gameStarted && !window.gameOver && !window.isStartingGame && 
-                messageBox.style.display === 'block' && 
-                leaderboardModal.style.display !== 'flex' && /* Check if modals are NOT open */
-                profileModal.style.display !== 'flex') { /* Check if modals are NOT open */
-                
-                window.isStartingGame = true; 
-                startGame(); 
-                window.playerVelocity = PLAYER_FLAP_STRENGTH; 
-            } else if (window.gameStarted && !window.gameOver) { 
+            // Only flap if the game has started
+            if (window.gameStarted && !window.gameOver) { 
                 window.playerVelocity = PLAYER_FLAP_STRENGTH; 
             }
             if (Tone.context.state === 'suspended') {
@@ -1371,6 +1369,8 @@
                     messageText.innerHTML += `<br><span style="color:red;">Error saving score: ${error.message}</span>`;
                 } else {
                     messageText.innerHTML += `<br><span style="color:lime;">Score saved!</span>`;
+                    // Refresh leaderboard after a successful save
+                    await displayLeaderboard(); 
                 }
             } else {
                 messageText.innerHTML += `<br>Sign in to save your score and appear on the leaderboard!`;
@@ -1721,7 +1721,7 @@
             }
 
             if (!isGameOver) {
-                messageTitle.textContent = "🚀 Welcome to 𝗖𝗥𝗬𝗣𝗧𝗢  𝗟𝗔𝗣!"; 
+                messageTitle.textContent = "🚀 Welcome to 𝗖𝗥𝗬𝗣𝗧𝗢 �𝗟𝗔𝗣!"; 
                 messageText.innerHTML = "⛏️ Flap through green candles, dodge the red ones.<br>💸 Stack up your $FLAPPY and fly to crypto glory!<br><br>Sign in to save your scores!"; 
             } 
         }
@@ -1731,75 +1731,74 @@
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 e.preventDefault();
-                if (!window.gameStarted && !window.gameOver && messageBox.style.display === 'block' &&
-                    leaderboardModal.style.display !== 'flex' && profileModal.style.display !== 'flex') { 
-                    flap(); 
-                } else if (window.gameStarted && !window.gameOver) { 
+                // Allow flap only if not in a modal and not already in game
+                // AND the message box is NOT visible (meaning game is active OR about to start from Start button)
+                if (window.gameStarted && !window.gameOver) { 
                     flap(); 
                 }
             }
         });
 
         gameContainer.addEventListener('click', async (e) => {
-            if (e.target.closest('#signInEmailLinkButton')) {
-                e.stopPropagation(); 
-                await handleSignInWithEmailLink();
-            } else if (e.target.closest('#startButton')) { 
-                e.stopPropagation();
-                startGame();
-            } else if (e.target.closest('#leaderboardButton')) {
-                e.stopPropagation();
-                await displayLeaderboard();
-            } else if (e.target.closest('#leaderboardCloseButton')) {
-                leaderboardModal.style.display = 'none';
-                if (window.gameOver) {
-                    showAuthScreen(true); 
-                } else {
+            // Check if the click target is a button inside messageBox or modals, or userInfo buttons.
+            // If it's one of these, let the specific button handler manage it.
+            const isMessageBoxButton = e.target.closest('#messageBox button');
+            const isModalButton = e.target.closest('.leaderboard-modal button') || e.target.closest('.profile-modal button');
+            const isUserInfoButton = e.target.closest('#userInfo button');
+
+            if (isMessageBoxButton || isModalButton || isUserInfoButton) {
+                e.stopPropagation(); // Prevent this click from bubbling up to the gameContainer's general handler
+
+                if (e.target.closest('#signInEmailLinkButton')) {
+                    await handleSignInWithEmailLink();
+                } else if (e.target.closest('#startButton')) { 
+                    startGame();
+                } else if (e.target.closest('#leaderboardButton')) {
+                    await displayLeaderboard();
+                } else if (e.target.closest('#leaderboardCloseButton')) {
+                    leaderboardModal.style.display = 'none';
+                    if (window.gameOver) {
+                        showAuthScreen(true); 
+                    } else {
+                        showAuthScreen(false); 
+                    }
+                } else if (e.target.closest('#profileButton')) { 
+                    profileModal.style.display = 'flex';
+                    if (currentUser) {
+                        currentProfile = await fetchUserProfile(currentUser.id); 
+                        profileEmailDisplay.textContent = `Email: ${currentUser.email}`;
+                        profileXAccountDisplay.textContent = `X Handle: ${currentProfile ? (currentProfile.x_account_name || 'Not set') : 'Not set'}`;
+                        profileXAccountNameInput.value = currentProfile && currentProfile.x_account_name ? currentProfile.x_account_name : '';
+                        await displayUserRank(); // Fetch and display rank
+                    } else {
+                        profileEmailDisplay.textContent = 'Email: Not logged in';
+                        profileXAccountDisplay.textContent = 'X Handle: Not set';
+                        profileXAccountNameInput.value = '';
+                        profileRankDisplay.textContent = 'Rank: N/A (Sign in to see)';
+                    }
+                    updateAuthUI(); // Ensure profile modal buttons are correct
+                } else if (e.target.closest('#profileSetXAccountNameButton')) {
+                    const newXAccountName = profileXAccountNameInput.value.trim();
+                    await updateXAccountName(newXAccountName);
+                } else if (e.target.closest('#profileSignInEmailLinkButton')) { 
+                    alert("Please use the main screen's 'Sign In with Email Link' feature or refresh the page to sign in.");
+                } else if (e.target.closest('#profileLogoutButton')) { 
+                    await handleLogout();
+                }
+                else if (e.target.closest('#profileCloseButton')) { 
+                    profileModal.style.display = 'none';
+                    if (window.gameOver) {
+                        showAuthScreen(true); 
+                    } else {
+                        showAuthScreen(false); 
+                    }
+                } else if (e.target.closest('#backToWelcomeButton')) { 
                     showAuthScreen(false); 
+                } else if (e.target.closest('#logoutButton')) { 
+                    await handleLogout();
                 }
-            } else if (e.target.closest('#profileButton')) { 
-                e.stopPropagation();
-                profileModal.style.display = 'flex';
-                if (currentUser) {
-                    currentProfile = await fetchUserProfile(currentUser.id); 
-                    profileEmailDisplay.textContent = `Email: ${currentUser.email}`;
-                    profileXAccountDisplay.textContent = `X Handle: ${currentProfile ? (currentProfile.x_account_name || 'Not set') : 'Not set'}`;
-                    profileXAccountNameInput.value = currentProfile && currentProfile.x_account_name ? currentProfile.x_account_name : '';
-                    await displayUserRank(); // Fetch and display rank
-                } else {
-                    profileEmailDisplay.textContent = 'Email: Not logged in';
-                    profileXAccountDisplay.textContent = 'X Handle: Not set';
-                    profileXAccountNameInput.value = '';
-                    profileRankDisplay.textContent = 'Rank: N/A (Sign in to see)';
-                }
-                updateAuthUI(); // Ensure profile modal buttons are correct
-            } else if (e.target.closest('#profileSetXAccountNameButton')) {
-                e.stopPropagation();
-                const newXAccountName = profileXAccountNameInput.value.trim();
-                await updateXAccountName(newXAccountName);
-            } else if (e.target.closest('#profileSignInEmailLinkButton')) { // New listener for profile modal sign in
-                e.stopPropagation();
-                // Re-use logic from main sign-in, but need email input from profile modal
-                // For simplicity, we'll just alert and ask them to use the main screen or refresh
-                alert("Please use the main screen's 'Sign In with Email Link' feature or refresh the page to sign in.");
-            } else if (e.target.closest('#profileLogoutButton')) { // New listener for profile modal logout
-                e.stopPropagation();
-                await handleLogout();
-            }
-            else if (e.target.closest('#profileCloseButton')) { 
-                profileModal.style.display = 'none';
-                if (window.gameOver) {
-                    showAuthScreen(true); 
-                } else {
-                    showAuthScreen(false); 
-                }
-            } else if (e.target.closest('#backToWelcomeButton')) { 
-                e.stopPropagation();
-                showAuthScreen(false); 
-            } else if (e.target.closest('#logoutButton')) { 
-                e.stopPropagation();
-                await handleLogout();
             } else { 
+                // This is a click on the game container itself, outside of specific buttons/modals
                 if (window.gameStarted && !window.gameOver) { 
                     flap();
                 }
@@ -1850,12 +1849,11 @@
         };
 
         document.addEventListener('touchstart', (e) => {
+            // Prevent default touch behavior only if not interacting with a button or input
             if (e.target.closest('button') || e.target.closest('input')) {
             } else {
                 e.preventDefault(); 
-                if (!window.gameStarted && !window.gameOver && messageBox.style.display === 'block') {
-                    flap(); 
-                } else if (window.gameStarted && !window.gameOver) { 
+                if (window.gameStarted && !window.gameOver) { 
                     flap(); 
                 }
             }
@@ -1880,4 +1878,4 @@
     </script>
 </body>
 </html>
- 
+�
