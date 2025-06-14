@@ -1358,10 +1358,12 @@
             // Save score to Supabase if logged in
             if (isLoggedIn && currentUser && currentUser.id) {
                 showLoading("Saving score...");
+                // Ensure market_cap is an integer before sending to Supabase
+                const roundedMarketCap = Math.round(window.marketCap); 
                 const { error } = await supabase
                     .from('scores')
                     .insert([
-                        { user_id: currentUser.id, score: window.score, market_cap: window.marketCap, combined_score: finalCombinedScore.toFixed(0) }
+                        { user_id: currentUser.id, score: window.score, market_cap: roundedMarketCap, combined_score: finalCombinedScore.toFixed(0) }
                     ]);
                 hideLoading();
                 if (error) {
@@ -1721,7 +1723,7 @@
             }
 
             if (!isGameOver) {
-                messageTitle.textContent = "🚀 Welcome to 𝗖𝗥𝗬𝗣𝗧𝗢 �𝗟𝗔𝗣!"; 
+                messageTitle.textContent = "🚀 Welcome to 𝗖𝗥𝗬𝗣𝗧𝗢 𝗙𝗟𝗔𝗣!"; 
                 messageText.innerHTML = "⛏️ Flap through green candles, dodge the red ones.<br>💸 Stack up your $FLAPPY and fly to crypto glory!<br><br>Sign in to save your scores!"; 
             } 
         }
@@ -1878,4 +1880,3 @@
     </script>
 </body>
 </html>
-�
