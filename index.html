@@ -1730,7 +1730,8 @@
                     currentProfile = await fetchUserProfile(currentUser.id); 
                 }
                 updateAuthUI();
-                showAuthScreen(false); 
+                // The initial screen will be set by the onAuthStateChange listener
+                // which is triggered after session update.
             }
         }
 
@@ -1749,7 +1750,7 @@
                 currentProfile = null;
                 isLoggedIn = false;
                 updateAuthUI();
-                showAuthScreen(false); 
+                showAuthScreen(false); // After logout, go back to the main welcome/auth screen
                 alert("Logged out successfully!");
             }
         }
@@ -1956,11 +1957,7 @@
 
         // Named function for window.onload
         async function initializeGame() {
-            // Initial call to calculate dimensions based on default/initial config (laptopConfig)
-            // This is needed so that player.offsetHeight and player.offsetWidth are correctly initialized
             calculateGameDimensions(); 
-
-            // Set initial player style based on default config
             player.style.width = `${PLAYER_SPRITE_WIDTH}px`;
             player.style.height = `${PLAYER_SPRITE_HEIGHT}px`;
             updatePlayerSize();
@@ -1969,40 +1966,60 @@
             player.style.left = `${(GAME_WIDTH / 2) - (player.offsetWidth / 2)}px`;
             player.style.transform = `rotateZ(0deg)`;
             marketCapDisplay.textContent = `MC: ${formatCurrency(INITIAL_MARKET_CAP)}`;
-
             updateScoreDisplay();
             
-            const params = new URLSearchParams(window.location.search);
-            if (params.has('type') && params.get('type') === 'magiclink') {
-                await verifyEmailLink();
-            }
+            // Flag to ensure initial screen is determined only once by onAuthStateChange
+            let initialScreenDetermined = false;
 
-            // Set up auth state change listener immediately
-            window.supabase.auth.onAuthStateChange(async (event, session) => {
-                console.log("Auth state changed:", event, session);
+            // The core logic for determining what screen to show first.
+            // This function will be called by onAuthStateChange.
+            const determineAndDisplayInitialScreen = async (session) => {
+                if (initialScreenDetermined) return; 
+
                 if (session) {
                     currentUser = session.user;
                     isLoggedIn = true;
                     currentProfile = await fetchUserProfile(currentUser.id);
                     if (!currentProfile) {
                         await upsertUserProfile({ id: currentUser.id, email: currentUser.email, x_account_name: null });
-                        currentProfile = await fetchUserProfile(currentUser.id); 
+                        currentProfile = await fetchUserProfile(currentUser.id);
                     }
+                    updateAuthUI();
+                    showAuthScreen(window.gameOver); // User is logged in
                 } else {
                     currentUser = null;
-                    currentProfile = null;
                     isLoggedIn = false;
+                    currentProfile = null;
+                    updateAuthUI();
+                    showDeviceSelection(); // No user session, show device selection
                 }
-                updateAuthUI();
-                // After auth state changes, if device selection is already hidden, show auth screen
-                // This prevents the auth screen from showing prematurely if device selection is still active
-                if (deviceSelectionModal.style.display === 'none') {
-                    showAuthScreen(window.gameOver); 
-                }
+                initialScreenDetermined = true;
+            };
+
+            // Set up auth state change listener FIRST. 
+            // This listener will fire immediately on page load with the current session status.
+            window.supabase.auth.onAuthStateChange(async (event, session) => {
+                console.log("Auth state changed:", event, session);
+                determineAndDisplayInitialScreen(session);
             });
 
-            // Display device selection modal first
-            showDeviceSelection(); 
+            // Handle magic link redirect. 
+            // This will cause onAuthStateChange to fire as the session is updated/established.
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('type') && params.get('type') === 'magiclink') {
+                await verifyEmailLink();
+                // No need to explicitly call screen display here; onAuthStateChange will handle it.
+            } else {
+                // For initial page loads not originating from a magic link,
+                // and if onAuthStateChange hasn't already determined the screen (e.g., no existing session),
+                // we manually trigger the initial screen determination.
+                // A small timeout ensures onAuthStateChange has had a chance to fire its initial event.
+                setTimeout(() => {
+                    if (!initialScreenDetermined) {
+                        determineAndDisplayInitialScreen(null); // Force it to check for a session (which will be null if not logged in)
+                    }
+                }, 50); 
+            }
         }
 
         // Assign the named function to window.onload
