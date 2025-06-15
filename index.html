@@ -13,7 +13,7 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         window.supabase = createClient(
             'https://ahnpnodecccftvscffbx.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobnBub2RlY2NjZnR2c2NmZmJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4OTc4NTgsImV4cCI6MjA2NTQ3Mzg1OH0.hsGLtErR5gfySWetNGrdo-EjoOl2kuCnOAU4q0Zu_SY',
+            'eyJhbGciOiJIUzI1cCI6IkXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobnBub2RlY2NjZnR2c2NmZmJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4OTc4NTgsImV4cCI6MjA2NTQ3Mzg1OH0.hsGLtErR5gfySWetNGrdo-EjoOl2kuCnOAU4q0Zu_SY',
             {
                 auth: {
                     persistSession: true // This ensures the session persists across browser closures
@@ -1711,27 +1711,19 @@
 
         /**
          * Verifies the email magic link upon redirect.
+         * This function should be called explicitly on page load if the URL contains magic link parameters.
          */
         async function verifyEmailLink() {
             showLoading("Verifying magic link...");
+            // supabase.auth.getSession() automatically parses the URL for magic link tokens
             const { data, error } = await supabase.auth.getSession();
             hideLoading();
             if (error) {
-                console.error("Error verifying session:", error);
-                return;
-            }
-
-            if (data.session) {
-                currentUser = data.session.user;
-                isLoggedIn = true;
-                currentProfile = await fetchUserProfile(currentUser.id);
-                if (!currentProfile) {
-                    await upsertUserProfile({ id: currentUser.id, email: currentUser.email, x_account_name: null });
-                    currentProfile = await fetchUserProfile(currentUser.id); 
-                }
-                updateAuthUI();
-                // The initial screen will be set by the onAuthStateChange listener
-                // which is triggered after session update.
+                console.error("Error verifying session from magic link:", error);
+                // Even on error, onAuthStateChange will eventually be called with a null session
+            } else if (data.session) {
+                console.log("Session established after magic link:", data.session);
+                // onAuthStateChange will handle updating UI and state
             }
         }
 
@@ -1968,24 +1960,21 @@
             marketCapDisplay.textContent = `MC: ${formatCurrency(INITIAL_MARKET_CAP)}`;
             updateScoreDisplay();
             
-            // Flag to ensure initial screen is determined only once by onAuthStateChange
-            let initialScreenDetermined = false;
-
-            // The core logic for determining what screen to show first.
-            // This function will be called by onAuthStateChange.
-            const determineAndDisplayInitialScreen = async (session) => {
-                if (initialScreenDetermined) return; 
-
+            // This listener will fire immediately on page load with the current session status
+            // and whenever the auth state changes (login, logout, token refresh).
+            window.supabase.auth.onAuthStateChange(async (event, session) => {
+                console.log("Auth state changed:", event, session);
                 if (session) {
                     currentUser = session.user;
                     isLoggedIn = true;
                     currentProfile = await fetchUserProfile(currentUser.id);
                     if (!currentProfile) {
+                        // Create profile if it doesn't exist
                         await upsertUserProfile({ id: currentUser.id, email: currentUser.email, x_account_name: null });
-                        currentProfile = await fetchUserProfile(currentUser.id);
+                        currentProfile = await fetchUserProfile(currentUser.id); 
                     }
                     updateAuthUI();
-                    showAuthScreen(window.gameOver); // User is logged in
+                    showAuthScreen(window.gameOver); // User is logged in, show main screen
                 } else {
                     currentUser = null;
                     isLoggedIn = false;
@@ -1993,32 +1982,16 @@
                     updateAuthUI();
                     showDeviceSelection(); // No user session, show device selection
                 }
-                initialScreenDetermined = true;
-            };
-
-            // Set up auth state change listener FIRST. 
-            // This listener will fire immediately on page load with the current session status.
-            window.supabase.auth.onAuthStateChange(async (event, session) => {
-                console.log("Auth state changed:", event, session);
-                determineAndDisplayInitialScreen(session);
             });
 
-            // Handle magic link redirect. 
-            // This will cause onAuthStateChange to fire as the session is updated/established.
+            // Handle magic link redirect. This will cause onAuthStateChange to fire.
             const params = new URLSearchParams(window.location.search);
             if (params.has('type') && params.get('type') === 'magiclink') {
-                await verifyEmailLink();
-                // No need to explicitly call screen display here; onAuthStateChange will handle it.
+                await verifyEmailLink(); // This will trigger onAuthStateChange to update the session
             } else {
                 // For initial page loads not originating from a magic link,
-                // and if onAuthStateChange hasn't already determined the screen (e.g., no existing session),
-                // we manually trigger the initial screen determination.
-                // A small timeout ensures onAuthStateChange has had a chance to fire its initial event.
-                setTimeout(() => {
-                    if (!initialScreenDetermined) {
-                        determineAndDisplayInitialScreen(null); // Force it to check for a session (which will be null if not logged in)
-                    }
-                }, 50); 
+                // onAuthStateChange will still fire immediately with the existing session or null,
+                // determining the initial display. No extra logic needed here.
             }
         }
 
