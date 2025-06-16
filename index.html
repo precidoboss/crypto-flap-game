@@ -11,9 +11,10 @@
     <!-- Supabase Client CDN -->
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        // IMPORTANT: Ensure this URL and API key EXACTLY match your Supabase project settings
         window.supabase = createClient(
-            'https://ahnpnodecccftvscffbx.supabase.co',
-            'eyJhbGciOiJIUzI1cCI6IkXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobnBub2RlY2NjZnR2c2NmZmJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4OTc4NTgsImV4cCI6MjA2NTQ3Mzg1OH0.hsGLtErR5gfySWetNGrdo-EjoOl2kuCnOAU4q0Zu_SY',
+            'https://ahnpnodecccftvscffbx.supabase.co', // Your Supabase Project URL
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobnBub2RlY2NjZnR2c2NmZmJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4OTc4NTgsImV4cCI6MjA2NTQ3Mzg1OH0.hsGLtErR5gfySWetNGrdo-EjoOl2kuCnOAU4q0Zu_SY', // Your Supabase anon public key
             {
                 auth: {
                     persistSession: true // This ensures the session persists across browser closures
