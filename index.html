@@ -11,7 +11,8 @@
     <!-- Supabase Client CDN -->
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-        // IMPORTANT: Ensure this URL and API key EXACTLY match your Supabase project settings
+        // IMPORTANT: This is your provided Supabase Project URL and anon public key.
+        // Ensure this exactly matches your Supabase Project Settings > API.
         window.supabase = createClient(
             'https://ahnpnodecccftvscffbx.supabase.co', // Your Supabase Project URL
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobnBub2RlY2NjZnR2c2NmZmJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4OTc4NTgsImV4cCI6MjA2NTQ3Mzg1OH0.hsGLtErR5gfySWetNGrdo-EjoOl2kuCnOAU4q0Zu_SY', // Your Supabase anon public key
@@ -549,18 +550,22 @@
             AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.15, // Reduced for more consistent and tighter gaps
             CANDLE_WIDTH_BASE: 150,
             INITIAL_OBSTACLE_SPEED_BASE: 2.5,
+            OBSTACLE_INTERVAL_MIN: 1500, // Halved for closer obstacles
+            OBSTACLE_INTERVAL_MAX: 2250, // Halved for closer obstacles
         };
 
         const mobileConfig = {
-            PLAYER_SIZE_BASE: 150, 
-            PLAYER_GRAVITY_BASE: 0.35, 
-            PLAYER_FLAP_STRENGTH_BASE: -7.5, 
-            MIN_CANDLE_SECTION_HEIGHT_PX_BASE: 120, 
-            MIN_GAP_HEIGHT_BASE: 180, 
-            MIN_GAP_HEIGHT_MULTIPLIER: 1.6, 
-            AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.1, 
-            CANDLE_WIDTH_BASE: 280, // Increased for larger mobile candles
-            INITIAL_OBSTACLE_SPEED_BASE: 3.5, 
+            PLAYER_SIZE_BASE: 130, // Slightly reduced for more screen space on smaller mobiles
+            PLAYER_GRAVITY_BASE: 0.30, // Slightly reduced from previous mobile to feel less heavy
+            PLAYER_FLAP_STRENGTH_BASE: -6.5, // Slightly less aggressive flap
+            MIN_CANDLE_SECTION_HEIGHT_PX_BASE: 100, // Adjusted min candle section height
+            MIN_GAP_HEIGHT_BASE: 200, // Increased for larger gaps
+            MIN_GAP_HEIGHT_MULTIPLIER: 1.8, // Adjusted
+            AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.20, // Increased for more random but overall wider gaps
+            CANDLE_WIDTH_BASE: 250, // Slightly reduced for more horizontal gap space
+            INITIAL_OBSTACLE_SPEED_BASE: 3.0, // Adjusted speed for mobile
+            OBSTACLE_INTERVAL_MIN: 1800, // Increased for more breathing room
+            OBSTACLE_INTERVAL_MAX: 2500, // Increased for more breathing room
         };
 
         let currentConfig = laptopConfig; // Default, will be set by device selection
@@ -573,6 +578,9 @@
         let MIN_GAP_HEIGHT;
         let CANDLE_WIDTH;
         let INITIAL_OBSTACLE_SPEED;
+        let OBSTACLE_INTERVAL_MIN;
+        let OBSTACLE_INTERVAL_MAX;
+
 
         // Derived variables (calculated in calculateGameDimensions)
         let currentScaledCandleWidth;
@@ -582,8 +590,6 @@
         const MAX_ROTATION_DEGREES = 35;
         const DESIRED_GAP_HEIGHT_RATIO = 0.25; 
         
-        const OBSTACLE_INTERVAL_MIN = 1500; // Halved for closer obstacles
-        const OBSTACLE_INTERVAL_MAX = 2250; // Halved for closer obstacles
         const FLAP_SOUND_COOLDOWN = 150; 
 
         const POTION_SPAWN_CHANCE_RATE = 0.10; 
@@ -693,7 +699,6 @@
         /**
          * Calculates the actual rendered dimensions of the game area and adjusts all dynamic elements.
          * This ensures everything scales proportionally to the current screen size.
-         * Moved to top to prevent ReferenceError.
          */
         function calculateGameDimensions() {
             GAME_WIDTH = window.innerWidth;
@@ -703,6 +708,9 @@
             PLAYER_GRAVITY = currentConfig.PLAYER_GRAVITY_BASE * (GAME_HEIGHT / BASE_GAME_HEIGHT);
             PLAYER_FLAP_STRENGTH = currentConfig.PLAYER_FLAP_STRENGTH_BASE * (GAME_HEIGHT / BASE_GAME_HEIGHT);
             window.currentObstacleSpeed = currentConfig.INITIAL_OBSTACLE_SPEED_BASE * (GAME_WIDTH / BASE_GAME_WIDTH); 
+            OBSTACLE_INTERVAL_MIN = currentConfig.OBSTACLE_INTERVAL_MIN;
+            OBSTACLE_INTERVAL_MAX = currentConfig.OBSTACLE_INTERVAL_MAX;
+
 
             // Player dimensions scale with GAME_HEIGHT, with a higher minimum
             PLAYER_SPRITE_HEIGHT = Math.max(70, GAME_HEIGHT * (currentConfig.PLAYER_SIZE_BASE / BASE_GAME_HEIGHT)); 
@@ -829,6 +837,16 @@
             particleCanvas.width = GAME_WIDTH;
             particleCanvas.height = GAME_HEIGHT;
             createParticles(); 
+
+            // --- DEBUG LOGGING ---
+            console.log("--- calculateGameDimensions Debug ---");
+            console.log(`GAME_WIDTH: ${GAME_WIDTH}, GAME_HEIGHT: ${GAME_HEIGHT}`);
+            console.log(`PLAYER_SPRITE_WIDTH: ${PLAYER_SPRITE_WIDTH}, PLAYER_SPRITE_HEIGHT: ${PLAYER_SPRITE_HEIGHT}`);
+            console.log(`currentScaledCandleWidth: ${currentScaledCandleWidth}`);
+            console.log(`currentScaledMinGapHeight: ${currentScaledMinGapHeight}`);
+            console.log(`currentScaledMinCandleSectionHeight: ${currentScaledMinCandleSectionHeight}`);
+            console.log(`OBSTACLE_INTERVAL_MIN: ${OBSTACLE_INTERVAL_MIN}, OBSTACLE_INTERVAL_MAX: ${OBSTACLE_INTERVAL_MAX}`);
+            console.log("-------------------------------------");
         }
 
         /**
@@ -1027,6 +1045,15 @@
 
             // Always create a collectible here
             createCollectible(redCandle.offsetLeft + currentScaledCandleWidth / 2, newGapY, newGapHeight);
+
+            // --- DEBUG LOGGING ---
+            console.log("--- createCandleObstacle Debug ---");
+            console.log(`Calculated gapHeight: ${gapHeight}`);
+            console.log(`Calculated actualGapY: ${actualGapY}`);
+            console.log(`Final newGapHeight: ${newGapHeight}`);
+            console.log(`Final topCandleHeight: ${finalTopCandleHeight}`);
+            console.log(`Final bottomCandleHeight: ${finalBottomCandleHeight}`);
+            console.log("----------------------------------");
         }
 
         /**
