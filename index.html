@@ -561,9 +561,9 @@
             PLAYER_GRAVITY_BASE: 0.25, // Adjusted to feel good with smaller player
             PLAYER_FLAP_STRENGTH_BASE: -5.5, // Adjusted to feel good with smaller player
             MIN_CANDLE_SECTION_HEIGHT_PX_BASE: 80, // Adjusted min candle section height
-            MIN_GAP_HEIGHT_BASE: 220, // Increased for larger gaps
-            MIN_GAP_HEIGHT_MULTIPLIER: 2.0, // Increased for larger gaps relative to player
-            AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.25, // Increased for more random but overall wider gaps
+            MIN_GAP_HEIGHT_BASE: 200, // Decreased for tighter vertical gaps on mobile
+            MIN_GAP_HEIGHT_MULTIPLIER: 1.8, // Decreased for tighter vertical gaps relative to player on mobile
+            AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.20, // Slightly reduced random factor for tighter gaps
             CANDLE_WIDTH_BASE: 200, // Significantly reduced for more horizontal gap space
             INITIAL_OBSTACLE_SPEED_BASE: 2.8, // Adjusted speed for mobile
             OBSTACLE_INTERVAL_MIN: 2600, // Increased for more breathing room on mobile - FURTHER INCREASED
@@ -1882,7 +1882,7 @@
             }
 
             if (!isGameOver) {
-                messageTitle.textContent = "🚀 Welcome to 𝗖𝗥𝗬𝗣𝗧𝗢 𝗙𝗟𝗔𝗣!"; 
+                messageTitle.textContent = "🚀 Welcome to 𝗖�𝗬𝗣𝗧𝗢 𝗙𝗟𝗔𝗣!"; 
                 messageText.innerHTML = "⛏️ Flap through green candles, dodge the red ones.<br>💸 Stack up your $FLAPPY and fly to crypto glory!<br><br>Sign in to save your scores!"; 
             } 
         }
@@ -1926,9 +1926,6 @@
                     currentConfig = laptopConfig;
                     console.log("Device config set to LAPTOP (auto-detected)");
                 }
-                // Do NOT save auto-detected to localStorage yet, only if user explicitly selects.
-                // This means if a user logs in via magic link on mobile, but didn't pick a device
-                // previously, they will see the device selection.
             }
             calculateGameDimensions(); // Apply the determined config
         }
@@ -2033,9 +2030,27 @@
 
         // Named function for window.onload
         async function initializeGame() {
-            // First, detect and set the device configuration
-            // This will apply auto-detected or localStorage preference
-            detectAndSetDeviceConfig(); 
+            // Check local storage for preferred device.
+            // If not found, auto-detect and set, but don't save to localStorage yet.
+            const preferredDevice = localStorage.getItem('cryptoFlapDevice');
+            if (preferredDevice === 'laptop') {
+                currentConfig = laptopConfig;
+                console.log("Device config set to LAPTOP (from localStorage)");
+            } else if (preferredDevice === 'mobile') {
+                currentConfig = mobileConfig;
+                console.log("Device config set to MOBILE (from localStorage)");
+            } else {
+                // Auto-detect if no preference saved
+                const isMobileAuto = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && window.innerHeight <= 1024);
+                if (isMobileAuto) {
+                    currentConfig = mobileConfig;
+                    console.log("Device config set to MOBILE (auto-detected)");
+                } else {
+                    currentConfig = laptopConfig;
+                    console.log("Device config set to LAPTOP (auto-detected)");
+                }
+            }
+            calculateGameDimensions(); // Apply the determined config
             
             // Initial player size setup (will be refined by calculateGameDimensions)
             player.style.width = `${PLAYER_SPRITE_WIDTH}px`;
@@ -2062,28 +2077,22 @@
                         currentProfile = await fetchUserProfile(currentUser.id); 
                     }
                     updateAuthUI();
-                    // If a user logs in, and they don't have a device preference stored,
-                    // we should still give them the device selection modal.
-                    // If they DO have a preference, we show the welcome screen directly.
-                    const preferredDevice = localStorage.getItem('cryptoFlapDevice');
-                    if (!preferredDevice) {
-                        showDeviceSelection(); // Force device selection for new users / no preference
-                    } else {
-                        showWelcomeScreen(window.gameOver); // Proceed to welcome if logged in and preference exists
-                    }
+                    showWelcomeScreen(window.gameOver); // User is logged in, show main screen (welcome/game over)
                 } else {
                     currentUser = null;
                     isLoggedIn = false;
                     currentProfile = null;
                     updateAuthUI();
                     
-                    // If no user is logged in, show device selection if no preference is saved in local storage.
-                    // Otherwise, proceed directly to the welcome screen with auto-detected/pre-set config.
-                    const preferredDevice = localStorage.getItem('cryptoFlapDevice');
-                    if (!preferredDevice) {
+                    const savedDevice = localStorage.getItem('cryptoFlapDevice');
+                    // If no saved device preference AND it's a mobile device, show device selection
+                    // Otherwise (if desktop or saved device preference), go straight to welcome
+                    const isMobileAuto = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && window.innerHeight <= 1024);
+
+                    if (!savedDevice && isMobileAuto) { // Only show device selection if no saved device AND it's a mobile device
                         showDeviceSelection(); 
                     } else {
-                        showWelcomeScreen(false);
+                        showWelcomeScreen(false); // Otherwise, go straight to welcome screen
                     }
                 }
             });
@@ -2133,3 +2142,4 @@
     </script>
 </body>
 </html>
+�
