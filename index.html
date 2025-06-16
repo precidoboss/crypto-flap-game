@@ -160,6 +160,8 @@
         }
         .user-info {
             position: absolute;
+            top: 1rem; /* Kept for consistent spacing */
+            right: 1rem; /* Kept for consistent spacing */
             font-size: 1.2rem;
             font-weight: 700;
             color: #FFFFFF;
@@ -170,7 +172,7 @@
             background-color: rgba(0,0,0,0.4);
             padding: 0.5rem 1rem;
             border-radius: 0.5rem;
-            display: flex; /* Changed to flex by default, JS will toggle display property explicitly */
+            display: none; /* Initially hidden, JS controls visibility */
             align-items: center;
             gap: 0.5rem;
         }
@@ -555,20 +557,20 @@
         };
 
         const mobileConfig = {
-            PLAYER_SIZE_BASE: 130, // Slightly reduced for more screen space on smaller mobiles
-            PLAYER_GRAVITY_BASE: 0.30, // Slightly reduced from previous mobile to feel less heavy
-            PLAYER_FLAP_STRENGTH_BASE: -6.5, // Slightly less aggressive flap
-            MIN_CANDLE_SECTION_HEIGHT_PX_BASE: 100, // Adjusted min candle section height
-            MIN_GAP_HEIGHT_BASE: 200, // Increased for larger gaps
-            MIN_GAP_HEIGHT_MULTIPLIER: 1.8, // Adjusted
-            AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.20, // Increased for more random but overall wider gaps
-            CANDLE_WIDTH_BASE: 250, // Slightly reduced for more horizontal gap space
-            INITIAL_OBSTACLE_SPEED_BASE: 3.0, // Adjusted speed for mobile
-            OBSTACLE_INTERVAL_MIN: 1800, // Increased for more breathing room
-            OBSTACLE_INTERVAL_MAX: 2500, // Increased for more breathing room
+            PLAYER_SIZE_BASE: 110, // Significantly reduced for more screen space on smaller mobiles
+            PLAYER_GRAVITY_BASE: 0.25, // Adjusted to feel good with smaller player
+            PLAYER_FLAP_STRENGTH_BASE: -5.5, // Adjusted to feel good with smaller player
+            MIN_CANDLE_SECTION_HEIGHT_PX_BASE: 80, // Adjusted min candle section height
+            MIN_GAP_HEIGHT_BASE: 220, // Increased for larger gaps
+            MIN_GAP_HEIGHT_MULTIPLIER: 2.0, // Increased for larger gaps relative to player
+            AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.25, // Increased for more random but overall wider gaps
+            CANDLE_WIDTH_BASE: 200, // Significantly reduced for more horizontal gap space
+            INITIAL_OBSTACLE_SPEED_BASE: 2.8, // Adjusted speed for mobile
+            OBSTACLE_INTERVAL_MIN: 2600, // Increased for more breathing room on mobile - FURTHER INCREASED
+            OBSTACLE_INTERVAL_MAX: 3600, // Increased for more breathing room on mobile - FURTHER INCREASED
         };
 
-        let currentConfig = laptopConfig; // Default, will be set by device selection
+        let currentConfig = laptopConfig; // Default, will be set by device detection or local storage
 
         // Variables that will take values from currentConfig
         let PLAYER_GRAVITY; 
@@ -1040,7 +1042,8 @@
                 gapY: newGapY,
                 gapHeight: newGapHeight,
                 width: currentScaledCandleWidth, 
-                passed: false,
+                topHeight: finalTopCandleHeight, // Store calculated height
+                bottomHeight: finalBottomCandleHeight // Store calculated height
             });
 
             // Always create a collectible here
@@ -1102,34 +1105,45 @@
         function checkCollisions() {
             if (!window.gameStarted || window.gameOver) return; 
 
+            // Get player's current position and dimensions.
+            // We use getBoundingClientRect() once here for the player's current rendered position.
             const playerRect = player.getBoundingClientRect();
-            // Increased shrink amount to make the effective collision area smaller (more forgiving)
+            
+            // Define player's effective collision box, slightly smaller than visual for forgiveness
             const playerHitboxShrinkAmountX = playerRect.width * 0.45; 
             const playerHitboxShrinkAmountY = playerRect.height * 0.45;
 
-            const playerCollisionRect = {
-                left: playerRect.left + playerHitboxShrinkAmountX,
-                right: playerRect.right - playerHitboxShrinkAmountX,
-                top: playerRect.top + playerHitboxShrinkAmountY,
-                bottom: playerRect.bottom - playerHitboxShrinkAmountY,
+            const playerCollision = {
+                x: playerRect.left + playerHitboxShrinkAmountX,
+                y: playerRect.top + playerHitboxShrinkAmountY,
                 width: playerRect.width - (2 * playerHitboxShrinkAmountX),
                 height: playerRect.height - (2 * playerHitboxShrinkAmountY)
             };
 
             for (let i = 0; i < window.obstacles.length; i++) { 
                 const obstacle = window.obstacles[i]; 
-                if (!obstacle.greenElement || !obstacle.redElement) continue; 
+                
+                // Calculate collision rectangles for top and bottom candles using stored numerical properties
+                const topCandleCollision = {
+                    x: obstacle.x,
+                    y: 0,
+                    width: obstacle.width,
+                    height: obstacle.topHeight 
+                };
 
-                // Note: greenElement is now the top candle, redElement is the bottom
-                const greenRect = obstacle.greenElement.getBoundingClientRect(); 
-                const redRect = obstacle.redElement.getBoundingClientRect(); 
+                const bottomCandleCollision = {
+                    x: obstacle.x,
+                    y: obstacle.gapY + obstacle.gapHeight, 
+                    width: obstacle.width,
+                    height: obstacle.bottomHeight 
+                };
 
-                // Collision with green (top) candle
+                // Collision with top candle
                 if (
-                    playerCollisionRect.left < greenRect.right &&
-                    playerCollisionRect.right > greenRect.left &&
-                    playerCollisionRect.top < greenRect.bottom &&
-                    playerCollisionRect.bottom > greenRect.top
+                    playerCollision.x < topCandleCollision.x + topCandleCollision.width &&
+                    playerCollision.x + playerCollision.width > topCandleCollision.x &&
+                    playerCollision.y < topCandleCollision.y + topCandleCollision.height &&
+                    playerCollision.y + playerCollision.height > topCandleCollision.y
                 ) {
                     console.log("Collision detected with GREEN (TOP) candle!");
                     if (!window.shieldActive) { 
@@ -1137,12 +1151,12 @@
                         return; 
                     }
                 }
-                // Collision with red (bottom) candle
+                // Collision with bottom candle
                 if (
-                    playerCollisionRect.left < redRect.right &&
-                    playerCollisionRect.right > redRect.left &&
-                    playerCollisionRect.top < redRect.bottom &&
-                    playerCollisionRect.bottom > redRect.top
+                    playerCollision.x < bottomCandleCollision.x + bottomCandleCollision.width &&
+                    playerCollision.x + playerCollision.width > bottomCandleCollision.x &&
+                    playerCollision.y < bottomCandleCollision.y + bottomCandleCollision.height &&
+                    playerCollision.y + playerCollision.height > bottomCandleCollision.y
                 ) {
                     console.log("Collision detected with RED (BOTTOM) candle!");
                     if (!window.shieldActive) { 
@@ -1154,24 +1168,20 @@
 
             for (let i = 0; i < window.items.length; i++) { 
                 const item = window.items[i]; 
-                if (!item.element) continue; 
-
-                const itemRect = item.element.getBoundingClientRect();
-                const itemHitboxShrinkAmount = itemRect.width * 0.10; 
-                const itemCollisionRect = {
-                    left: itemRect.left + itemHitboxShrinkAmount,
-                    right: itemRect.right - itemHitboxShrinkAmount,
-                    top: itemRect.top + itemHitboxShrinkAmount,
-                    bottom: itemRect.bottom - itemHitboxShrinkAmount,
-                    width: itemRect.width - (2 * itemHitboxShrinkAmount), 
-                    height: itemRect.height - (2 * itemHitboxShrinkAmount)
+                
+                // Calculate collision rectangle for item using stored numerical properties
+                const itemCollision = {
+                    x: item.x,
+                    y: item.y,
+                    width: item.width,
+                    height: item.height
                 };
 
                 if (
-                    playerCollisionRect.left < itemCollisionRect.right &&
-                    playerCollisionRect.right > itemCollisionRect.left &&
-                    playerCollisionRect.top < itemCollisionRect.bottom &&
-                    playerCollisionRect.bottom > itemCollisionRect.top
+                    playerCollision.x < itemCollision.x + itemCollision.width &&
+                    playerCollision.x + playerCollision.width > itemCollision.x &&
+                    playerCollision.y < itemCollision.y + itemCollision.height &&
+                    playerCollision.y + playerCollision.height > itemCollision.y
                 ) {
                     console.log("Collected item:", item.type);
                     if (item.type === 'potion') {
@@ -1491,7 +1501,7 @@
             leaderboardButton.textContent = "🏆 LEADERBOARD"; 
             backToWelcomeButton.textContent = "🔙 BACK TO WELCOME"; 
 
-            showAuthScreen(true); 
+            showWelcomeScreen(true); // Call updated function
         }
 
         /**
@@ -1770,7 +1780,14 @@
                 currentProfile = null;
                 isLoggedIn = false;
                 updateAuthUI();
-                showAuthScreen(false); // After logout, go back to the main welcome/auth screen
+                // After logout, always show the device selection if no preference is explicitly saved
+                // This ensures a clean slate and prompts for choice if device was auto-detected before
+                const preferredDevice = localStorage.getItem('cryptoFlapDevice');
+                if (!preferredDevice) {
+                    showDeviceSelection(); 
+                } else {
+                    showWelcomeScreen(false); // If a preference exists, go to welcome with that preference
+                }
                 alert("Logged out successfully!");
             }
         }
@@ -1781,6 +1798,7 @@
         function updateAuthUI() {
             if (isLoggedIn && currentUser) {
                 userNameDisplay.textContent = formatPlayerName(currentProfile);
+                userInfoDisplay.style.display = 'flex'; // Ensure user info is shown when logged in
                 profileButton.style.display = 'inline-block';
                 logoutButton.style.display = 'inline-block';
                 signInEmailLinkButton.classList.add('hidden'); 
@@ -1798,6 +1816,7 @@
 
             } else {
                 userNameDisplay.textContent = 'Guest';
+                userInfoDisplay.style.display = 'none'; // Ensure user info is hidden when logged out unless on welcome screen
                 profileButton.style.display = 'none';
                 logoutButton.style.display = 'none';
                 signInEmailLinkButton.classList.remove('hidden'); 
@@ -1820,7 +1839,7 @@
          * Shows the main welcome/auth screen.
          * @param {boolean} isGameOver - True if showing after game over.
          */
-        function showAuthScreen(isGameOver = false) {
+        function showWelcomeScreen(isGameOver = false) { 
             deviceSelectionModal.style.display = 'none'; // Ensure device selection is hidden
             messageBox.style.display = 'block'; 
             particleCanvas.style.display = 'block'; 
@@ -1836,7 +1855,12 @@
             } else {
                 userInfoDisplay.classList.remove('in-game'); 
                 userInfoDisplay.classList.remove('in-game-over'); 
-                userInfoDisplay.style.display = 'flex'; /* Ensure user info is visible on welcome screen */
+                // Only show userInfoDisplay if user is logged in, otherwise it's handled by showAuthScreen/showDeviceSelection
+                if (isLoggedIn) {
+                    userInfoDisplay.style.display = 'flex'; 
+                } else {
+                    userInfoDisplay.style.display = 'none'; // Keep hidden on welcome for guests initially
+                }
                 backToWelcomeButton.classList.add('hidden'); 
             }
 
@@ -1880,6 +1904,36 @@
             }
         }
 
+        /**
+         * Detects the device type and sets the game configuration.
+         * Prioritizes localStorage preference, then automatic detection.
+         */
+        function detectAndSetDeviceConfig() {
+            const preferredDevice = localStorage.getItem('cryptoFlapDevice');
+            if (preferredDevice === 'laptop') {
+                currentConfig = laptopConfig;
+                console.log("Device config set to LAPTOP (from localStorage)");
+            } else if (preferredDevice === 'mobile') {
+                currentConfig = mobileConfig;
+                console.log("Device config set to MOBILE (from localStorage)");
+            } else {
+                // Auto-detect if no preference saved
+                const isMobileAuto = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && window.innerHeight <= 1024);
+                if (isMobileAuto) {
+                    currentConfig = mobileConfig;
+                    console.log("Device config set to MOBILE (auto-detected)");
+                } else {
+                    currentConfig = laptopConfig;
+                    console.log("Device config set to LAPTOP (auto-detected)");
+                }
+                // Do NOT save auto-detected to localStorage yet, only if user explicitly selects.
+                // This means if a user logs in via magic link on mobile, but didn't pick a device
+                // previously, they will see the device selection.
+            }
+            calculateGameDimensions(); // Apply the determined config
+        }
+
+
         // --- Event Listeners ---
 
         document.addEventListener('keydown', (e) => {
@@ -1912,12 +1966,14 @@
 
                 if (e.target.closest('#playOnLaptopButton')) { 
                     currentConfig = laptopConfig;
+                    localStorage.setItem('cryptoFlapDevice', 'laptop'); // Save choice
                     calculateGameDimensions(); // Apply selected config
-                    showAuthScreen(false); // Move to welcome screen
+                    showWelcomeScreen(false); // Move to welcome screen
                 } else if (e.target.closest('#playOnMobileButton')) { 
                     currentConfig = mobileConfig;
+                    localStorage.setItem('cryptoFlapDevice', 'mobile'); // Save choice
                     calculateGameDimensions(); // Apply selected config
-                    showAuthScreen(false); // Move to welcome screen
+                    showWelcomeScreen(false); // Move to welcome screen
                 } else if (e.target.closest('#signInEmailLinkButton')) {
                     await handleSignInWithEmailLink();
                 } else if (e.target.closest('#startButton')) { 
@@ -1927,9 +1983,9 @@
                 } else if (e.target.closest('#leaderboardCloseButton')) {
                     leaderboardModal.style.display = 'none';
                     if (window.gameOver) {
-                        showAuthScreen(true); 
+                        showWelcomeScreen(true); // Call updated function
                     } else {
-                        showAuthScreen(false); 
+                        showWelcomeScreen(false); // Call updated function
                     }
                 } else if (e.target.closest('#profileButton')) { 
                     profileModal.style.display = 'flex';
@@ -1957,12 +2013,12 @@
                 else if (e.target.closest('#profileCloseButton')) { 
                     profileModal.style.display = 'none';
                     if (window.gameOver) {
-                        showAuthScreen(true); 
+                        showWelcomeScreen(true); // Call updated function
                     } else {
-                        showAuthScreen(false); 
+                        showWelcomeScreen(false); // Call updated function
                     }
                 } else if (e.target.closest('#backToWelcomeButton')) { 
-                    showAuthScreen(false); 
+                    showWelcomeScreen(false); // Call updated function
                 } else if (e.target.closest('#logoutButton')) { 
                     await handleLogout();
                 }
@@ -1977,7 +2033,11 @@
 
         // Named function for window.onload
         async function initializeGame() {
-            calculateGameDimensions(); 
+            // First, detect and set the device configuration
+            // This will apply auto-detected or localStorage preference
+            detectAndSetDeviceConfig(); 
+            
+            // Initial player size setup (will be refined by calculateGameDimensions)
             player.style.width = `${PLAYER_SPRITE_WIDTH}px`;
             player.style.height = `${PLAYER_SPRITE_HEIGHT}px`;
             updatePlayerSize();
@@ -2002,13 +2062,29 @@
                         currentProfile = await fetchUserProfile(currentUser.id); 
                     }
                     updateAuthUI();
-                    showAuthScreen(window.gameOver); // User is logged in, show main screen
+                    // If a user logs in, and they don't have a device preference stored,
+                    // we should still give them the device selection modal.
+                    // If they DO have a preference, we show the welcome screen directly.
+                    const preferredDevice = localStorage.getItem('cryptoFlapDevice');
+                    if (!preferredDevice) {
+                        showDeviceSelection(); // Force device selection for new users / no preference
+                    } else {
+                        showWelcomeScreen(window.gameOver); // Proceed to welcome if logged in and preference exists
+                    }
                 } else {
                     currentUser = null;
                     isLoggedIn = false;
                     currentProfile = null;
                     updateAuthUI();
-                    showDeviceSelection(); // No user session, show device selection
+                    
+                    // If no user is logged in, show device selection if no preference is saved in local storage.
+                    // Otherwise, proceed directly to the welcome screen with auto-detected/pre-set config.
+                    const preferredDevice = localStorage.getItem('cryptoFlapDevice');
+                    if (!preferredDevice) {
+                        showDeviceSelection(); 
+                    } else {
+                        showWelcomeScreen(false);
+                    }
                 }
             });
 
