@@ -428,48 +428,65 @@
                 0 0 30px rgba(0, 255, 255, 0.7); 
             font-weight: bold;
         }
+        /* New styles for speed-up text animation */
+        .speed-up-text {
+            position: absolute;
+            top: 20%; /* Adjusted position */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Luckiest Guy', cursive;
+            font-size: 3.5rem; /* Adjust as needed */
+            font-weight: 900;
+            color: #FFD700; /* Gold color for impact */
+            text-shadow: 
+                0 0 10px #fff,
+                0 0 20px #FFD700,
+                0 0 40px #FFD700,
+                0 0 80px #FFD700;
+            opacity: 0; /* Start hidden */
+            transition: opacity 0.5s ease-in-out; /* Smooth fade */
+            z-index: 50; /* Above other elements */
+            pointer-events: none; /* Do not block clicks */
+        }
+        .speed-up-text.show {
+            opacity: 1; /* Fade in */
+        }
     </style>
 </head>
 <body>
-    <!-- Main game container -->
     <div id="gameContainer" class="game-container">
-        <!-- Canvas for particle effects -->
         <canvas id="particleCanvas"></canvas>
 
-        <!-- User Info & Profile/Logout Buttons -->
         <div id="userInfo" class="user-info">
             Welcome, <span id="userNameDisplay">Guest</span>!
             <button id="profileButton" class="flappy-button small-button">👤 Profile</button>
+            <button id="deviceButton" class="flappy-button small-button">📱 Device</button> <!-- New Device Button -->
             <button id="logoutButton" class="flappy-button small-button">🚪 Logout</button>
         </div>
 
-        <!-- Top bar for scores and market cap -->
         <div class="top-bar">
-            <!-- Score display with player icon -->
             <div id="score" class="score">
                 <span id="playerIcon" class="player-icon"></span>
                 $FLAPPY: <span id="flappyScoreCounter">0</span>
             </div>
-            <!-- Market Cap display -->
             <div id="marketCap" class="market-cap">MC: $100,000</div>
         </div>
 
-        <!-- Power-up status display -->
         <div id="powerupStatus" class="powerup-status"></div>
-        <!-- Player character -->
         <div id="player" class="player"></div>
 
-        <!-- Device Selection Modal (New) -->
+        <div id="speedUpText" class="speed-up-text">FLAPPY SPEED UP!</div>
+
         <div id="deviceSelectionModal" class="device-selection-modal">
             <h2>Choose Your Device</h2>
             <p>Select the best experience for your device:</p>
             <div class="flex flex-col items-center mt-4">
                 <button id="playOnLaptopButton" class="flappy-button">💻 PLAY ON LAPTOP</button>
-                <button id="playOnMobileButton" class="flappy-button">📱 PLAY ON MOBILE</button>
+                <button id="playOnLargeMobileButton" class="flappy-button">📱 PLAY ON LARGE MOBILE</button> <!-- New Large Mobile Option -->
+                <button id="playOnSmallMobileButton" class="flappy-button">📱 PLAY ON SMALL MOBILE</button> <!-- New Small Mobile Option -->
             </div>
         </div>
 
-        <!-- Main Message Box (Start, Game Over, Auth) -->
         <div id="messageBox" class="message-box">
             <h2 id="messageTitle"></h2>
             <p id="messageText"></p>
@@ -484,12 +501,10 @@
             <button id="backToWelcomeButton" class="flappy-button hidden">🔙 BACK TO WELCOME</button>
         </div>
 
-        <!-- Leaderboard Modal -->
         <div id="leaderboardModal" class="leaderboard-modal">
             <div class="leaderboard-content">
                 <h3>🏆 Global Leaderboard</h3>
-                <div style="overflow-x: auto;"> <!-- Added for horizontal scrolling on small screens -->
-                    <table id="leaderboardTable" class="leaderboard-table">
+                <div style="overflow-x: auto;"> <table id="leaderboardTable" class="leaderboard-table">
                         <thead>
                             <tr>
                                 <th>Rank</th>
@@ -500,7 +515,6 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Leaderboard rows will be inserted here by JavaScript -->
                             <tr><td colspan="5">Loading Leaderboard...</td></tr>
                         </tbody>
                     </table>
@@ -509,14 +523,12 @@
             </div>
         </div>
 
-        <!-- Profile Modal -->
         <div id="profileModal" class="profile-modal">
             <div class="profile-content">
                 <h3>👤 Your Profile</h3>
                 <p id="profileEmailDisplay">Email: Not logged in</p>
                 <p id="profileXAccountDisplay">X Handle: Not set</p>
-                <p id="profileRankDisplay">Rank: Not available</p> <!-- New Rank Display -->
-                <input type="text" id="profileXAccountNameInput" placeholder="Enter your X (Twitter) handle">
+                <p id="profileRankDisplay">Rank: Not available</p> <input type="text" id="profileXAccountNameInput" placeholder="Enter your X (Twitter) handle">
                 <button id="profileSetXAccountNameButton" class="flappy-button">Update X Handle</button>
                 <div class="flex flex-col items-center mt-4">
                     <button id="profileSignInEmailLinkButton" class="flappy-button">📧 Sign In</button>
@@ -527,7 +539,6 @@
         </div>
     </div>
     
-    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <img src="https://i.imgur.com/N3fsA36.png" alt="Loading Coin">
         Loading...
@@ -551,23 +562,51 @@
             MIN_GAP_HEIGHT_MULTIPLIER: 1.8, // Decreased for tighter gaps relative to player
             AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.15, // Reduced for more consistent and tighter gaps
             CANDLE_WIDTH_BASE: 150,
-            INITIAL_OBSTACLE_SPEED_BASE: 2.5,
-            OBSTACLE_INTERVAL_MIN: 1500, // Halved for closer obstacles
-            OBSTACLE_INTERVAL_MAX: 2250, // Halved for closer obstacles
+            INITIAL_OBSTACLE_SPEED_BASE: 2.5, // Reverted to original speed for laptop
+            OBSTACLE_INTERVAL_MIN: 1500, 
+            OBSTACLE_INTERVAL_MAX: 2250, 
+            MAX_VERTICAL_GAP_SHIFT: 0.25, // Max vertical shift between consecutive gaps (fraction of screen height)
+            SPEED_INCREASE_MILESTONE_MC_INCREMENT: 20000, // How often speed increases based on MC
+            PLAYER_HITBOX_SHRINK_X: 0.45, // Default shrinkage for laptop
+            PLAYER_HITBOX_SHRINK_Y: 0.45  // Default shrinkage for laptop
         };
 
-        const mobileConfig = {
-            PLAYER_SIZE_BASE: 110, // Significantly reduced for more screen space on smaller mobiles
-            PLAYER_GRAVITY_BASE: 0.25, // Adjusted to feel good with smaller player
-            PLAYER_FLAP_STRENGTH_BASE: -5.5, // Adjusted to feel good with smaller player
-            MIN_CANDLE_SECTION_HEIGHT_PX_BASE: 80, // Adjusted min candle section height
-            MIN_GAP_HEIGHT_BASE: 200, // Decreased for tighter vertical gaps on mobile
-            MIN_GAP_HEIGHT_MULTIPLIER: 1.8, // Decreased for tighter vertical gaps relative to player on mobile
-            AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.20, // Slightly reduced random factor for tighter gaps
-            CANDLE_WIDTH_BASE: 200, // Significantly reduced for more horizontal gap space
-            INITIAL_OBSTACLE_SPEED_BASE: 2.8, // Adjusted speed for mobile
-            OBSTACLE_INTERVAL_MIN: 2600, // Increased for more breathing room on mobile - FURTHER INCREASED
-            OBSTACLE_INTERVAL_MAX: 3600, // Increased for more breathing room on mobile - FURTHER INCREASED
+        // Configuration for larger mobile phones (e.g., iPhone 12 Pro Max)
+        const largeMobileConfig = {
+            PLAYER_SIZE_BASE: 110, 
+            PLAYER_GRAVITY_BASE: 0.25, 
+            PLAYER_FLAP_STRENGTH_BASE: -5.5, 
+            MIN_CANDLE_SECTION_HEIGHT_PX_BASE: 80, 
+            MIN_GAP_HEIGHT_BASE: 200, 
+            MIN_GAP_HEIGHT_MULTIPLIER: 1.8, 
+            AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.20, 
+            CANDLE_WIDTH_BASE: 200, 
+            INITIAL_OBSTACLE_SPEED_BASE: 3.2, // User's requested speed
+            OBSTACLE_INTERVAL_MIN: 2600, 
+            OBSTACLE_INTERVAL_MAX: 3600, 
+            MAX_VERTICAL_GAP_SHIFT: 0.15, 
+            SPEED_INCREASE_MILESTONE_MC_INCREMENT: 20000,
+            PLAYER_HITBOX_SHRINK_X: 0.45, 
+            PLAYER_HITBOX_SHRINK_Y: 0.45
+        };
+
+        // Configuration for smaller mobile phones (e.g., iPhone 7)
+        const smallMobileConfig = {
+            PLAYER_SIZE_BASE: 80, // Further reduced player size for better performance and agile feel
+            PLAYER_GRAVITY_BASE: 0.25, 
+            PLAYER_FLAP_STRENGTH_BASE: -5.5, 
+            MIN_CANDLE_SECTION_HEIGHT_PX_BASE: 75, // Slightly adjusted for more vertical play
+            MIN_GAP_HEIGHT_BASE: 160, // Further reduced gap height for more challenge (was 170)
+            MIN_GAP_HEIGHT_MULTIPLIER: 1.8, 
+            AVAILABLE_SPACE_GAP_RANDOM_FACTOR: 0.20, 
+            CANDLE_WIDTH_BASE: 200, 
+            INITIAL_OBSTACLE_SPEED_BASE: 4.8, // Increased initial speed for a faster start (was 4.5)
+            OBSTACLE_INTERVAL_MIN: 3500, // Kept for performance
+            OBSTACLE_INTERVAL_MAX: 5000, // Kept for performance
+            MAX_VERTICAL_GAP_SHIFT: 0.35, // Increased for more dynamic vertical movement (was 0.15)
+            SPEED_INCREASE_MILESTONE_MC_INCREMENT: 12000, // Kept for frequent speed up
+            PLAYER_HITBOX_SHRINK_X: 0.25, // Reduced shrinkage for larger effective hitbox (was 0.35)
+            PLAYER_HITBOX_SHRINK_Y: 0.25  // Reduced shrinkage for larger effective hitbox (was 0.35)
         };
 
         let currentConfig = laptopConfig; // Default, will be set by device detection or local storage
@@ -582,6 +621,9 @@
         let INITIAL_OBSTACLE_SPEED;
         let OBSTACLE_INTERVAL_MIN;
         let OBSTACLE_INTERVAL_MAX;
+        let MAX_VERTICAL_GAP_SHIFT;
+        let PLAYER_HITBOX_SHRINK_X;
+        let PLAYER_HITBOX_SHRINK_Y;
 
 
         // Derived variables (calculated in calculateGameDimensions)
@@ -611,7 +653,7 @@
         const POTION_IMAGE_URL = "https://i.imgur.com/cL2ndoI.png";
         const FLAPPY_COIN_IMAGE_URL = "https://i.imgur.com/JZRXMxr.png";
 
-        const SPRITE_ANIMATION_SPEED = 200; 
+        const SPRITE_ANIMATION_SPEED = 250; // Increased for less frequent updates, better performance 
 
         // DOM element references
         const gameContainer = document.getElementById('gameContainer');
@@ -620,10 +662,12 @@
         const playerIcon = document.getElementById('playerIcon');
         const marketCapDisplay = document.getElementById('marketCap');
         const powerupStatusDisplay = document.getElementById('powerupStatus');
+        const speedUpText = document.getElementById('speedUpText'); // New element reference
 
         const deviceSelectionModal = document.getElementById('deviceSelectionModal'); 
         const playOnLaptopButton = document.getElementById('playOnLaptopButton');     
-        const playOnMobileButton = document.getElementById('playOnMobileButton');     
+        const playOnLargeMobileButton = document.getElementById('playOnLargeMobileButton'); // New
+        const playOnSmallMobileButton = document.getElementById('playOnSmallMobileButton'); // New   
 
         const messageBox = document.getElementById('messageBox');
         const messageTitle = document.getElementById('messageTitle');
@@ -643,6 +687,7 @@
         const userInfoDisplay = document.getElementById('userInfo');
         const userNameDisplay = document.getElementById('userNameDisplay');
         const profileButton = document.getElementById('profileButton'); 
+        const deviceButton = document.getElementById('deviceButton'); // New
         const logoutButton = document.getElementById('logoutButton');
 
         // Modals and their elements
@@ -655,8 +700,7 @@
         const profileXAccountDisplay = document.getElementById('profileXAccountDisplay'); 
         const profileRankDisplay = document.getElementById('profileRankDisplay'); 
         const profileXAccountNameInput = document.getElementById('profileXAccountNameInput'); 
-        const profileSetXAccountNameButton = document.getElementById('profileSetXAccountNameButton'); 
-        const profileSignInEmailLinkButton = document.getElementById('profileSignInEmailLinkButton'); 
+        const profileSetXAccountNameButton = document.getElementById('profileXAccountNameButton'); 
         const profileLogoutButton = document.getElementById('profileLogoutButton'); 
         const profileCloseButton = document.getElementById('profileCloseButton'); 
 
@@ -683,6 +727,8 @@
         window.shieldActive = false;
         window.shieldTimer = null;
         window.currentObstacleSpeed = 0; 
+        window.lastMarketCapSpeedMilestone = INITIAL_MARKET_CAP; // New variable for speed increase
+        window.lastGapY = GAME_HEIGHT / 2; // Initialize for vertical consistency
 
         window.currentSpriteFrameIndex = 0;
         window.spriteAnimationInterval = null;
@@ -706,12 +752,24 @@
             GAME_WIDTH = window.innerWidth;
             GAME_HEIGHT = window.innerHeight;
 
+            // IMPORTANT: Add a guard to prevent calculations with zero dimensions
+            if (GAME_WIDTH === 0 || GAME_HEIGHT === 0) {
+                console.warn("calculateGameDimensions called with zero window dimensions. Skipping calculations for now.");
+                return; // Exit if dimensions are invalid
+            }
+
             // Apply current configuration parameters
             PLAYER_GRAVITY = currentConfig.PLAYER_GRAVITY_BASE * (GAME_HEIGHT / BASE_GAME_HEIGHT);
             PLAYER_FLAP_STRENGTH = currentConfig.PLAYER_FLAP_STRENGTH_BASE * (GAME_HEIGHT / BASE_GAME_HEIGHT);
-            window.currentObstacleSpeed = currentConfig.INITIAL_OBSTACLE_SPEED_BASE * (GAME_WIDTH / BASE_GAME_WIDTH); 
+            // currentObstacleSpeed is now handled dynamically in gameLoop, but needs initial value
+            if (window.currentObstacleSpeed === 0 || !window.gameStarted) { // Only set initial speed if not already in game
+                window.currentObstacleSpeed = currentConfig.INITIAL_OBSTACLE_SPEED_BASE * (GAME_WIDTH / BASE_GAME_WIDTH); 
+            }
             OBSTACLE_INTERVAL_MIN = currentConfig.OBSTACLE_INTERVAL_MIN;
             OBSTACLE_INTERVAL_MAX = currentConfig.OBSTACLE_INTERVAL_MAX;
+            MAX_VERTICAL_GAP_SHIFT = currentConfig.MAX_VERTICAL_GAP_SHIFT; // Get from config
+            PLAYER_HITBOX_SHRINK_X = currentConfig.PLAYER_HITBOX_SHRINK_X; // New: Get from config
+            PLAYER_HITBOX_SHRINK_Y = currentConfig.PLAYER_HITBOX_SHRINK_Y; // New: Get from config
 
 
             // Player dimensions scale with GAME_HEIGHT, with a higher minimum
@@ -720,17 +778,22 @@
             player.style.width = `${PLAYER_SPRITE_WIDTH}px`;
             player.style.height = `${PLAYER_SPRITE_HEIGHT}px`;
 
+            // Adjust player initial position based on new GAME_HEIGHT
+            // Only set player initial position if game is not started or game over
+            // If game is running, player's position is managed by gameLoop
+            if (!window.gameStarted || window.gameOver) {
+                window.playerY = (GAME_HEIGHT / 2) - (player.offsetHeight / 2); // Use player.offsetHeight after setting width/height
+                player.style.top = `${window.playerY}px`; 
+                player.style.left = `${(GAME_WIDTH / 2) - (player.offsetWidth / 2)}px`;
+                player.style.transform = `rotateZ(0deg)`; 
+            }
+            
+
             // Calculate current scaled candle width, min gap, and min candle section height
             currentScaledCandleWidth = Math.max(70, GAME_WIDTH * (currentConfig.CANDLE_WIDTH_BASE / BASE_GAME_WIDTH)); 
             const scaleFactorForHeight = GAME_HEIGHT / BASE_GAME_HEIGHT;
             currentScaledMinGapHeight = currentConfig.MIN_GAP_HEIGHT_BASE * scaleFactorForHeight;
             currentScaledMinCandleSectionHeight = Math.max(70, currentConfig.MIN_CANDLE_SECTION_HEIGHT_PX_BASE * scaleFactorForHeight); 
-
-            // Adjust player initial position based on new GAME_HEIGHT
-            window.playerY = (GAME_HEIGHT / 2) - (player.offsetHeight / 2);
-            player.style.top = `${window.playerY}px`; 
-            player.style.left = `${(GAME_WIDTH / 2) - (player.offsetWidth / 2)}px`;
-            player.style.transform = `rotateZ(0deg)`; 
 
             // Adjust UI element sizes and positions based on a common scale factor
             const scaleFactor = Math.min(GAME_WIDTH / BASE_GAME_WIDTH, GAME_HEIGHT / BASE_GAME_HEIGHT);
@@ -743,7 +806,7 @@
             document.querySelector('.score .player-icon').style.height = `${40 * scaleFactor}px`;
             document.querySelector('.market-cap').style.fontSize = `${2.2 * scaleFactor}rem`;
 
-            // User Info (Profile/Logout)
+            // User Info (Profile/Device/Logout)
             document.querySelector('.user-info').style.top = `${1 * scaleFactor}rem`;
             document.querySelector('.user-info').style.right = `${1 * scaleFactor}rem`;
             document.querySelector('.user-info').style.fontSize = `${1.2 * scaleFactor}rem`;
@@ -764,6 +827,10 @@
             powerupStatusDisplay.style.fontSize = `${1.8 * scaleFactor}rem`;
             powerupStatusDisplay.style.padding = `${0.5 * scaleFactor}rem ${1 * scaleFactor}rem`;
             powerupStatusDisplay.style.borderRadius = `${0.5 * scaleFactor}rem`;
+
+            // Speed Up Text - Adjusted top position
+            speedUpText.style.fontSize = `${3.5 * scaleFactor}rem`;
+            speedUpText.style.top = `${GAME_HEIGHT * 0.20}px`; // 20% from the top
 
 
             // Message Box & Device Selection Modal
@@ -848,6 +915,8 @@
             console.log(`currentScaledMinGapHeight: ${currentScaledMinGapHeight}`);
             console.log(`currentScaledMinCandleSectionHeight: ${currentScaledMinCandleSectionHeight}`);
             console.log(`OBSTACLE_INTERVAL_MIN: ${OBSTACLE_INTERVAL_MIN}, OBSTACLE_INTERVAL_MAX: ${OBSTACLE_INTERVAL_MAX}`);
+            console.log(`MAX_VERTICAL_GAP_SHIFT: ${MAX_VERTICAL_GAP_SHIFT}`);
+            console.log(`PLAYER_HITBOX_SHRINK_X: ${PLAYER_HITBOX_SHRINK_X}, PLAYER_HITBOX_SHRINK_Y: ${PLAYER_HITBOX_SHRINK_Y}`);
             console.log("-------------------------------------");
         }
 
@@ -942,6 +1011,8 @@
             player.style.top = `${window.playerY}px`; 
             player.style.left = `${(GAME_WIDTH / 2) - (player.offsetWidth / 2)}px`;
             player.style.transform = `rotateZ(${rotationAngle}deg)`; 
+            // DEBUG: Log player position and velocity
+            // console.log(`[UpdatePlayer] Y: ${window.playerY.toFixed(2)}, Velocity: ${window.playerVelocity.toFixed(2)}, Gravity: ${PLAYER_GRAVITY.toFixed(2)}`);
         }
 
         /**
@@ -980,6 +1051,8 @@
                 height: itemHeight,
                 type: itemType
             });
+            // DEBUG: Log item creation
+            // console.log(`[CreateCollectible] Created ${itemType} at x:${itemElement.style.left}, y:${itemElement.style.top}`);
         }
         
         /**
@@ -995,15 +1068,29 @@
             const gapHeight = currentMinGap + Math.random() * (GAME_HEIGHT * currentConfig.AVAILABLE_SPACE_GAP_RANDOM_FACTOR); 
 
             // Define comfortable vertical bounds for the gap's top position
-            const minGapYPosition = player.offsetHeight * 1.5; // At least 1.5 player heights from the top
-            const maxGapYPosition = GAME_HEIGHT - player.offsetHeight * 1.5 - gapHeight; // At least 1.5 player heights from the bottom
+            // Increased minGapYPosition to keep candles from being too high
+            const minGapYPosition = player.offsetHeight * 2.5; 
+            const maxGapYPosition = GAME_HEIGHT - player.offsetHeight * 1.5 - gapHeight; 
 
             let actualGapY;
-            if (minGapYPosition >= maxGapYPosition) { // If screen is too small for the comfort zone
-                actualGapY = (GAME_HEIGHT - gapHeight) / 2; // Center the gap
+            // Initialize targetY with a default sensible value within the allowed range
+            // This ensures targetY is always defined before being used in debug logs or calculations.
+            let targetY = (minGapYPosition + maxGapYPosition) / 2; 
+
+            if (minGapYPosition >= maxGapYPosition) { 
+                actualGapY = (GAME_HEIGHT - gapHeight) / 2; 
+                targetY = actualGapY; // Set targetY to the final value for logging consistency
             } else {
-                actualGapY = minGapYPosition + Math.random() * (maxGapYPosition - minGapYPosition);
+                // Generate a random shift around 0 (positive or negative)
+                const randomShift = (Math.random() - 0.5) * MAX_VERTICAL_GAP_SHIFT * GAME_HEIGHT;
+                // Calculate the target Y for the new gap, centered around the last gap's Y
+                targetY = window.lastGapY + randomShift; // Re-assign if in the 'else' branch
+                // Ensure targetY stays within the overall allowed vertical bounds
+                actualGapY = Math.max(minGapYPosition, Math.min(maxGapYPosition, targetY));
             }
+            
+            // Update lastGapY for the next obstacle calculation
+            window.lastGapY = actualGapY;
 
             const topCandleHeight = actualGapY; 
             const bottomCandleHeight = GAME_HEIGHT - actualGapY - gapHeight;
@@ -1051,11 +1138,14 @@
 
             // --- DEBUG LOGGING ---
             console.log("--- createCandleObstacle Debug ---");
-            console.log(`Calculated gapHeight: ${gapHeight}`);
-            console.log(`Calculated actualGapY: ${actualGapY}`);
-            console.log(`Final newGapHeight: ${newGapHeight}`);
-            console.log(`Final topCandleHeight: ${finalTopCandleHeight}`);
-            console.log(`Final bottomCandleHeight: ${finalBottomCandleHeight}`);
+            console.log(`Calculated gapHeight: ${gapHeight.toFixed(2)}`);
+            // Now targetY is always defined for logging
+            console.log(`Calculated actualGapY (before clamping): ${targetY.toFixed(2)}`); 
+            console.log(`Final actualGapY (clamped): ${actualGapY.toFixed(2)}`);
+            console.log(`Final newGapHeight: ${newGapHeight.toFixed(2)}`);
+            console.log(`Final topCandleHeight: ${finalTopCandleHeight.toFixed(2)}`);
+            console.log(`Final bottomCandleHeight: ${finalBottomCandleHeight.toFixed(2)}`);
+            console.log(`window.lastGapY (updated): ${window.lastGapY.toFixed(2)}`);
             console.log("----------------------------------");
         }
 
@@ -1071,8 +1161,13 @@
                 obstacle.x -= window.currentObstacleSpeed; 
                 obstacle.greenElement.style.left = `${obstacle.x}px`; 
                 obstacle.redElement.style.left = `${obstacle.x}px`; 
+                // DEBUG: Log obstacle position
+                // console.log(`[UpdateObstacles] Obstacle ${i} x: ${obstacle.x.toFixed(2)}`);
+
 
                 if (obstacle.x + obstacle.width < 0) {
+                    // DEBUG: Log obstacle removal
+                    // console.log(`Removing obstacle ${i} (off-screen)`);
                     if (gameContainer.contains(obstacle.greenElement)) gameContainer.removeChild(obstacle.greenElement);
                     if (gameContainer.contains(obstacle.redElement)) gameContainer.removeChild(obstacle.redElement);
                     window.obstacles.splice(i, 1); 
@@ -1084,8 +1179,12 @@
                 const item = window.items[i]; 
                 item.x -= window.currentObstacleSpeed; 
                 item.element.style.left = `${item.x}px`;
+                // DEBUG: Log item position
+                // console.log(`[UpdateItems] Item ${i} x: ${item.x.toFixed(2)}`);
 
                 if (item.x + item.width < 0) {
+                    // DEBUG: Log item removal
+                    // console.log(`Removing item ${i} (off-screen)`);
                     if (gameContainer.contains(item.element)) gameContainer.removeChild(item.element);
                     window.items.splice(i, 1); 
                     i--;
@@ -1093,9 +1192,13 @@
             }
 
             const currentTime = Date.now();
-            if (currentTime - window.lastObstacleTime > Math.random() * (OBSTACLE_INTERVAL_MAX - OBSTACLE_INTERVAL_MIN) + OBSTACLE_INTERVAL_MIN) { 
+            const randomInterval = Math.random() * (OBSTACLE_INTERVAL_MAX - OBSTACLE_INTERVAL_MIN) + OBSTACLE_INTERVAL_MIN;
+            // DEBUG: Log interval
+            // console.log(`[Obstacle Creation] Time elapsed: ${currentTime - window.lastObstacleTime}ms, Random interval target: ${randomInterval.toFixed(0)}ms`);
+            if (currentTime - window.lastObstacleTime > randomInterval) { 
                 createCandleObstacle();
                 window.lastObstacleTime = currentTime; 
+                // console.log("New obstacle created!");
             }
         }
 
@@ -1110,8 +1213,8 @@
             const playerRect = player.getBoundingClientRect();
             
             // Define player's effective collision box, slightly smaller than visual for forgiveness
-            const playerHitboxShrinkAmountX = playerRect.width * 0.45; 
-            const playerHitboxShrinkAmountY = playerRect.height * 0.45;
+            const playerHitboxShrinkAmountX = PLAYER_HITBOX_SHRINK_X * playerRect.width; 
+            const playerHitboxShrinkAmountY = PLAYER_HITBOX_SHRINK_Y * playerRect.height;
 
             const playerCollision = {
                 x: playerRect.left + playerHitboxShrinkAmountX,
@@ -1256,7 +1359,8 @@
         // === Particle System for Welcome/Game Over Screens ===
         function createParticles() {
             particles = []; 
-            const numParticles = 100; 
+            // Reduce particle count for small mobile if performance is still an issue
+            const numParticles = currentConfig === smallMobileConfig ? 40 : 100; // Further reduced for small mobile
             for (let i = 0; i < numParticles; i++) {
                 particles.push({
                     x: Math.random() * particleCanvas.width,
@@ -1304,6 +1408,16 @@
         // === End Particle System ===
 
         /**
+         * Displays a temporary "FLAPPY SPEED UP!" message.
+         */
+        function showSpeedUpMessage() {
+            speedUpText.classList.add('show');
+            setTimeout(() => {
+                speedUpText.classList.remove('show');
+            }, 1000); // Display for 1 second
+        }
+
+        /**
          * Updates the score display on the top bar.
          */
         function updateScoreDisplay() {
@@ -1316,19 +1430,36 @@
          * The main game loop.
          */
         function gameLoop() {
-            if (window.gameOver) { 
-                cancelAnimationFrame(window.animationFrameId); 
-                return;
+            try {
+                if (window.gameOver) { 
+                    cancelAnimationFrame(window.animationFrameId); 
+                    return;
+                }
+
+                window.marketCap += (MARKET_CAP_PER_BASE_CANDLE_WIDTH / currentConfig.CANDLE_WIDTH_BASE) * window.currentObstacleSpeed; 
+                marketCapDisplay.textContent = `MC: ${formatCurrency(window.marketCap)}`; 
+
+                // Check if market cap has increased enough to boost speed
+                if (window.marketCap >= window.lastMarketCapSpeedMilestone + currentConfig.SPEED_INCREASE_MILESTONE_MC_INCREMENT) { 
+                    window.currentObstacleSpeed += 0.3; 
+                    window.lastMarketCapSpeedMilestone += currentConfig.SPEED_INCREASE_MILESTONE_MC_INCREMENT; 
+                    console.log(`Speed increased to ${window.currentObstacleSpeed.toFixed(2)}. Next speed milestone at MC: ${formatCurrency(window.lastMarketCapSpeedMilestone + currentConfig.SPEED_INCREASE_MILESTONE_MC_INCREMENT)}`);
+                    showSpeedUpMessage(); // Show the speed up animation
+                }
+
+                updatePlayer();
+                updateObstaclesAndItems();
+                checkCollisions();
+
+                window.animationFrameId = requestAnimationFrame(gameLoop); 
+            } catch (error) {
+                console.error("Error in gameLoop:", error);
+                // Optionally end game or show an error message to the user
+                if (!window.gameOver) {
+                    alert("A game error occurred. Please check the console for details. Ending game.");
+                    endGame();
+                }
             }
-
-            window.marketCap += (MARKET_CAP_PER_BASE_CANDLE_WIDTH / currentConfig.CANDLE_WIDTH_BASE) * window.currentObstacleSpeed; 
-            marketCapDisplay.textContent = `MC: ${formatCurrency(window.marketCap)}`; 
-
-            updatePlayer();
-            updateObstaclesAndItems();
-            checkCollisions();
-
-            window.animationFrameId = requestAnimationFrame(gameLoop); 
         }
 
         /**
@@ -1364,9 +1495,13 @@
             window.score = 0; 
             updateScoreDisplay(); 
             window.marketCap = INITIAL_MARKET_CAP; 
+            window.lastMarketCapSpeedMilestone = INITIAL_MARKET_CAP; // Reset milestone on new game
             marketCapDisplay.textContent = `MC: ${formatCurrency(window.marketCap)}`; 
             
             calculateGameDimensions(); // Recalculate dimensions based on currentConfig
+
+            // Reset lastGapY when starting a new game for consistent initial obstacle placement
+            window.lastGapY = GAME_HEIGHT / 2; // Center of screen for first gap
 
             window.playerY = (GAME_HEIGHT / 2) - (player.offsetHeight / 2);
             player.style.top = `${window.playerY}px`; 
@@ -1431,7 +1566,7 @@
 
             const finalCombinedScore = calculateCombinedFinalScore(window.score, window.marketCap); 
             
-            messageTitle.textContent = "💀 𝗚𝗔𝗠𝗘 𝗢𝗩𝗘𝗥!"; 
+            messageTitle.textContent = "💀 𝗚�𝗠𝗘 𝗢𝗩𝗘𝗥!"; 
             messageText.innerHTML = `
                 🪙 Your $FLAPPY: ${window.score}<br>
                 📊 Final Market Cap: ${formatCurrency(window.marketCap)}<br><br>
@@ -1777,16 +1912,15 @@
                 alert("Error logging out: " + error.message);
             } else {
                 currentUser = null;
-                currentProfile = null;
                 isLoggedIn = false;
+                currentProfile = null;
                 updateAuthUI();
                 // After logout, always show the device selection if no preference is explicitly saved
-                // This ensures a clean slate and prompts for choice if device was auto-detected before
                 const preferredDevice = localStorage.getItem('cryptoFlapDevice');
-                if (!preferredDevice) {
+                if (!preferredDevice) { // If no preference, show device selection
                     showDeviceSelection(); 
-                } else {
-                    showWelcomeScreen(false); // If a preference exists, go to welcome with that preference
+                } else { // If a preference exists, go to welcome with that preference
+                    showWelcomeScreen(false); 
                 }
                 alert("Logged out successfully!");
             }
@@ -1800,6 +1934,7 @@
                 userNameDisplay.textContent = formatPlayerName(currentProfile);
                 userInfoDisplay.style.display = 'flex'; // Ensure user info is shown when logged in
                 profileButton.style.display = 'inline-block';
+                deviceButton.style.display = 'inline-block'; // Show device button
                 logoutButton.style.display = 'inline-block';
                 signInEmailLinkButton.classList.add('hidden'); 
                 registerButton.classList.add('hidden');
@@ -1818,6 +1953,7 @@
                 userNameDisplay.textContent = 'Guest';
                 userInfoDisplay.style.display = 'none'; // Ensure user info is hidden when logged out unless on welcome screen
                 profileButton.style.display = 'none';
+                deviceButton.style.display = 'none'; // Hide device button
                 logoutButton.style.display = 'none';
                 signInEmailLinkButton.classList.remove('hidden'); 
                 registerButton.classList.add('hidden'); 
@@ -1882,7 +2018,7 @@
             }
 
             if (!isGameOver) {
-                messageTitle.textContent = "🚀 Welcome to 𝗖�𝗬𝗣𝗧𝗢 𝗙𝗟𝗔𝗣!"; 
+                messageTitle.textContent = "🚀 Welcome to 𝗖𝗥𝗬𝗣𝗧𝗢 𝗙𝗟𝗔𝗣!"; 
                 messageText.innerHTML = "⛏️ Flap through green candles, dodge the red ones.<br>💸 Stack up your $FLAPPY and fly to crypto glory!<br><br>Sign in to save your scores!"; 
             } 
         }
@@ -1895,7 +2031,12 @@
             messageBox.style.display = 'none';
             leaderboardModal.style.display = 'none';
             profileModal.style.display = 'none';
-            userInfoDisplay.style.display = 'none'; // Hide user info bar initially
+            // Show userInfo if logged in and accessing via device button
+            if (isLoggedIn) { 
+                userInfoDisplay.style.display = 'flex'; 
+            } else {
+                userInfoDisplay.style.display = 'none'; 
+            }
             
             particleCanvas.style.display = 'block'; 
             if (!particleAnimationFrameId) { 
@@ -1905,29 +2046,27 @@
         }
 
         /**
-         * Detects the device type and sets the game configuration.
-         * Prioritizes localStorage preference, then automatic detection.
+         * Sets the current game configuration based on the selected device.
+         * @param {string} deviceType - 'laptop', 'smallMobile', or 'largeMobile'.
          */
-        function detectAndSetDeviceConfig() {
-            const preferredDevice = localStorage.getItem('cryptoFlapDevice');
-            if (preferredDevice === 'laptop') {
-                currentConfig = laptopConfig;
-                console.log("Device config set to LAPTOP (from localStorage)");
-            } else if (preferredDevice === 'mobile') {
-                currentConfig = mobileConfig;
-                console.log("Device config set to MOBILE (from localStorage)");
-            } else {
-                // Auto-detect if no preference saved
-                const isMobileAuto = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && window.innerHeight <= 1024);
-                if (isMobileAuto) {
-                    currentConfig = mobileConfig;
-                    console.log("Device config set to MOBILE (auto-detected)");
-                } else {
+        function setDeviceConfig(deviceType) {
+            switch (deviceType) {
+                case 'laptop':
                     currentConfig = laptopConfig;
-                    console.log("Device config set to LAPTOP (auto-detected)");
-                }
+                    break;
+                case 'smallMobile':
+                    currentConfig = smallMobileConfig;
+                    break;
+                case 'largeMobile':
+                    currentConfig = largeMobileConfig;
+                    break;
+                default:
+                    console.warn("Unknown device type, defaulting to laptop config.");
+                    currentConfig = laptopConfig;
             }
-            calculateGameDimensions(); // Apply the determined config
+            localStorage.setItem('cryptoFlapDevice', deviceType);
+            calculateGameDimensions(); // Apply the new configuration
+            console.log(`Device config set to ${deviceType} (via selection or auto-detect)`);
         }
 
 
@@ -1962,15 +2101,14 @@
                 e.stopPropagation(); // Prevent this click from bubbling up to the gameContainer's general handler
 
                 if (e.target.closest('#playOnLaptopButton')) { 
-                    currentConfig = laptopConfig;
-                    localStorage.setItem('cryptoFlapDevice', 'laptop'); // Save choice
-                    calculateGameDimensions(); // Apply selected config
-                    showWelcomeScreen(false); // Move to welcome screen
-                } else if (e.target.closest('#playOnMobileButton')) { 
-                    currentConfig = mobileConfig;
-                    localStorage.setItem('cryptoFlapDevice', 'mobile'); // Save choice
-                    calculateGameDimensions(); // Apply selected config
-                    showWelcomeScreen(false); // Move to welcome screen
+                    setDeviceConfig('laptop');
+                    showWelcomeScreen(false); 
+                } else if (e.target.closest('#playOnLargeMobileButton')) { 
+                    setDeviceConfig('largeMobile');
+                    showWelcomeScreen(false); 
+                } else if (e.target.closest('#playOnSmallMobileButton')) { 
+                    setDeviceConfig('smallMobile');
+                    showWelcomeScreen(false); 
                 } else if (e.target.closest('#signInEmailLinkButton')) {
                     await handleSignInWithEmailLink();
                 } else if (e.target.closest('#startButton')) { 
@@ -1980,9 +2118,9 @@
                 } else if (e.target.closest('#leaderboardCloseButton')) {
                     leaderboardModal.style.display = 'none';
                     if (window.gameOver) {
-                        showWelcomeScreen(true); // Call updated function
+                        showWelcomeScreen(true); 
                     } else {
-                        showWelcomeScreen(false); // Call updated function
+                        showWelcomeScreen(false); 
                     }
                 } else if (e.target.closest('#profileButton')) { 
                     profileModal.style.display = 'flex';
@@ -2010,14 +2148,16 @@
                 else if (e.target.closest('#profileCloseButton')) { 
                     profileModal.style.display = 'none';
                     if (window.gameOver) {
-                        showWelcomeScreen(true); // Call updated function
+                        showWelcomeScreen(true); 
                     } else {
-                        showWelcomeScreen(false); // Call updated function
+                        showWelcomeScreen(false); 
                     }
                 } else if (e.target.closest('#backToWelcomeButton')) { 
-                    showWelcomeScreen(false); // Call updated function
+                    showWelcomeScreen(false); 
                 } else if (e.target.closest('#logoutButton')) { 
                     await handleLogout();
+                } else if (e.target.closest('#deviceButton')) { // Handle new Device button
+                    showDeviceSelection();
                 }
             } else { 
                 // This is a click on the game container itself, outside of specific buttons/modals
@@ -2030,35 +2170,34 @@
 
         // Named function for window.onload
         async function initializeGame() {
-            // Check local storage for preferred device.
-            // If not found, auto-detect and set, but don't save to localStorage yet.
+            // 1. Determine initial device config
             const preferredDevice = localStorage.getItem('cryptoFlapDevice');
-            if (preferredDevice === 'laptop') {
-                currentConfig = laptopConfig;
-                console.log("Device config set to LAPTOP (from localStorage)");
-            } else if (preferredDevice === 'mobile') {
-                currentConfig = mobileConfig;
-                console.log("Device config set to MOBILE (from localStorage)");
+            if (preferredDevice) {
+                setDeviceConfig(preferredDevice); // Use saved preference
             } else {
-                // Auto-detect if no preference saved
+                // Auto-detect and apply, but don't save. If mobile, will show selection.
                 const isMobileAuto = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && window.innerHeight <= 1024);
                 if (isMobileAuto) {
-                    currentConfig = mobileConfig;
-                    console.log("Device config set to MOBILE (auto-detected)");
+                    currentConfig = largeMobileConfig; // Default mobile to large, then offer choice
+                    console.log("Auto-detected MOBILE, defaulting to largeMobileConfig for initial setup.");
                 } else {
                     currentConfig = laptopConfig;
-                    console.log("Device config set to LAPTOP (auto-detected)");
+                    console.log("Auto-detected LAPTOP, applying laptopConfig.");
                 }
+                calculateGameDimensions(); // Apply this initial config
             }
-            calculateGameDimensions(); // Apply the determined config
             
             // Initial player size setup (will be refined by calculateGameDimensions)
             player.style.width = `${PLAYER_SPRITE_WIDTH}px`;
             player.style.height = `${PLAYER_SPRITE_HEIGHT}px`;
             updatePlayerSize();
-            window.playerY = (GAME_HEIGHT / 2) - (player.offsetHeight / 2);
-            player.style.top = `${window.playerY}px`; 
-            player.style.left = `${(GAME_WIDTH / 2) - (player.offsetWidth / 2)}px`;
+            // Player Y is calculated in calculateGameDimensions based on its dimensions, if valid.
+            // Only explicitly set here if calculateGameDimensions returned early due to zero dimensions.
+            if (window.innerWidth === 0 || window.innerHeight === 0) {
+                 window.playerY = (GAME_HEIGHT / 2) - (player.offsetHeight / 2);
+                 player.style.top = `${window.playerY}px`; 
+                 player.style.left = `${(GAME_WIDTH / 2) - (player.offsetWidth / 2)}px`;
+            }
             player.style.transform = `rotateZ(0deg)`;
             marketCapDisplay.textContent = `MC: ${formatCurrency(INITIAL_MARKET_CAP)}`;
             updateScoreDisplay();
@@ -2072,12 +2211,13 @@
                     isLoggedIn = true;
                     currentProfile = await fetchUserProfile(currentUser.id);
                     if (!currentProfile) {
-                        // Create profile if it doesn't exist
+                        // Create profile if it's not present
                         await upsertUserProfile({ id: currentUser.id, email: currentUser.email, x_account_name: null });
                         currentProfile = await fetchUserProfile(currentUser.id); 
                     }
                     updateAuthUI();
-                    showWelcomeScreen(window.gameOver); // User is logged in, show main screen (welcome/game over)
+                    // After login, show the welcome screen (or game over screen if applicable)
+                    showWelcomeScreen(window.gameOver); 
                 } else {
                     currentUser = null;
                     isLoggedIn = false;
@@ -2085,12 +2225,10 @@
                     updateAuthUI();
                     
                     const savedDevice = localStorage.getItem('cryptoFlapDevice');
-                    // If no saved device preference AND it's a mobile device, show device selection
-                    // Otherwise (if desktop or saved device preference), go straight to welcome
                     const isMobileAuto = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && window.innerHeight <= 1024);
 
-                    if (!savedDevice && isMobileAuto) { // Only show device selection if no saved device AND it's a mobile device
-                        showDeviceSelection(); 
+                    if (!savedDevice && isMobileAuto) { 
+                        showDeviceSelection(); // Only show device selection if no saved device AND it's a mobile device
                     } else {
                         showWelcomeScreen(false); // Otherwise, go straight to welcome screen
                     }
@@ -2142,4 +2280,3 @@
     </script>
 </body>
 </html>
-�
