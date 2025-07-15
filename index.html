@@ -59,6 +59,41 @@
       50% { transform: scale(1.05); }
       100% { transform: scale(1); }
     }
+
+    /* New CSS for full-screen modals and scroll locking */
+    #autoTradeModal, #launchPage {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+
+    #autoTradeModal.hidden, #launchPage.hidden {
+      display: none;
+    }
+
+    #autoTradeModal > div, #launchPage > div {
+      max-width: 600px;
+      width: 100%;
+      background: #1a1a1a;
+      border: 2px solid #00ffaa;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 0 20px rgba(0, 255, 170, 0.5);
+    }
+
+    body.modal-open {
+      overflow: hidden; /* Prevents scrolling on the body when a modal is open */
+    }
   </style>
 </head>
 <body class="min-h-screen text-white font-poppins bg-gradient-to-b from-gray-900 to-gray-700 transition-colors duration-300" id="app">
@@ -1949,19 +1984,22 @@
     });
 
     // Event listeners for Automated Trading Modal
+    // Replaced with new toggleModalScroll implementation
     document.getElementById('autoTradeBtn').addEventListener('click', () => {
-      document.getElementById('menuModal').classList.add('hidden');
+      toggleModalScroll('menuModal', false);
+      toggleModalScroll('autoTradeModal', true);
       updateAutoTradeModal();
-      document.getElementById('autoTradeModal').classList.remove('hidden');
       playSound();
     });
+
     document.getElementById('closeAutoTrade').addEventListener('click', () => {
-      document.getElementById('autoTradeModal').classList.add('hidden');
+      toggleModalScroll('autoTradeModal', false);
       playSound();
     });
+
     document.getElementById('backAutoTrade').addEventListener('click', () => {
-      document.getElementById('autoTradeModal').classList.add('hidden');
-      document.getElementById('menuModal').classList.remove('hidden');
+      toggleModalScroll('autoTradeModal', false);
+      toggleModalScroll('menuModal', true);
       playSound();
     });
 
@@ -2184,9 +2222,10 @@
     }
 
     // Launch Token Button
+    // Replaced with new toggleModalScroll implementation
     document.getElementById('launchTokenBtn').addEventListener('click', () => {
-      document.getElementById('menuModal').classList.add('hidden');
-      document.getElementById('launchPage').classList.remove('hidden');
+      toggleModalScroll('menuModal', false);
+      toggleModalScroll('launchPage', true);
       playSound();
     });
 
@@ -2227,6 +2266,12 @@
       tokens.filter(t => t.stage === 'trading').forEach(token => {
         swapTokenSelect.innerHTML += `<option value="${token.ticker}">${token.ticker}</option>`;
       });
+    }
+
+    // Function to toggle modal-open class on body and modal visibility
+    function toggleModalScroll(modalId, isOpen) {
+      document.body.classList.toggle('modal-open', isOpen);
+      document.getElementById(modalId).classList.toggle('hidden', !isOpen);
     }
 
     // Initialize App when the DOM is fully loaded
