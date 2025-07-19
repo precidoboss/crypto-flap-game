@@ -238,6 +238,31 @@
       animation: rotate-glow 10s linear infinite;
       z-index: -1;
     }
+
+    /* Message Box */
+    #messageBox {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #28a745; /* Green for success */
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        z-index: 1100;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        min-width: 250px;
+        text-align: center;
+    }
+    #messageBox.error {
+        background-color: #dc3545; /* Red for error */
+    }
+    #messageBox.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -252,6 +277,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Message Box -->
+  <div id="messageBox"></div>
 
   <!-- Header -->
   <header class="bg-gray-900 text-white p-4 shadow-lg flex justify-between items-center relative z-10">
@@ -299,13 +327,7 @@
         id: 'platform_owner',
         isBot: false,
         balances: {
-          USDT: 1000000,
-          BTC: 5,
-          ETH: 50,
-          AVAX: 100,
-          SOL: 200,
-          USDC: 500000,
-          PDEX: 360000000,
+          USDT: 0, BTC: 0, ETH: 0, AVAX: 0, SOL: 0, USDC: 0, PDEX: 0, // Will be set to $10k equivalent dynamically
         },
         liquidityPositions: [], // LP positions owned by the platform owner
         farmingStakes: [], // Farming stakes owned by the platform owner
@@ -319,21 +341,28 @@
         }
       },
       platformSettings: {
-        transactionFeePercentage: 10, // Default 10%
-        feeDistributionLPRewardsPercent: 5,
-        feeDistributionPlatformWalletPercent: 4,
-        feeDistributionPdexBurnPercent: 1,
+        transactionFeePercentage: 5, // Reduced to 5%
+        feeDistributionLPRewardsPercent: 80, // 80% of 5% = 4% of transaction value
+        feeDistributionPlatformWalletPercent: 10, // 10% of 5% = 0.5% of transaction value
+        feeDistributionPdexBurnPercent: 10, // 10% of 5% = 0.5% of transaction value
         botActivityEnabled: true,
         botTradingFrequencyMin: 10000, // ms
         botTradingFrequencyMax: 60000, // ms
         botLpActivityFrequencyMin: 30000, // ms
         botLpActivityFrequencyMax: 120000, // ms
+        botFarmingFrequencyMin: 30000, // ms
+        botFarmingFrequencyMax: 120000, // ms
+        botPresaleBuyFrequencyMin: 5000, // ms
+        botPresaleBuyFrequencyMax: 15000, // ms
         minLiquidityForLaunch: 5000, // USDT equivalent
         maxLiquidityPercentLaunch: 60,
         maxBurnPercentLaunch: 15,
         maxPlatformPercentLaunch: 10,
         maxPresalePercentLaunch: 20,
         maxTeamPercentLaunch: 30,
+        botTradingAggressiveness: 0.05, // % of balance bots trade
+        botLpAddAggressiveness: 0.05, // % of balance bots add to LP
+        botFarmingAggressiveness: 0.1, // % of balance bots stake in farming
       },
       pdexToken: {
         ticker: 'PDEX',
@@ -346,10 +375,7 @@
         burn_cap_amount: 100000000, // 10% of initial total supply
       },
       gameRewardsPool: {
-        availableRewards: { // Initial rewards for the game pool
-          USDT: 1000,
-          ETH: 0.5,
-          BTC: 0.01,
+        availableRewards: { // Initial rewards for the game pool - now empty, manually supplied
         },
         totalUsdValue: 0, // Calculated dynamically
         rewardProbabilities: [ // { token: tokenTicker, probability: chance, minAmount: min, maxAmount: max, isUsdValue: bool }
@@ -368,7 +394,7 @@
       },
       // Simulation specific
       simulationTime: 0, // In seconds, for tracking epoch, etc.
-      lastBotApplicationTime: 0,
+      lastBotApplicationTime: Date.now(), // Track when last bot app was submitted
       epochStartTime: Date.now(), // For governance epoch tracking
       lastLPFeeDistributionTime: Date.now(), // Track last time LP fees were distributed
     };
@@ -392,7 +418,23 @@
       return amount * state.tokens[tokenTicker].price_usd;
     }
 
-    function showConfirmationModal(message, onConfirm) {
+    // Message Box Function
+    function showMessageBox(message, isError = false) {
+        const messageBox = document.getElementById('messageBox');
+        messageBox.textContent = message;
+        messageBox.className = 'messageBox show'; // Reset classes
+        if (isError) {
+            messageBox.classList.add('error');
+        } else {
+            messageBox.classList.remove('error');
+        }
+
+        setTimeout(() => {
+            messageBox.classList.remove('show');
+        }, 3000); // Hide after 3 seconds
+    }
+
+    function showConfirmationModal(message) {
       const modal = document.getElementById('confirmationModal');
       const modalMessage = document.getElementById('modalMessage');
       const modalConfirmBtn = document.getElementById('modalConfirmBtn');
@@ -407,7 +449,6 @@
           modalConfirmBtn.removeEventListener('click', confirmHandler);
           modalCancelBtn.removeEventListener('click', cancelHandler);
           resolve(true);
-          if (onConfirm) onConfirm();
         };
         const cancelHandler = () => {
           modal.style.display = 'none';
@@ -448,16 +489,14 @@
     }
 
     /**
-     * Applies the 10% transaction fee and distributes it.
+     * Applies the transaction fee and distributes it.
      * @param {string} userId The ID of the user/bot performing the action.
      * @param {number} usdValue The USD value of the transaction (funds issued).
      * @param {string} type The type of transaction (e.g., 'Swap', 'AddLiquidity').
      * @param {string} poolId Optional: The ID of the pool involved.
-     * @param {string} inputTokenTicker Optional: The ticker of the token being input/sold.
-     * @param {number} inputAmount Optional: The amount of the token being input/sold.
      * @returns {boolean} True if fee successfully deducted, false otherwise.
      */
-    function applyTransactionFee(userId, usdValue, type, poolId = null, inputTokenTicker = null, inputAmount = null) {
+    function applyTransactionFee(userId, usdValue, type, poolId = null) {
       const user = state.users[userId];
       if (!user) {
           console.error(`User ${userId} not found for fee application.`);
@@ -468,7 +507,7 @@
       const totalFeeUsdt = usdValue * feePercentage;
 
       if (user.balances.USDT < totalFeeUsdt) {
-        console.warn(`User ${userId} - Insufficient USDT for fee: ${formatUSD(totalFeeUsdt)}. Action cancelled.`);
+        showMessageBox(`Insufficient USDT for fee: ${formatUSD(totalFeeUsdt)}. Action cancelled.`, true);
         return false;
       }
 
@@ -506,7 +545,6 @@
       // Update app stats total volume
       state.appStats.totalVolumeUSD += usdValue;
 
-      // Add to recent activity log
       addRecentActivity(`${user.isBot ? 'Bot ' + user.id.split('_')[1] : 'You'} paid ${formatUSD(totalFeeUsdt)} fee for ${type} of ${formatUSD(usdValue)}.`);
 
       return true;
@@ -571,13 +609,14 @@
     // --- Data Initialization ---
 
     function initializeTokens() {
+      // Real-time prices as of July 19, 2025 (approximate)
       state.tokens = {
         USDT: { ticker: 'USDT', name: 'Tether', total_supply: Infinity, circulating_supply: Infinity, decimals: 6, price_usd: 1, is_base_asset: true, is_stablecoin: true, market_cap_usd: Infinity },
         USDC: { ticker: 'USDC', name: 'USD Coin', total_supply: Infinity, circulating_supply: Infinity, decimals: 6, price_usd: 1, is_base_asset: true, is_stablecoin: true, market_cap_usd: Infinity },
-        BTC: { ticker: 'BTC', name: 'Bitcoin', total_supply: Infinity, circulating_supply: Infinity, decimals: 8, price_usd: 60000, is_base_asset: true, is_stablecoin: false, market_cap_usd: Infinity },
-        ETH: { ticker: 'ETH', name: 'Ethereum', total_supply: Infinity, circulating_supply: Infinity, decimals: 18, price_usd: 3000, is_base_asset: true, is_stablecoin: false, market_cap_usd: Infinity },
-        AVAX: { ticker: 'AVAX', name: 'Avalanche', total_supply: Infinity, circulating_supply: Infinity, decimals: 18, price_usd: 30, is_base_asset: true, is_stablecoin: false, market_cap_usd: Infinity },
-        SOL: { ticker: 'SOL', name: 'Solana', total_supply: Infinity, circulating_supply: Infinity, decimals: 9, price_usd: 150, is_base_asset: true, is_stablecoin: false, market_cap_usd: Infinity },
+        BTC: { ticker: 'BTC', name: 'Bitcoin', total_supply: Infinity, circulating_supply: Infinity, decimals: 8, price_usd: 118031.60, is_base_asset: true, is_stablecoin: false, market_cap_usd: Infinity },
+        ETH: { ticker: 'ETH', name: 'Ethereum', total_supply: Infinity, circulating_supply: Infinity, decimals: 18, price_usd: 3579.08, is_base_asset: true, is_stablecoin: false, market_cap_usd: Infinity },
+        AVAX: { ticker: 'AVAX', name: 'Avalanche', total_supply: Infinity, circulating_supply: Infinity, decimals: 18, price_usd: 23.50, is_base_asset: true, is_stablecoin: false, market_cap_usd: Infinity },
+        SOL: { ticker: 'SOL', name: 'Solana', total_supply: Infinity, circulating_supply: Infinity, decimals: 9, price_usd: 177.21, is_base_asset: true, is_stablecoin: false, market_cap_usd: Infinity },
         PDEX: state.pdexToken, // PDEX token data is already in state.pdexToken
       };
       // Update PDEX market cap
@@ -585,32 +624,33 @@
     }
 
     function initializeLiquidityPools() {
+      const initialPoolLiquidityUsd = 10000; // $10,000 equivalent per side
+
       // Initial PDEX/USDT pool
-      const pdexInitialLiquidityPDEX = state.pdexToken.circulating_supply * 0.5;
-      const pdexInitialLiquidityUSDT = pdexInitialLiquidityPDEX * state.pdexToken.price_usd;
+      const pdexInitialLiquidityPDEX = initialPoolLiquidityUsd / state.pdexToken.price_usd;
       state.liquidityPools['PDEX-USDT'] = {
         id: 'PDEX-USDT',
         tokenA: state.tokens.PDEX,
         tokenB: state.tokens.USDT,
         balanceA: pdexInitialLiquidityPDEX,
-        balanceB: pdexInitialLiquidityUSDT,
-        k: pdexInitialLiquidityPDEX * pdexInitialLiquidityUSDT,
-        lpTokenSupply: Math.sqrt(pdexInitialLiquidityPDEX * pdexInitialLiquidityUSDT), // Simplified LP token minting
-        feesEarnedLP: 0, // Accumulated fees for LPs in this pool
-        incentivesAdded: {}, // { tokenTicker: amount }
+        balanceB: initialPoolLiquidityUsd,
+        k: pdexInitialLiquidityPDEX * initialPoolLiquidityUsd,
+        lpTokenSupply: Math.sqrt(pdexInitialLiquidityPDEX * initialPoolLiquidityUsd),
+        feesEarnedLP: 0,
+        incentivesAdded: {},
         type: 'Volatile',
-        volumeUSD: 0, // Daily volume, reset periodically
+        volumeUSD: 0,
       };
 
-      // Other base asset pools
+      // Other base asset pools ($10,000 equivalent per side)
       state.liquidityPools['BTC-USDT'] = {
         id: 'BTC-USDT',
         tokenA: state.tokens.BTC,
         tokenB: state.tokens.USDT,
-        balanceA: 100, // 100 BTC
-        balanceB: 100 * state.tokens.BTC.price_usd, // 6,000,000 USDT
-        k: 100 * (100 * state.tokens.BTC.price_usd),
-        lpTokenSupply: Math.sqrt(100 * (100 * state.tokens.BTC.price_usd)),
+        balanceA: initialPoolLiquidityUsd / state.tokens.BTC.price_usd,
+        balanceB: initialPoolLiquidityUsd,
+        k: (initialPoolLiquidityUsd / state.tokens.BTC.price_usd) * initialPoolLiquidityUsd,
+        lpTokenSupply: Math.sqrt((initialPoolLiquidityUsd / state.tokens.BTC.price_usd) * initialPoolLiquidityUsd),
         feesEarnedLP: 0,
         incentivesAdded: {},
         type: 'Volatile',
@@ -620,10 +660,10 @@
         id: 'ETH-USDT',
         tokenA: state.tokens.ETH,
         tokenB: state.tokens.USDT,
-        balanceA: 1000, // 1000 ETH
-        balanceB: 1000 * state.tokens.ETH.price_usd, // 3,000,000 USDT
-        k: 1000 * (1000 * state.tokens.ETH.price_usd),
-        lpTokenSupply: Math.sqrt(1000 * (1000 * state.tokens.ETH.price_usd)),
+        balanceA: initialPoolLiquidityUsd / state.tokens.ETH.price_usd,
+        balanceB: initialPoolLiquidityUsd,
+        k: (initialPoolLiquidityUsd / state.tokens.ETH.price_usd) * initialPoolLiquidityUsd,
+        lpTokenSupply: Math.sqrt((initialPoolLiquidityUsd / state.tokens.ETH.price_usd) * initialPoolLiquidityUsd),
         feesEarnedLP: 0,
         incentivesAdded: {},
         type: 'Volatile',
@@ -633,10 +673,10 @@
         id: 'USDC-USDT',
         tokenA: state.tokens.USDC,
         tokenB: state.tokens.USDT,
-        balanceA: 500000, // 500k USDC
-        balanceB: 500000, // 500k USDT
-        k: 500000 * 500000,
-        lpTokenSupply: Math.sqrt(500000 * 500000),
+        balanceA: initialPoolLiquidityUsd / state.tokens.USDC.price_usd,
+        balanceB: initialPoolLiquidityUsd,
+        k: (initialPoolLiquidityUsd / state.tokens.USDC.price_usd) * initialPoolLiquidityUsd,
+        lpTokenSupply: Math.sqrt((initialPoolLiquidityUsd / state.tokens.USDC.price_usd) * initialPoolLiquidityUsd),
         feesEarnedLP: 0,
         incentivesAdded: {},
         type: 'Stable',
@@ -646,22 +686,32 @@
     }
 
     function initializeUsersAndBots() {
-      // Platform owner is already in state.platformWallet
+      const initialUserBalanceUsd = 10000; // $10,000 equivalent for platform owner
+
+      // Platform owner balances
+      state.platformWallet.balances.USDT = initialUserBalanceUsd;
+      state.platformWallet.balances.BTC = initialUserBalanceUsd / state.tokens.BTC.price_usd;
+      state.platformWallet.balances.ETH = initialUserBalanceUsd / state.tokens.ETH.price_usd;
+      state.platformWallet.balances.AVAX = initialUserBalanceUsd / state.tokens.AVAX.price_usd;
+      state.platformWallet.balances.SOL = initialUserBalanceUsd / state.tokens.SOL.price_usd;
+      state.platformWallet.balances.USDC = initialUserBalanceUsd;
+      // PDEX is already set from initial allocation
+
       state.users[state.platformWallet.id] = state.platformWallet;
       state.platformWallet.totalUsdValue = calculateUserTotalUsdValue(state.platformWallet.id);
-
 
       // Initialize a few bots
       for (let i = 1; i <= 5; i++) {
         const botId = `bot_${i}`;
+        const botInitialUsd = 5000 + Math.random() * 5000; // $5k-$10k equivalent
         state.users[botId] = {
           id: botId,
           isBot: true,
           balances: {
-            USDT: 10000 + Math.random() * 5000,
-            BTC: 0.1 + Math.random() * 0.1,
-            ETH: 1 + Math.random() * 0.5,
-            PDEX: 10000 + Math.random() * 5000,
+            USDT: botInitialUsd,
+            BTC: (botInitialUsd * 0.1) / state.tokens.BTC.price_usd,
+            ETH: (botInitialUsd * 0.1) / state.tokens.ETH.price_usd,
+            PDEX: (botInitialUsd * 0.1) / state.tokens.PDEX.price_usd,
           },
           liquidityPositions: [],
           farmingStakes: [],
@@ -671,6 +721,8 @@
           lastBotLpTime: Date.now() + Math.random() * 30000, // Stagger initial LP times
           lastBotAppTime: Date.now() + Math.random() * 600000, // Stagger initial app times
           lastBotBuildTime: Date.now() + Math.random() * 3600000, // Stagger initial build times
+          lastBotFarmingTime: Date.now() + Math.random() * 30000,
+          lastBotPresaleBuyTime: Date.now() + Math.random() * 5000,
         };
         state.users[botId].totalUsdValue = calculateUserTotalUsdValue(botId);
       }
@@ -782,7 +834,9 @@
 
 
     function renderDexTradePage() {
-      const tokens = Object.values(state.tokens).map(t => `<option value="${t.ticker}">${t.ticker}</option>`).join('');
+      // Only show tokens that have been listed on DEX
+      const listedTokens = Object.values(state.tokens).filter(t => t.launch_details?.status === 'Listed on DEX' || t.is_base_asset);
+      const tokenOptions = listedTokens.map(t => `<option value="${t.ticker}">${t.ticker}</option>`).join('');
 
       mainContentDiv.innerHTML = `
         <div class="p-8 bg-gray-800 rounded-xl shadow-2xl glow-border">
@@ -798,7 +852,7 @@
                   <div class="flex items-center space-x-2">
                     <input type="number" id="swapFromAmount" placeholder="0.0" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition-all duration-200">
                     <select id="swapFromToken" class="p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition-all duration-200">
-                      ${tokens}
+                      ${tokenOptions}
                     </select>
                   </div>
                   <p class="text-gray-500 text-sm mt-1">Balance: <span id="swapFromBalance">0.0</span></p>
@@ -815,7 +869,7 @@
                   <div class="flex items-center space-x-2">
                     <input type="number" id="swapToAmount" placeholder="0.0" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition-all duration-200" readonly>
                     <select id="swapToToken" class="p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition-all duration-200">
-                      ${tokens}
+                      ${tokenOptions}
                     </select>
                   </div>
                   <p class="text-gray-500 text-sm mt-1">Balance: <span id="swapToBalance">0.0</span></p>
@@ -883,6 +937,7 @@
         if (isNaN(fromAmount) || fromAmount <= 0) {
           swapToAmountInput.value = '';
           slippageDisplay.textContent = '0.00%';
+          slippageDisplay.className = 'text-yellow-400';
           swapPoolDisplay.textContent = 'N/A';
           tokenInfoDisplay.innerHTML = '<p class="text-gray-400">Select a token to view its details.</p>';
           return;
@@ -895,6 +950,7 @@
         if (!pool) {
           swapToAmountInput.value = '';
           slippageDisplay.textContent = 'No Pool';
+          slippageDisplay.className = 'text-red-400';
           swapPoolDisplay.textContent = 'No Pool';
           tokenInfoDisplay.innerHTML = `<p class="text-red-400">No liquidity pool found for ${selectedFromToken}/${selectedToToken}.</p>`;
           return;
@@ -927,6 +983,14 @@
         const devTeamHoldings = displayToken.launch_details ?
             `<p class="text-gray-300">Dev/Team Holdings: <span class="text-purple-400">${formatTokenAmount(displayToken.launch_details.team_wallet_balance, displayToken.decimals)} ${displayToken.ticker}</span> (${(displayToken.launch_details.team_wallet_balance / displayToken.total_supply * 100).toFixed(2)}%)</p>` : '';
 
+        const buildBookHtml = displayToken.launch_details && displayToken.launch_details.build_log && displayToken.launch_details.build_log.length > 0 ? `
+            <h4 class="text-xl font-semibold text-white mt-6 mb-2">Build Book</h4>
+            <ul class="space-y-1 text-sm text-gray-300 max-h-32 overflow-y-auto bg-gray-800 p-2 rounded-md">
+                ${displayToken.launch_details.build_log.map(log => `<li>[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}</li>`).reverse().join('')}
+            </ul>
+        ` : '';
+
+
         tokenInfoDisplay.innerHTML = `
           <p class="text-lg text-white font-semibold">${displayToken.name} (${displayToken.ticker})</p>
           <p class="text-gray-300">Price: <span class="text-blue-400">${formatUSD(displayToken.price_usd)}</span></p>
@@ -936,6 +1000,7 @@
           <p class="text-gray-300">Holders: <span class="text-blue-400">${Object.keys(state.users).length} (Simulated)</span></p>
           <p class="text-gray-300">Price Change (from initial): <span class="${priceChangeClass}">${priceChangeSign}${priceChange.toFixed(2)}%</span></p>
           ${devTeamHoldings}
+          ${buildBookHtml}
         `;
       };
 
@@ -974,7 +1039,7 @@
       swapBtn.addEventListener('click', async () => {
         const fromAmount = parseFloat(swapFromAmountInput.value);
         if (isNaN(fromAmount) || fromAmount <= 0) {
-          alert('Please enter a valid amount to swap.');
+          showMessageBox('Please enter a valid amount to swap.', true);
           return;
         }
 
@@ -983,7 +1048,7 @@
         const user = state.users.platform_owner;
 
         if (user.balances[fromToken] < fromAmount) {
-          alert(`Insufficient ${fromToken} balance.`);
+          showMessageBox(`Insufficient ${fromToken} balance.`, true);
           return;
         }
 
@@ -992,7 +1057,7 @@
         let pool = state.liquidityPools[poolId] || state.liquidityPools[reversePoolId];
 
         if (!pool) {
-          alert(`No liquidity pool found for ${fromToken}/${toToken}.`);
+          showMessageBox(`No liquidity pool found for ${fromToken}/${toToken}.`, true);
           return;
         }
 
@@ -1007,7 +1072,7 @@
 
         const { outputAmount, slippage } = calculateSwapOutput(fromAmount, inputReserve, outputReserve);
         if (outputAmount <= 0) {
-          alert('Swap amount too small or pool depleted.');
+          showMessageBox('Swap amount too small or pool depleted.', true);
           return;
         }
 
@@ -1017,8 +1082,8 @@
 
         if (confirmSwap) {
           const swapUsdValue = calculateTokenUSDValue(fromToken, fromAmount);
-          if (!applyTransactionFee(user.id, swapUsdValue, 'Swap', pool.id, fromToken, fromAmount)) {
-            alert('Swap failed due to insufficient USDT for fee.');
+          if (!applyTransactionFee(user.id, swapUsdValue, 'Swap', pool.id)) { // Fee is now applied based on USD value of input
+            // applyTransactionFee already shows message
             return;
           }
 
@@ -1052,11 +1117,12 @@
               addRecentActivity(`${creatorBot.id} earned ${formatTokenAmount(creatorFeeAmount, creatorToken.decimals)} ${toToken} creator fee from swap.`);
           }
 
+          showMessageBox(`Successfully swapped ${formatTokenAmount(fromAmount, state.tokens[fromToken].decimals)} ${fromToken} for ${formatTokenAmount(outputAmount, state.tokens[toToken].decimals)} ${toToken}.`);
           addRecentActivity(`You swapped ${formatTokenAmount(fromAmount, state.tokens[fromToken].decimals)} ${fromToken} for ${formatTokenAmount(outputAmount, state.tokens[toToken].decimals)} ${toToken}.`);
           animateSwapRoute(fromToken, toToken);
           updateBalances();
           updateSwapCalculation(); // Recalculate after swap
-          renderPlatformWalletPage(); // Update wallet view
+          // No redirect here, stay on DEX Trade page
         }
       });
 
@@ -1141,27 +1207,27 @@
             const poolType = document.getElementById('newPoolType').value;
 
             if (!tokenATicker || !tokenBTicker || isNaN(amountA) || amountA <= 0 || isNaN(amountB) || amountB <= 0 || tokenATicker === tokenBTicker) {
-                alert('Please select two different tokens and enter valid positive amounts.');
+                showMessageBox('Please select two different tokens and enter valid positive amounts.', true);
                 return;
             }
 
             const user = state.users.platform_owner;
             if (user.balances[tokenATicker] < amountA || user.balances[tokenBTicker] < amountB) {
-                alert('Insufficient balance for one or both tokens.');
+                showMessageBox('Insufficient balance for one or both tokens.', true);
                 return;
             }
 
             const poolId = `${tokenATicker}-${tokenBTicker}`;
             if (state.liquidityPools[poolId] || state.liquidityPools[`${tokenBTicker}-${tokenATicker}`]) {
-                alert('A pool for these tokens already exists.');
+                showMessageBox('A pool for these tokens already exists.', true);
                 return;
             }
 
             const confirmCreate = await showConfirmationModal(`Create new pool ${poolId} with ${formatTokenAmount(amountA)} ${tokenATicker} and ${formatTokenAmount(amountB)} ${tokenBTicker}?`);
             if (confirmCreate) {
                 const usdValue = calculateTokenUSDValue(tokenATicker, amountA) + calculateTokenUSDValue(tokenBTicker, amountB);
-                if (!applyTransactionFee(user.id, usdValue, 'CreateLiquidityPool', null, tokenATicker, amountA)) {
-                    alert('Failed to create pool due to insufficient USDT for fee.');
+                if (!applyTransactionFee(user.id, usdValue, 'CreateLiquidityPool', null)) {
+                    // applyTransactionFee already shows message
                     return;
                 }
 
@@ -1181,9 +1247,9 @@
                     type: poolType,
                     volumeUSD: 0,
                 };
+                showMessageBox(`Successfully created new liquidity pool: ${poolId}.`);
                 addRecentActivity(`You created a new liquidity pool: ${poolId}.`);
                 renderLiquidityPage(); // Re-render to show new pool
-                renderPlatformWalletPage(); // Update wallet
             }
         });
 
@@ -1228,7 +1294,7 @@
     function showPoolSubPage(poolId) {
         const pool = state.liquidityPools[poolId];
         if (!pool) {
-            alert('Pool not found!');
+            showMessageBox('Pool not found!', true);
             renderLiquidityPage();
             return;
         }
@@ -1322,21 +1388,21 @@
             const amountA = parseFloat(addLpAmountA.value);
             const amountB = parseFloat(addLpAmountB.value);
             if (isNaN(amountA) || amountA <= 0 || isNaN(amountB) || amountB <= 0) {
-                alert('Please enter valid amounts for liquidity.');
+                showMessageBox('Please enter valid amounts for liquidity.', true);
                 return;
             }
 
             const user = state.users.platform_owner;
             if (user.balances[pool.tokenA.ticker] < amountA || user.balances[pool.tokenB.ticker] < amountB) {
-                alert('Insufficient balance for one or both tokens.');
+                showMessageBox('Insufficient balance for one or both tokens.', true);
                 return;
             }
 
             const confirmAdd = await showConfirmationModal(`Add ${formatTokenAmount(amountA)} ${pool.tokenA.ticker} and ${formatTokenAmount(amountB)} ${pool.tokenB.ticker} to ${pool.id} pool?`);
             if (confirmAdd) {
                 const usdValue = calculateTokenUSDValue(pool.tokenA.ticker, amountA) + calculateTokenUSDValue(pool.tokenB.ticker, amountB);
-                if (!applyTransactionFee(user.id, usdValue, 'AddLiquidity', pool.id, pool.tokenA.ticker, amountA)) {
-                    alert('Failed to add liquidity due to insufficient USDT for fee.');
+                if (!applyTransactionFee(user.id, usdValue, 'AddLiquidity', pool.id)) {
+                    // applyTransactionFee already shows message
                     return;
                 }
 
@@ -1354,9 +1420,9 @@
                 state.tokens[pool.tokenB.ticker].market_cap_usd = state.tokens[pool.tokenB.ticker].circulating_supply * state.tokens[pool.tokenB.ticker].price_usd;
 
 
+                showMessageBox(`Successfully added liquidity to ${pool.id}.`);
                 addRecentActivity(`You added liquidity to ${pool.id}.`);
                 renderLiquidityPage(pool.id); // Re-render sub-page
-                renderPlatformWalletPage(); // Update wallet
             }
         });
 
@@ -1365,7 +1431,7 @@
             if (confirmRemove) {
                 const lpAmountToRemove = pool.lpTokenSupply * 0.01; // Remove 1% of LP tokens for demo
                 if (lpAmountToRemove <= 0) {
-                    alert('No liquidity to remove.');
+                    showMessageBox('No liquidity to remove.', true);
                     return;
                 }
                 const tokenARemoved = pool.balanceA * (lpAmountToRemove / pool.lpTokenSupply);
@@ -1373,7 +1439,7 @@
 
                 const usdValue = calculateTokenUSDValue(pool.tokenA.ticker, tokenARemoved) + calculateTokenUSDValue(pool.tokenB.ticker, tokenBRemoved);
                 if (!applyTransactionFee(state.users.platform_owner.id, usdValue, 'RemoveLiquidity', pool.id)) {
-                    alert('Failed to remove liquidity due to insufficient USDT for fee.');
+                    // applyTransactionFee already shows message
                     return;
                 }
 
@@ -1389,31 +1455,31 @@
                 state.tokens[pool.tokenA.ticker].market_cap_usd = state.tokens[pool.tokenA.ticker].circulating_supply * state.tokens[pool.tokenA.ticker].price_usd;
                 state.tokens[pool.tokenB.ticker].market_cap_usd = state.tokens[pool.tokenB.ticker].circulating_supply * state.tokens[pool.tokenB.ticker].price_usd;
 
+                showMessageBox(`Successfully removed liquidity from ${pool.id}.`);
                 addRecentActivity(`You removed liquidity from ${pool.id}.`);
                 renderLiquidityPage(pool.id);
-                renderPlatformWalletPage();
             }
         });
 
         claimLpFeesBtn.addEventListener('click', async () => {
-            const confirmClaim = await showConfirmationModal(`Claim LP fees from ${pool.id}? (Placeholder: This will claim all accumulated fees)`);
+            const confirmClaim = await showConfirmationModal(`Claim LP fees from ${pool.id}? (This will claim all accumulated fees)`);
             if (confirmClaim) {
                 const feesToClaim = pool.feesEarnedLP;
                 if (feesToClaim <= 0) {
-                    alert('No fees to claim.');
+                    showMessageBox('No fees to claim.', true);
                     return;
                 }
                 if (!applyTransactionFee(state.users.platform_owner.id, feesToClaim, 'ClaimLpFees', pool.id)) {
-                    alert('Failed to claim fees due to insufficient USDT for fee.');
+                    // applyTransactionFee already shows message
                     return;
                 }
                 // For simplicity, claiming LP fees will be in USDT. In a real DEX, it's often a mix of the pool's tokens.
                 state.users.platform_owner.balances.USDT += feesToClaim;
                 state.platformWallet.revenueTracker.lpRewards += feesToClaim; // Track for platform owner
                 pool.feesEarnedLP = 0; // Reset fees for this pool
+                showMessageBox(`Successfully claimed ${formatUSD(feesToClaim)} LP fees from ${pool.id}.`);
                 addRecentActivity(`You claimed ${formatUSD(feesToClaim)} LP fees from ${pool.id}.`);
                 renderLiquidityPage(pool.id);
-                renderPlatformWalletPage();
             }
         });
 
@@ -1421,11 +1487,11 @@
             const incentiveToken = incentiveTokenSelect.value;
             const incentiveAmount = parseFloat(incentiveAmountInput.value);
             if (isNaN(incentiveAmount) || incentiveAmount <= 0) {
-                alert('Please enter a valid incentive amount.');
+                showMessageBox('Please enter a valid incentive amount.', true);
                 return;
             }
             if (state.platformWallet.balances[incentiveToken] < incentiveAmount) {
-                alert(`Insufficient ${incentiveToken} in Platform Wallet.`);
+                showMessageBox(`Insufficient ${incentiveToken} in Platform Wallet.`, true);
                 return;
             }
 
@@ -1433,9 +1499,9 @@
             if (confirmIncentive) {
                 state.platformWallet.balances[incentiveToken] -= incentiveAmount;
                 pool.incentivesAdded[incentiveToken] = (pool.incentivesAdded[incentiveToken] || 0) + incentiveAmount;
+                showMessageBox(`Successfully added ${formatTokenAmount(incentiveAmount, state.tokens[incentiveToken]?.decimals || 2)} ${incentiveToken} as incentive to ${pool.id}.`);
                 addRecentActivity(`You added ${formatTokenAmount(incentiveAmount, state.tokens[incentiveToken]?.decimals || 2)} ${incentiveToken} as incentive to ${pool.id}.`);
                 renderLiquidityPage(pool.id);
-                renderPlatformWalletPage();
             }
         });
     }
@@ -1557,11 +1623,11 @@
             const poolType = newFarmPoolTypeSelect.value;
 
             if (!stakedTokenTicker || !rewardTokenTicker || isNaN(rewardAmount) || rewardAmount <= 0 || isNaN(duration) || duration <= 0 || isNaN(lockup) || lockup < 0) {
-                alert('Please fill all fields correctly.');
+                showMessageBox('Please fill all fields correctly.', true);
                 return;
             }
             if (state.platformWallet.balances[rewardTokenTicker] < rewardAmount) {
-                alert(`Insufficient ${rewardTokenTicker} in Platform Wallet to fund rewards.`);
+                showMessageBox(`Insufficient ${rewardTokenTicker} in Platform Wallet to fund rewards.`, true);
                 return;
             }
 
@@ -1595,9 +1661,9 @@
                     stakers: {}, // { userId: { stakedAmount, stakeTime, claimableRewards, unstakeAvailableTimestamp } }
                     creator_id: 'platform_owner',
                 };
+                showMessageBox(`Successfully created new farming pool: ${poolId}.`);
                 addRecentActivity(`You created a new farming pool: ${poolId}.`);
                 renderFarmingPage(); // Re-render to show new pool
-                renderPlatformWalletPage(); // Update wallet
             }
         });
 
@@ -1650,7 +1716,7 @@
     function showFarmingPoolSubPage(poolId) {
         const pool = state.farmingPools[poolId];
         if (!pool) {
-            alert('Farming pool not found!');
+            showMessageBox('Farming pool not found!', true);
             renderFarmingPage();
             return;
         }
@@ -1713,20 +1779,20 @@
         stakeBtn.addEventListener('click', async () => {
             const amount = parseFloat(stakeAmountInput.value);
             if (isNaN(amount) || amount <= 0) {
-                alert('Please enter a valid amount to stake.');
+                showMessageBox('Please enter a valid amount to stake.', true);
                 return;
             }
             const user = state.users.platform_owner;
             if (user.balances[pool.stakedToken.ticker] < amount) {
-                alert(`Insufficient ${pool.stakedToken.ticker} balance.`);
+                showMessageBox(`Insufficient ${pool.stakedToken.ticker} balance.`, true);
                 return;
             }
 
             const confirmStake = await showConfirmationModal(`Stake ${formatTokenAmount(amount, pool.stakedToken.decimals)} ${pool.stakedToken.ticker} in ${pool.id}?`);
             if (confirmStake) {
                 const usdValue = calculateTokenUSDValue(pool.stakedToken.ticker, amount);
-                if (!applyTransactionFee(user.id, usdValue, 'Stake', pool.id, pool.stakedToken.ticker, amount)) {
-                    alert('Failed to stake due to insufficient USDT for fee.');
+                if (!applyTransactionFee(user.id, usdValue, 'Stake', pool.id)) {
+                    // applyTransactionFee already shows message
                     return;
                 }
 
@@ -1743,9 +1809,9 @@
                     };
                 }
                 pool.stakers[user.id].stakedAmount += amount;
+                showMessageBox(`Successfully staked ${formatTokenAmount(amount, pool.stakedToken.decimals)} ${pool.stakedToken.ticker} in ${pool.id}.`);
                 addRecentActivity(`You staked ${formatTokenAmount(amount, pool.stakedToken.decimals)} ${pool.stakedToken.ticker} in ${pool.id}.`);
                 showFarmingPoolSubPage(pool.id);
-                renderPlatformWalletPage();
             }
         });
 
@@ -1753,11 +1819,11 @@
             const user = state.users.platform_owner;
             const userStake = pool.stakers[user.id];
             if (!userStake || userStake.stakedAmount <= 0) {
-                alert('You have no tokens staked in this pool.');
+                showMessageBox('You have no tokens staked in this pool.', true);
                 return;
             }
             if (pool.lockupDurationSeconds > 0 && Date.now() < userStake.unstakeAvailableTimestamp) {
-                alert(`Your tokens are locked until ${new Date(userStake.unstakeAvailableTimestamp).toLocaleString()}.`);
+                showMessageBox(`Your tokens are locked until ${new Date(userStake.unstakeAvailableTimestamp).toLocaleString()}.`, true);
                 return;
             }
 
@@ -1765,8 +1831,8 @@
             if (confirmUnstake) {
                 const amount = userStake.stakedAmount;
                 const usdValue = calculateTokenUSDValue(pool.stakedToken.ticker, amount);
-                if (!applyTransactionFee(user.id, usdValue, 'Unstake', pool.id, pool.stakedToken.ticker, amount)) {
-                    alert('Failed to unstake due to insufficient USDT for fee.');
+                if (!applyTransactionFee(user.id, usdValue, 'Unstake', pool.id)) {
+                    // applyTransactionFee already shows message
                     return;
                 }
 
@@ -1776,9 +1842,9 @@
                 userStake.claimableRewards = 0; // Claim rewards first before unstaking
                 delete pool.stakers[user.id]; // Remove staker if amount is 0
 
+                showMessageBox(`Successfully unstaked ${formatTokenAmount(amount, pool.stakedToken.decimals)} ${pool.stakedToken.ticker} from ${pool.id}.`);
                 addRecentActivity(`You unstaked ${formatTokenAmount(amount, pool.stakedToken.decimals)} ${pool.stakedToken.ticker} from ${pool.id}.`);
                 showFarmingPoolSubPage(pool.id);
-                renderPlatformWalletPage();
             }
         });
 
@@ -1786,7 +1852,7 @@
             const user = state.users.platform_owner;
             const userStake = pool.stakers[user.id];
             if (!userStake || userStake.claimableRewards <= 0) {
-                alert('No rewards to claim.');
+                showMessageBox('No rewards to claim.', true);
                 return;
             }
 
@@ -1794,8 +1860,8 @@
             if (confirmClaim) {
                 const rewards = userStake.claimableRewards;
                 const usdValue = calculateTokenUSDValue(pool.rewardToken.ticker, rewards);
-                if (!applyTransactionFee(user.id, usdValue, 'ClaimFarmingRewards', pool.id, pool.rewardToken.ticker, rewards)) {
-                    alert('Failed to claim rewards due to insufficient USDT for fee.');
+                if (!applyTransactionFee(user.id, usdValue, 'ClaimFarmingRewards', pool.id)) {
+                    // applyTransactionFee already shows message
                     return;
                 }
 
@@ -1803,9 +1869,9 @@
                 state.platformWallet.revenueTracker.farmingRewards += usdValue; // Track for platform owner
                 userStake.claimableRewards = 0;
                 userStake.lastClaimTime = Date.now();
+                showMessageBox(`Successfully claimed ${formatTokenAmount(rewards, pool.rewardToken.decimals)} ${pool.rewardToken.ticker} rewards from ${pool.id}.`);
                 addRecentActivity(`You claimed ${formatTokenAmount(rewards, pool.rewardToken.decimals)} ${pool.rewardToken.ticker} rewards from ${pool.id}.`);
                 showFarmingPoolSubPage(pool.id);
-                renderPlatformWalletPage();
             }
         });
     }
@@ -1934,15 +2000,15 @@
             const teamPercent = parseFloat(document.getElementById('teamPercent').value);
 
             if (!tokenName || !tokenTicker || isNaN(totalSupply) || totalSupply <= 0 || isNaN(liquidityPercent) || isNaN(stablecoinAmount) || stablecoinAmount < state.platformSettings.minLiquidityForLaunch || isNaN(burnPercent) || isNaN(platformPercent) || isNaN(presalePercent) || isNaN(teamPercent)) {
-                alert('Please fill all fields correctly and ensure minimum stablecoin amount.');
+                showMessageBox('Please fill all fields correctly and ensure minimum stablecoin amount.', true);
                 return;
             }
             if (state.tokens[tokenTicker]) {
-                alert(`Token with ticker ${tokenTicker} already exists.`);
+                showMessageBox(`Token with ticker ${tokenTicker} already exists.`, true);
                 return;
             }
             if (liquidityPercent + burnPercent + platformPercent + presalePercent + teamPercent !== 100) {
-                alert('Allocated percentages must sum to 100%.');
+                showMessageBox('Allocated percentages must sum to 100%.', true);
                 return;
             }
 
@@ -1980,6 +2046,8 @@
                         rug_pull_chance: 0.5, // Only applies to bot-launched, but stored
                         build_chance: 0.5, // Only applies to bot-launched, but stored
                         team_wallet_balance: teamTokenAmount, // Initial team allocation
+                        status: 'Pending Approval', // Status for launched tokens
+                        build_log: [], // Initialize build log
                     },
                 };
 
@@ -2001,6 +2069,7 @@
                     initialDexLiquidityUsdt: stablecoinAmount,
                     initial_dex_liquidity_tokens: liquidityTokenAmount,
                 };
+                showMessageBox(`Token application ${tokenTicker} submitted and is now in Presale!`);
                 addRecentActivity(`You launched a new token application: ${tokenTicker}. It is now in Presale.`);
                 renderPresaleStagePage(); // Go to presale page
             }
@@ -2039,6 +2108,8 @@
         activeList.innerHTML = '';
 
         Object.values(state.presaleProjects).forEach(project => {
+            if (project.status === 'Filled' || project.status === 'Listed on DEX' || project.status === 'Rejected') return; // Don't show completed/rejected
+
             const card = document.createElement('div');
             card.className = `bg-gray-900 p-6 rounded-xl shadow-lg glow-border-subtle clickable-pool-card relative overflow-hidden`;
             card.innerHTML = `
@@ -2067,12 +2138,12 @@
     function showPresaleSubPage(projectId) {
         const project = state.presaleProjects[projectId];
         if (!project) {
-            alert('Presale project not found!');
+            showMessageBox('Presale project not found!', true);
             renderPresaleStagePage();
             return;
         }
 
-        const isPlatformOwner = project.creatorId === state.users.platform_owner.id;
+        const isPlatformOwnerCreated = project.creatorId === state.users.platform_owner.id;
         const actionButtonsHtml = project.status === 'Pending Approval' ? `
             <button id="acceptPresaleBtn" class="glow-button bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-3 rounded-lg font-semibold text-lg hover:from-green-600 hover:to-teal-600 transition-all duration-300">Accept Application</button>
             <button id="rejectPresaleBtn" class="glow-button bg-gradient-to-r from-red-500 to-orange-600 text-white px-6 py-3 rounded-lg font-semibold text-lg hover:from-red-600 hover:to-orange-700 transition-all duration-300">Reject Application</button>
@@ -2084,8 +2155,14 @@
             <p class="text-gray-400 mb-2">Tokens for Sale: <span class="text-white">${formatTokenAmount(project.tokensForSale - project.tokensSold, project.tokenDetails.decimals)} ${project.tokenDetails.ticker}</span></p>
             <p class="text-gray-400 mb-2">You will get: <span id="presaleTokensToGet" class="text-green-400">0.0 ${project.tokenDetails.ticker}</span></p>
             <input type="number" id="presaleBuyAmountUsdt" placeholder="USDT Amount" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400 mb-4">
+            <button id="maxBuyBtn" class="glow-button bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold text-lg mb-4">Max Buy</button>
             <button id="buyPresaleBtn" class="glow-button w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold text-lg">Buy Now</button>
         ` : '';
+
+        const launchNowButtonHtml = (project.status === 'Active' && isPlatformOwnerCreated) ? `
+            <button id="launchNowBtn" class="glow-button bg-gradient-to-r from-red-600 to-pink-700 text-white px-6 py-3 rounded-lg font-semibold text-lg mt-6">Launch Token Now (Even if Unfilled)</button>
+        ` : '';
+
 
         mainContentDiv.innerHTML = `
             <div class="p-8 bg-gray-800 rounded-xl shadow-2xl glow-border">
@@ -2118,6 +2195,7 @@
 
                 <div class="bg-gray-900 p-6 rounded-xl glow-border-subtle">
                     ${buyInHtml}
+                    ${launchNowButtonHtml}
                 </div>
             </div>
         `;
@@ -2128,6 +2206,7 @@
                 const confirmAccept = await showConfirmationModal(`Accept ${project.tokenDetails.ticker} application?`);
                 if (confirmAccept) {
                     project.status = 'Active';
+                    showMessageBox(`Accepted ${project.tokenDetails.ticker}'s presale application.`, false);
                     addRecentActivity(`You accepted ${project.tokenDetails.ticker}'s presale application.`);
                     renderPresaleStagePage(projectId);
                 }
@@ -2136,6 +2215,7 @@
                 const confirmReject = await showConfirmationModal(`Reject ${project.tokenDetails.ticker} application?`);
                 if (confirmReject) {
                     project.status = 'Rejected';
+                    showMessageBox(`Rejected ${project.tokenDetails.ticker}'s presale application.`, true);
                     addRecentActivity(`You rejected ${project.tokenDetails.ticker}'s presale application.`);
                     renderPresaleStagePage();
                 }
@@ -2144,6 +2224,9 @@
             const presaleBuyAmountUsdtInput = document.getElementById('presaleBuyAmountUsdt');
             const presaleTokensToGetSpan = document.getElementById('presaleTokensToGet');
             const buyPresaleBtn = document.getElementById('buyPresaleBtn');
+            const maxBuyBtn = document.getElementById('maxBuyBtn');
+            const launchNowBtn = document.getElementById('launchNowBtn');
+
 
             const updateTokensToGet = () => {
                 const usdtAmount = parseFloat(presaleBuyAmountUsdtInput.value);
@@ -2156,27 +2239,38 @@
             };
             presaleBuyAmountUsdtInput.addEventListener('input', updateTokensToGet);
 
+            if (maxBuyBtn) {
+                maxBuyBtn.addEventListener('click', () => {
+                    const remainingUsdtNeeded = project.hardCapUsdt - project.usdtRaised;
+                    const userUsdtBalance = state.users.platform_owner.balances.USDT;
+                    const maxPossibleBuy = Math.min(remainingUsdtNeeded, userUsdtBalance);
+                    presaleBuyAmountUsdtInput.value = maxPossibleBuy.toFixed(2);
+                    updateTokensToGet();
+                });
+            }
+
+
             buyPresaleBtn.addEventListener('click', async () => {
                 const usdtAmount = parseFloat(presaleBuyAmountUsdtInput.value);
                 if (isNaN(usdtAmount) || usdtAmount <= 0) {
-                    alert('Please enter a valid USDT amount.');
+                    showMessageBox('Please enter a valid USDT amount.', true);
                     return;
                 }
                 if (state.users.platform_owner.balances.USDT < usdtAmount) {
-                    alert('Insufficient USDT balance.');
+                    showMessageBox('Insufficient USDT balance.', true);
                     return;
                 }
                 const tokensToReceive = usdtAmount / project.tokenDetails.price_usd;
                 if (project.tokensSold + tokensToReceive > project.tokensForSale) {
-                    alert('Amount exceeds remaining tokens for sale.');
+                    showMessageBox('Amount exceeds remaining tokens for sale.', true);
                     return;
                 }
 
                 const confirmBuy = await showConfirmationModal(`Buy ${formatTokenAmount(tokensToReceive, project.tokenDetails.decimals)} ${project.tokenDetails.ticker} for ${formatUSD(usdtAmount)} USDT?`);
                 if (confirmBuy) {
                     const user = state.users.platform_owner;
-                    if (!applyTransactionFee(user.id, usdtAmount, 'PresaleBuy', null, 'USDT', usdtAmount)) {
-                        alert('Failed to buy into presale due to insufficient USDT for fee.');
+                    if (!applyTransactionFee(user.id, usdtAmount, 'PresaleBuy', null)) {
+                        // applyTransactionFee already shows message
                         return;
                     }
 
@@ -2193,16 +2287,29 @@
                         claimedAirdrop: false,
                     });
 
+                    showMessageBox(`Successfully bought ${formatTokenAmount(tokensToReceive, project.tokenDetails.decimals)} ${project.tokenDetails.ticker} in presale.`, false);
                     addRecentActivity(`You bought ${formatTokenAmount(tokensToReceive, project.tokenDetails.decimals)} ${project.tokenDetails.ticker} in presale.`);
                     if (project.progressPercent >= 100) {
                         project.status = 'Filled';
+                        showMessageBox(`Presale for ${project.tokenDetails.ticker} filled! Listing on DEX...`, false);
                         addRecentActivity(`Presale for ${project.tokenDetails.ticker} filled! Listing on DEX...`);
                         await listTokenOnDex(project.projectId);
                     }
                     showPresaleSubPage(projectId); // Re-render sub-page
-                    renderPlatformWalletPage();
                 }
             });
+
+            if (launchNowBtn) {
+                launchNowBtn.addEventListener('click', async () => {
+                    const confirmLaunchNow = await showConfirmationModal(`Launch ${project.tokenDetails.ticker} on DEX now, even if presale is not 100% filled?`);
+                    if (confirmLaunchNow) {
+                        project.status = 'Filled'; // Force status to filled to trigger listing logic
+                        showMessageBox(`Forced launch of ${project.tokenDetails.ticker} on DEX!`, false);
+                        addRecentActivity(`Forced launch of ${project.tokenDetails.ticker} on DEX!`);
+                        await listTokenOnDex(project.projectId);
+                    }
+                });
+            }
         }
     }
 
@@ -2210,38 +2317,41 @@
         const project = state.presaleProjects[projectId];
         if (!project || project.status !== 'Filled') return;
 
-        const token = project.tokenDetails;
+        const token = state.tokens[project.tokenDetails.ticker]; // Ensure we use the global token object
         const initialLiquidityTokenAmount = project.initial_dex_liquidity_tokens;
         const initialLiquidityUsdtAmount = project.initialDexLiquidityUsdt;
 
-        // Ensure platform has enough USDT for initial liquidity if it's a bot-launched token
-        // For manual launch, we assume the user has the funds (already checked on launch page)
+        // Handle creator's funds for initial liquidity and platform allocation
+        let creatorWallet;
         if (project.creatorId.startsWith('bot_')) {
-            const bot = state.users[project.creatorId];
-            if (bot.balances.USDT < initialLiquidityUsdtAmount) {
-                console.error(`Bot ${bot.id} does not have enough USDT for initial DEX liquidity. Token not listed.`);
+            creatorWallet = state.users[project.creatorId];
+            // Check bot's balances for initial liquidity
+            if (creatorWallet.balances.USDT < initialLiquidityUsdtAmount || creatorWallet.balances[token.ticker] < initialLiquidityTokenAmount) {
+                showMessageBox(`Listing of ${token.ticker} failed: Creator (${creatorWallet.id}) insufficient funds for initial DEX liquidity.`, true);
                 project.status = 'Failed Listing';
-                addRecentActivity(`Listing of ${token.ticker} failed: Bot insufficient funds.`);
+                addRecentActivity(`Listing of ${token.ticker} failed: Creator insufficient funds.`);
                 return;
             }
-            if (bot.balances[token.ticker] < initialLiquidityTokenAmount) {
-                console.error(`Bot ${bot.id} does not have enough ${token.ticker} for initial DEX liquidity. Token not listed.`);
-                project.status = 'Failed Listing';
-                addRecentActivity(`Listing of ${token.ticker} failed: Bot insufficient funds.`);
-                return;
-            }
-            bot.balances.USDT -= initialLiquidityUsdtAmount;
-            bot.balances[token.ticker] -= initialLiquidityTokenAmount;
-            // Also deduct platform allocation from bot's total supply if applicable
-            const platformAllocation = token.total_supply * (token.launch_details.platform_allocation_percent / 100);
-            state.platformWallet.balances[token.ticker] = (state.platformWallet.balances[token.ticker] || 0) + platformAllocation;
-        } else { // Platform owner launched
-            const platform = state.users.platform_owner;
-            platform.balances.USDT -= initialLiquidityUsdtAmount;
-            platform.balances[token.ticker] -= initialLiquidityTokenAmount;
-            // Platform allocation already handled on launch
-        }
+            creatorWallet.balances.USDT -= initialLiquidityUsdtAmount;
+            creatorWallet.balances[token.ticker] -= initialLiquidityTokenAmount;
 
+            // Transfer platform allocation from bot's total supply to platform wallet
+            const platformAllocationAmount = token.total_supply * (token.launch_details.platform_allocation_percent / 100);
+            token.launch_details.platform_wallet_balance = platformAllocationAmount; // Store platform's allocation
+            state.platformWallet.balances[token.ticker] = (state.platformWallet.balances[token.ticker] || 0) + platformAllocationAmount;
+            token.circulating_supply -= platformAllocationAmount; // Reduce circulating supply for platform allocation
+        } else { // Platform owner launched
+            creatorWallet = state.users.platform_owner;
+            if (creatorWallet.balances.USDT < initialLiquidityUsdtAmount || creatorWallet.balances[token.ticker] < initialLiquidityTokenAmount) {
+                showMessageBox(`Listing of ${token.ticker} failed: You have insufficient funds for initial DEX liquidity.`, true);
+                project.status = 'Failed Listing';
+                addRecentActivity(`Listing of ${token.ticker} failed: You insufficient funds.`);
+                return;
+            }
+            creatorWallet.balances.USDT -= initialLiquidityUsdtAmount;
+            creatorWallet.balances[token.ticker] -= initialLiquidityTokenAmount;
+            // Platform allocation already handled on launch page, directly to platform wallet
+        }
 
         // Create the liquidity pool
         const poolId = `${token.ticker}-USDT`;
@@ -2261,8 +2371,11 @@
         token.price_usd = initialLiquidityUsdtAmount / initialLiquidityTokenAmount; // Ensure price is correctly set by LP
         token.market_cap_usd = token.circulating_supply * token.price_usd;
 
+        // Update token status to Listed on DEX
+        token.launch_details.status = 'Listed on DEX';
+        project.status = 'Listed on DEX'; // Also update project status
 
-        project.status = 'Listed on DEX';
+        showMessageBox(`${token.ticker} has been listed on DEX!`, false);
         addRecentActivity(`${token.ticker} has been listed on DEX!`);
 
         // Airdrop tokens to presale buyers
@@ -2277,32 +2390,33 @@
 
         // Trigger bot build/rug pull logic if bot-launched
         if (project.creatorId.startsWith('bot_')) {
-            const creatorBot = state.users[project.creatorId];
             const isRugPull = Math.random() < 0.5; // 50% chance
             if (isRugPull) {
-                addRecentActivity(`${token.ticker} by ${creatorBot.id} is RUG PULLING!`);
+                addRecentActivity(`${token.ticker} by ${creatorWallet.id} is RUG PULLING!`);
                 // Dump team tokens
                 const teamTokens = token.launch_details.team_wallet_balance;
                 if (teamTokens > 0) {
                     const pool = state.liquidityPools[poolId];
                     if (pool) {
                         // Simulate dumping by swapping a large amount
-                        const dumpAmount = Math.min(teamTokens, creatorBot.balances[token.ticker]);
+                        const dumpAmount = Math.min(teamTokens, creatorWallet.balances[token.ticker]);
                         if (dumpAmount > 0) {
-                            creatorBot.balances[token.ticker] -= dumpAmount;
+                            creatorWallet.balances[token.ticker] -= dumpAmount;
                             const { outputAmount: usdtReceived } = calculateSwapOutput(dumpAmount, pool.balanceA, pool.balanceB);
                             pool.balanceA += dumpAmount;
                             pool.balanceB -= usdtReceived;
-                            creatorBot.balances.USDT = (creatorBot.balances.USDT || 0) + usdtReceived;
+                            creatorWallet.balances.USDT = (creatorWallet.balances.USDT || 0) + usdtReceived;
                             // Price will crash due to AMM
                             state.tokens[token.ticker].price_usd = pool.balanceB / pool.balanceA;
                             state.tokens[token.ticker].market_cap_usd = state.tokens[token.ticker].circulating_supply * state.tokens[token.ticker].price_usd;
-                            addRecentActivity(`🚨 ${token.ticker} price crashed due to ${creatorBot.id} rug pull!`);
+                            addRecentActivity(`🚨 ${token.ticker} price crashed due to ${creatorWallet.id} rug pull!`);
+                            token.launch_details.build_log.push({timestamp: Date.now(), message: `Rug Pull: Dumped ${formatTokenAmount(dumpAmount, token.decimals)} ${token.ticker}.`});
                         }
                     }
                 }
             } else {
-                addRecentActivity(`${token.ticker} by ${creatorBot.id} is BUILDING the project!`);
+                addRecentActivity(`${token.ticker} by ${creatorWallet.id} is BUILDING the project!`);
+                token.launch_details.build_log.push({timestamp: Date.now(), message: `Project is now in BUILD mode.`});
                 // Bot will start building activities in simulation loop
             }
         }
@@ -2387,7 +2501,7 @@
             const payAmountToken = payAmountUsd / state.tokens[payToken].price_usd;
 
             if (user.balances[payToken] < payAmountToken) {
-                alert(`Insufficient ${payToken} balance to play.`);
+                showMessageBox(`Insufficient ${payToken} balance to play.`, true);
                 return;
             }
 
@@ -2395,8 +2509,8 @@
             if (!confirmPlay) return;
 
             // Deduct fee first
-            if (!applyTransactionFee(user.id, payAmountUsd, 'GamePlay', null, payToken, payAmountToken)) {
-                alert('Failed to play game due to insufficient USDT for fee.');
+            if (!applyTransactionFee(user.id, payAmountUsd, 'GamePlay', null)) {
+                // applyTransactionFee already shows message
                 return;
             }
 
@@ -2464,14 +2578,14 @@
             }
 
             gameMessage.textContent = outcomeMessage;
+            showMessageBox(outcomeMessage, !isWin); // Show success/error message
             updateGamePageDisplays();
-            renderPlatformWalletPage();
         });
 
         claimGameRewardsBtn.addEventListener('click', async () => {
             const user = state.users.platform_owner;
             if (user.gameRewardsPending.length === 0) {
-                alert('No pending rewards to claim.');
+                showMessageBox('No pending rewards to claim.', true);
                 return;
             }
 
@@ -2480,7 +2594,7 @@
             if (!confirmClaim) return;
 
             if (!applyTransactionFee(user.id, totalUsdToClaim, 'ClaimGameRewards')) {
-                alert('Failed to claim rewards due to insufficient USDT for fee.');
+                // applyTransactionFee already shows message
                 return;
             }
 
@@ -2492,9 +2606,9 @@
             });
             user.gameRewardsPending = []; // Clear pending rewards
 
+            showMessageBox(`Successfully claimed all pending game rewards (${formatUSD(totalUsdToClaim)}).`, false);
             addRecentActivity(`You claimed all pending game rewards.`);
             updateGamePageDisplays();
-            renderPlatformWalletPage();
         });
 
         updateGamePageDisplays();
@@ -2633,15 +2747,15 @@
                             <input type="number" id="transactionFeePercent" min="0" max="100" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400">
                         </div>
                         <div>
-                            <label for="lpRewardsPercent" class="block text-gray-400 text-sm mb-2">LP Rewards %</label>
+                            <label for="lpRewardsPercent" class="block text-gray-400 text-sm mb-2">LP Rewards % (of Tx Fee)</label>
                             <input type="number" id="lpRewardsPercent" min="0" max="100" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400">
                         </div>
                         <div>
-                            <label for="platformWalletPercent" class="block text-gray-400 text-sm mb-2">Platform Wallet %</label>
+                            <label for="platformWalletPercent" class="block text-gray-400 text-sm mb-2">Platform Wallet % (of Tx Fee)</label>
                             <input type="number" id="platformWalletPercent" min="0" max="100" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400">
                         </div>
                         <div>
-                            <label for="pdexBurnPercent" class="block text-gray-400 text-sm mb-2">PDEX Burn %</label>
+                            <label for="pdexBurnPercent" class="block text-gray-400 text-sm mb-2">PDEX Burn % (of Tx Fee)</label>
                             <input type="number" id="pdexBurnPercent" min="0" max="100" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400">
                         </div>
                         <p id="feeDistributionSum" class="text-xl font-semibold text-center text-yellow-400">Distribution Sum: 0%</p>
@@ -2655,12 +2769,44 @@
                         <label for="botActivityToggle" class="block text-gray-400 text-lg">Enable All Bots</label>
                         <input type="checkbox" id="botActivityToggle" class="form-checkbox h-6 w-6 text-blue-600 rounded-md">
                     </div>
-                    <button id="resetBotActivityBtn" class="glow-button bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-lg font-semibold text-lg">Reset Bot Activity (Placeholder)</button>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="botTradingAggressiveness" class="block text-gray-400 text-sm mb-2">Bot Trading Aggressiveness (%)</label>
+                            <input type="range" id="botTradingAggressiveness" min="0" max="100" value="${state.platformSettings.botTradingAggressiveness * 100}" class="w-full">
+                            <p class="text-gray-500 text-sm mt-1">Current: <span id="botTradingAggressivenessValue">${state.platformSettings.botTradingAggressiveness * 100}%</span> (Affects trade amount)</p>
+                        </div>
+                        <div>
+                            <label for="botLpAddAggressiveness" class="block text-gray-400 text-sm mb-2">Bot LP Add Aggressiveness (%)</label>
+                            <input type="range" id="botLpAddAggressiveness" min="0" max="100" value="${state.platformSettings.botLpAddAggressiveness * 100}" class="w-full">
+                            <p class="text-gray-500 text-sm mt-1">Current: <span id="botLpAddAggressivenessValue">${state.platformSettings.botLpAddAggressiveness * 100}%</span> (Affects LP add amount)</p>
+                        </div>
+                        <div>
+                            <label for="botFarmingAggressiveness" class="block text-gray-400 text-sm mb-2">Bot Farming Aggressiveness (%)</label>
+                            <input type="range" id="botFarmingAggressiveness" min="0" max="100" value="${state.platformSettings.botFarmingAggressiveness * 100}" class="w-full">
+                            <p class="text-gray-500 text-sm mt-1">Current: <span id="botFarmingAggressivenessValue">${state.platformSettings.botFarmingAggressiveness * 100}%</span> (Affects staking amount)</p>
+                        </div>
+                    </div>
+                    <button id="resetBotActivityBtn" class="glow-button bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-lg font-semibold text-lg mt-6">Reset Bot Activity (Placeholder)</button>
                 </div>
 
                 <div class="bg-gray-900 p-6 rounded-xl glow-border-subtle">
                     <h3 class="text-2xl font-semibold font-poppins mb-4 text-white">Other Admin Powers</h3>
                     <button id="callRewardsBtn" class="glow-button bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-3 rounded-lg font-semibold text-lg">Call Rewards (Placeholder)</button>
+                    <button id="addGameRewardsBtn" class="glow-button bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold text-lg mt-4">Add Game Rewards</button>
+                    <div id="addGameRewardsForm" class="hidden mt-4 space-y-4">
+                        <div>
+                            <label for="gameRewardToken" class="block text-gray-400 text-sm mb-2">Reward Token</label>
+                            <select id="gameRewardToken" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400">
+                                ${Object.values(state.tokens).map(t => `<option value="${t.ticker}">${t.ticker}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="gameRewardAmount" class="block text-gray-400 text-sm mb-2">Amount</label>
+                            <input type="number" id="gameRewardAmount" placeholder="0.0" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-400">
+                            <p class="text-gray-500 text-sm mt-1">Platform Balance: <span id="gameRewardPlatformBalance"></span></p>
+                        </div>
+                        <button id="submitAddGameRewardsBtn" class="glow-button w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold text-lg">Confirm Add Game Rewards</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -2676,6 +2822,21 @@
         const updateFeesBtn = document.getElementById('updateFeesBtn');
         const botActivityToggle = document.getElementById('botActivityToggle');
 
+        const botTradingAggressivenessInput = document.getElementById('botTradingAggressiveness');
+        const botTradingAggressivenessValueSpan = document.getElementById('botTradingAggressivenessValue');
+        const botLpAddAggressivenessInput = document.getElementById('botLpAddAggressiveness');
+        const botLpAddAggressivenessValueSpan = document.getElementById('botLpAddAggressivenessValue');
+        const botFarmingAggressivenessInput = document.getElementById('botFarmingAggressiveness');
+        const botFarmingAggressivenessValueSpan = document.getElementById('botFarmingAggressivenessValue');
+
+        const addGameRewardsBtn = document.getElementById('addGameRewardsBtn');
+        const addGameRewardsForm = document.getElementById('addGameRewardsForm');
+        const gameRewardTokenSelect = document.getElementById('gameRewardToken');
+        const gameRewardAmountInput = document.getElementById('gameRewardAmount');
+        const submitAddGameRewardsBtn = document.getElementById('submitAddGameRewardsBtn');
+        const gameRewardPlatformBalanceSpan = document.getElementById('gameRewardPlatformBalance');
+
+
         // Set initial values
         transactionFeeInput.value = state.platformSettings.transactionFeePercentage;
         lpRewardsInput.value = state.platformSettings.feeDistributionLPRewardsPercent;
@@ -2683,13 +2844,16 @@
         pdexBurnInput.value = state.platformSettings.feeDistributionPdexBurnPercent;
         botActivityToggle.checked = state.platformSettings.botActivityEnabled;
 
+        botTradingAggressivenessInput.value = state.platformSettings.botTradingAggressiveness * 100;
+        botLpAddAggressivenessInput.value = state.platformSettings.botLpAddAggressiveness * 100;
+        botFarmingAggressivenessInput.value = state.platformSettings.botFarmingAggressiveness * 100;
+
         const updateFeeSum = () => {
-            const txFee = parseFloat(transactionFeeInput.value);
             const lp = parseFloat(lpRewardsInput.value);
             const platform = parseFloat(platformWalletInput.value);
             const burn = parseFloat(pdexBurnInput.value);
 
-            if (isNaN(txFee) || isNaN(lp) || isNaN(platform) || isNaN(burn)) {
+            if (isNaN(lp) || isNaN(platform) || isNaN(burn)) {
                 feeDistributionSumDisplay.textContent = 'Invalid input';
                 feeDistributionSumDisplay.className = 'text-xl font-semibold mt-4 text-center text-red-400';
                 updateFeesBtn.disabled = true;
@@ -2725,8 +2889,8 @@
                 state.platformSettings.feeDistributionLPRewardsPercent = parseFloat(lpRewardsInput.value);
                 state.platformSettings.feeDistributionPlatformWalletPercent = parseFloat(platformWalletInput.value);
                 state.platformSettings.feeDistributionPdexBurnPercent = parseFloat(pdexBurnInput.value);
+                showMessageBox('Platform fee settings updated!', false);
                 addRecentActivity('Platform fee settings updated.');
-                alert('Fee settings updated!');
             }
         });
 
@@ -2735,15 +2899,62 @@
             const confirmToggle = await showConfirmationModal(`Confirm ${newState ? 'enabling' : 'disabling'} all bot activity?`);
             if (confirmToggle) {
                 state.platformSettings.botActivityEnabled = newState;
+                showMessageBox(`Bot activity ${newState ? 'enabled' : 'disabled'}.`, false);
                 addRecentActivity(`Bot activity ${newState ? 'enabled' : 'disabled'}.`);
-                alert(`Bot activity ${newState ? 'enabled' : 'disabled'}.`);
             } else {
                 botActivityToggle.checked = !newState; // Revert toggle if cancelled
             }
         });
 
-        document.getElementById('resetBotActivityBtn').addEventListener('click', () => alert('Bot activity reset functionality (placeholder).'));
-        document.getElementById('callRewardsBtn').addEventListener('click', () => alert('Call rewards functionality (placeholder).'));
+        // Bot aggressiveness sliders
+        botTradingAggressivenessInput.addEventListener('input', (e) => {
+            state.platformSettings.botTradingAggressiveness = parseFloat(e.target.value) / 100;
+            botTradingAggressivenessValueSpan.textContent = `${e.target.value}%`;
+        });
+        botLpAddAggressivenessInput.addEventListener('input', (e) => {
+            state.platformSettings.botLpAddAggressiveness = parseFloat(e.target.value) / 100;
+            botLpAddAggressivenessValueSpan.textContent = `${e.target.value}%`;
+        });
+        botFarmingAggressivenessInput.addEventListener('input', (e) => {
+            state.platformSettings.botFarmingAggressiveness = parseFloat(e.target.value) / 100;
+            botFarmingAggressivenessValueSpan.textContent = `${e.target.value}%`;
+        });
+
+
+        document.getElementById('resetBotActivityBtn').addEventListener('click', () => showMessageBox('Bot activity reset functionality (placeholder).', true));
+        document.getElementById('callRewardsBtn').addEventListener('click', () => showMessageBox('Call rewards functionality (placeholder).', true));
+
+        addGameRewardsBtn.addEventListener('click', () => {
+            addGameRewardsForm.classList.toggle('hidden');
+        });
+
+        const updateGameRewardPlatformBalance = () => {
+            gameRewardPlatformBalanceSpan.textContent = `${formatTokenAmount(state.platformWallet.balances[gameRewardTokenSelect.value] || 0, state.tokens[gameRewardTokenSelect.value]?.decimals || 2)} ${gameRewardTokenSelect.value}`;
+        };
+        gameRewardTokenSelect.addEventListener('change', updateGameRewardPlatformBalance);
+        updateGameRewardPlatformBalance();
+
+        submitAddGameRewardsBtn.addEventListener('click', async () => {
+            const rewardToken = gameRewardTokenSelect.value;
+            const rewardAmount = parseFloat(gameRewardAmountInput.value);
+            if (isNaN(rewardAmount) || rewardAmount <= 0) {
+                showMessageBox('Please enter a valid reward amount.', true);
+                return;
+            }
+            if (state.platformWallet.balances[rewardToken] < rewardAmount) {
+                showMessageBox(`Insufficient ${rewardToken} in Platform Wallet.`, true);
+                return;
+            }
+
+            const confirmAdd = await showConfirmationModal(`Add ${formatTokenAmount(rewardAmount, state.tokens[rewardToken]?.decimals || 2)} ${rewardToken} to Game Rewards Pool?`);
+            if (confirmAdd) {
+                state.platformWallet.balances[rewardToken] -= rewardAmount;
+                state.gameRewardsPool.availableRewards[rewardToken] = (state.gameRewardsPool.availableRewards[rewardToken] || 0) + rewardAmount;
+                showMessageBox(`Successfully added ${formatTokenAmount(rewardAmount, state.tokens[rewardToken]?.decimals || 2)} ${rewardToken} to Game Rewards Pool.`, false);
+                addRecentActivity(`You added ${formatTokenAmount(rewardAmount, state.tokens[rewardToken]?.decimals || 2)} ${rewardToken} to Game Rewards Pool.`);
+                addGameRewardsForm.classList.add('hidden'); // Hide form after submission
+            }
+        });
     }
 
     function renderPlatformWalletPage() {
@@ -2758,7 +2969,7 @@
                 balancesHtml += `
                     <li class="flex justify-between items-center text-lg">
                         <span>${ticker}</span>
-                        <span>${formatTokenAmount(amount, state.tokens[ticker]?.decimals || 2)}</span>
+                        <span>${formatTokenAmount(amount, state.tokens[ticker]?.decimals || 4)}</span>
                         <span class="text-gray-400">${formatUSD(usdValue)}</span>
                     </li>
                 `;
@@ -2830,15 +3041,14 @@
             const token = document.getElementById('blackMarketToken').value;
             const amount = parseFloat(document.getElementById('blackMarketAmount').value);
             if (isNaN(amount) || amount <= 0) {
-                alert('Please enter a valid amount.');
+                showMessageBox('Please enter a valid amount.', true);
                 return;
             }
             const confirmAcquire = await showConfirmationModal(`Acquire ${formatTokenAmount(amount, state.tokens[token]?.decimals || 2)} ${token} for Platform Wallet?`);
             if (confirmAcquire) {
                 state.platformWallet.balances[token] = (state.platformWallet.balances[token] || 0) + amount;
+                showMessageBox(`Successfully acquired ${formatTokenAmount(amount, state.tokens[token]?.decimals || 2)} ${token} from Black Market.`, false);
                 addRecentActivity(`You acquired ${formatTokenAmount(amount, state.tokens[token]?.decimals || 2)} ${token} from Black Market.`);
-                alert(`${formatTokenAmount(amount, state.tokens[token]?.decimals || 2)} ${token} added to Platform Wallet.`);
-                renderPlatformWalletPage(); // Update wallet view
             }
         });
     }
@@ -2857,17 +3067,17 @@
       sidebar.classList.add('translate-x-full');
     });
 
-    document.getElementById('navHome').addEventListener('click', (e) => { e.preventDefault(); renderHomePage(); sidebar.classList.add('translate-x-full'); });
-    document.getElementById('navDexTrade').addEventListener('click', (e) => { e.preventDefault(); renderDexTradePage(); sidebar.classList.add('translate-x-full'); });
-    document.getElementById('navLiquidity').addEventListener('click', (e) => { e.preventDefault(); renderLiquidityPage(); sidebar.classList.add('translate-x-full'); });
-    document.getElementById('navFarming').addEventListener('click', (e) => { e.preventDefault(); renderFarmingPage(); sidebar.classList.add('translate-x-full'); });
-    document.getElementById('navLaunchToken').addEventListener('click', (e) => { e.preventDefault(); renderLaunchTokenPage(); sidebar.classList.add('translate-x-full'); });
-    document.getElementById('navPresaleStage').addEventListener('click', (e) => { e.preventDefault(); renderPresaleStagePage(); sidebar.classList.add('translate-x-full'); });
-    document.getElementById('navGame').addEventListener('click', (e) => { e.preventDefault(); renderGamePage(); sidebar.classList.add('translate-x-full'); });
-    document.getElementById('navGovernance').addEventListener('click', (e) => { e.preventDefault(); renderGovernancePage(); sidebar.classList.add('translate-x-full'); });
-    document.getElementById('navAdmin').addEventListener('click', (e) => { e.preventDefault(); renderAdminPage(); sidebar.classList.add('translate-x-full'); });
-    document.getElementById('navPlatformWallet').addEventListener('click', (e) => { e.preventDefault(); renderPlatformWalletPage(); sidebar.classList.add('translate-x-full'); });
-    document.getElementById('navBlackMarket').addEventListener('click', (e) => { e.preventDefault(); renderBlackMarketPage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navHome').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'home'; renderHomePage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navDexTrade').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'dexTrade'; renderDexTradePage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navLiquidity').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'liquidity'; renderLiquidityPage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navFarming').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'farming'; renderFarmingPage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navLaunchToken').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'launchToken'; renderLaunchTokenPage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navPresaleStage').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'presaleStage'; renderPresaleStagePage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navGame').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'game'; renderGamePage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navGovernance').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'governance'; renderGovernancePage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navAdmin').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'admin'; renderAdminPage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navPlatformWallet').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'platformWallet'; renderPlatformWalletPage(); sidebar.classList.add('translate-x-full'); });
+    document.getElementById('navBlackMarket').addEventListener('click', (e) => { e.preventDefault(); mainContentDiv.dataset.currentPage = 'blackMarket'; renderBlackMarketPage(); sidebar.classList.add('translate-x-full'); });
 
 
     // --- Simulation Loop ---
@@ -2916,6 +3126,19 @@
                     bot.lastBotLpTime = Date.now();
                 }
 
+                // Bot Farming Activity (staking)
+                if (Date.now() - bot.lastBotFarmingTime > (Math.random() * (state.platformSettings.botFarmingFrequencyMax - state.platformSettings.botFarmingFrequencyMin) + state.platformSettings.botFarmingFrequencyMin)) {
+                    performBotFarmingActivity(bot.id);
+                    bot.lastBotFarmingTime = Date.now();
+                }
+
+                // Bot Presale Contribution
+                if (Date.now() - bot.lastBotPresaleBuyTime > (Math.random() * (state.platformSettings.botPresaleBuyFrequencyMax - state.platformSettings.botPresaleBuyFrequencyMin) + state.platformSettings.botPresaleBuyFrequencyMin)) {
+                    performBotPresaleContribution(bot.id);
+                    bot.lastBotPresaleBuyTime = Date.now();
+                }
+
+
                 // Bot Token Application (5 applications every 10 minutes)
                 if (Date.now() - state.lastBotApplicationTime > (10 * 60 * 1000) / 5 && Math.random() < 0.2) { // Roughly 1 app every 2 minutes
                     createBotTokenApplication(bot.id);
@@ -2943,7 +3166,7 @@
             // Accrue rewards
             for (const userId in pool.stakers) {
                 const staker = pool.stakers[userId];
-                if (staker.stakedAmount > 0) {
+                if (staker.stakedAmount > 0 && pool.totalStakedAmount > 0) { // Ensure totalStakedAmount is not zero to avoid division by zero
                     const timeElapsed = (now - staker.lastClaimTime) / 1000; // Seconds since last claim/stake
                     const poolShare = staker.stakedAmount / pool.totalStakedAmount;
                     const rewardsAccrued = poolShare * pool.rewardRatePerSecond * timeElapsed;
@@ -3014,20 +3237,20 @@
             if (Math.random() < 0.5) { // Sell A, buy B
                 fromToken = pool.tokenA.ticker;
                 toToken = pool.tokenB.ticker;
-                fromAmount = Math.random() * (bot.balances[fromToken] * 0.1); // Sell up to 10% of holding
+                fromAmount = Math.random() * (bot.balances[fromToken] * state.platformSettings.botTradingAggressiveness); // Sell up to aggressiveness % of holding
             } else { // Sell B, buy A
                 fromToken = pool.tokenB.ticker;
                 toToken = pool.tokenA.ticker;
-                fromAmount = Math.random() * (bot.balances[fromToken] * 0.1);
+                fromAmount = Math.random() * (bot.balances[fromToken] * state.platformSettings.botTradingAggressiveness);
             }
         } else if (botHasTokenA) { // Only has A, must sell A
             fromToken = pool.tokenA.ticker;
             toToken = pool.tokenB.ticker;
-            fromAmount = Math.random() * (bot.balances[fromToken] * 0.1);
+            fromAmount = Math.random() * (bot.balances[fromToken] * state.platformSettings.botTradingAggressiveness);
         } else if (botHasTokenB) { // Only has B, must sell B
             fromToken = pool.tokenB.ticker;
             toToken = pool.tokenA.ticker;
-            fromAmount = Math.random() * (bot.balances[fromToken] * 0.1);
+            fromAmount = Math.random() * (bot.balances[fromToken] * state.platformSettings.botTradingAggressiveness);
         } else {
             return; // Bot has neither token in this pool
         }
@@ -3047,7 +3270,7 @@
         if (outputAmount <= 0) return;
 
         const swapUsdValue = calculateTokenUSDValue(fromToken, fromAmount);
-        if (!applyTransactionFee(bot.id, swapUsdValue, 'Swap', pool.id, fromToken, fromAmount)) {
+        if (!applyTransactionFee(bot.id, swapUsdValue, 'Swap', pool.id)) {
             return; // Bot failed to pay fee
         }
 
@@ -3091,13 +3314,13 @@
         const actionType = Math.random() < 0.7 ? 'add' : 'remove'; // 70% add, 30% remove
 
         if (actionType === 'add') {
-            const amountA = (bot.balances[pool.tokenA.ticker] || 0) * (Math.random() * 0.05); // Add up to 5% of holding
-            const amountB = (bot.balances[pool.tokenB.ticker] || 0) * (Math.random() * 0.05);
+            const amountA = (bot.balances[pool.tokenA.ticker] || 0) * (Math.random() * state.platformSettings.botLpAddAggressiveness); // Add up to aggressiveness % of holding
+            const amountB = (bot.balances[pool.tokenB.ticker] || 0) * (Math.random() * state.platformSettings.botLpAddAggressiveness);
 
             if (amountA <= 0 || amountB <= 0 || bot.balances[pool.tokenA.ticker] < amountA || bot.balances[pool.tokenB.ticker] < amountB) return;
 
             const usdValue = calculateTokenUSDValue(pool.tokenA.ticker, amountA) + calculateTokenUSDValue(pool.tokenB.ticker, amountB);
-            if (!applyTransactionFee(bot.id, usdValue, 'AddLiquidity', pool.id, pool.tokenA.ticker, amountA)) return;
+            if (!applyTransactionFee(bot.id, usdValue, 'AddLiquidity', pool.id)) return;
 
             bot.balances[pool.tokenA.ticker] -= amountA;
             bot.balances[pool.tokenB.ticker] -= amountB;
@@ -3139,6 +3362,131 @@
             addRecentActivity(`Bot ${bot.id.split('_')[1]} removed liquidity from ${pool.id}.`);
         }
     }
+
+    function performBotFarmingActivity(botId) {
+        const bot = state.users[botId];
+        const activeFarmingPools = Object.values(state.farmingPools).filter(p => Date.now() < p.endTime);
+        if (activeFarmingPools.length === 0) return;
+
+        const randomPool = activeFarmingPools[Math.floor(Math.random() * activeFarmingPools.length)];
+        const pool = randomPool;
+
+        const actionType = Math.random() < 0.8 ? 'stake' : 'claim'; // 80% stake, 20% claim
+
+        if (actionType === 'stake') {
+            const amountToStake = (bot.balances[pool.stakedToken.ticker] || 0) * (Math.random() * state.platformSettings.botFarmingAggressiveness); // Stake up to aggressiveness %
+            if (amountToStake <= 0 || bot.balances[pool.stakedToken.ticker] < amountToStake) return;
+
+            const usdValue = calculateTokenUSDValue(pool.stakedToken.ticker, amountToStake);
+            if (!applyTransactionFee(bot.id, usdValue, 'StakeFarming', pool.id)) return;
+
+            bot.balances[pool.stakedToken.ticker] -= amountToStake;
+            pool.totalStakedAmount += amountToStake;
+
+            if (!pool.stakers[bot.id]) {
+                pool.stakers[bot.id] = {
+                    stakedAmount: 0,
+                    stakeTime: Date.now(),
+                    claimableRewards: 0,
+                    unstakeAvailableTimestamp: pool.lockupDurationSeconds > 0 ? Date.now() + pool.lockupDurationSeconds * 1000 : 0,
+                    lastClaimTime: Date.now(),
+                };
+            }
+            pool.stakers[bot.id].stakedAmount += amountToStake;
+            addRecentActivity(`Bot ${bot.id.split('_')[1]} staked ${formatTokenAmount(amountToStake, pool.stakedToken.decimals)} ${pool.stakedToken.ticker} in ${pool.id}.`);
+
+        } else { // claim
+            const userStake = pool.stakers[bot.id];
+            if (!userStake || userStake.claimableRewards <= 0) return;
+
+            const rewards = userStake.claimableRewards;
+            const usdValue = calculateTokenUSDValue(pool.rewardToken.ticker, rewards);
+            if (!applyTransactionFee(bot.id, usdValue, 'ClaimFarmingRewards', pool.id)) return;
+
+            bot.balances[pool.rewardToken.ticker] = (bot.balances[pool.rewardToken.ticker] || 0) + rewards;
+            userStake.claimableRewards = 0;
+            userStake.lastClaimTime = Date.now();
+            addRecentActivity(`Bot ${bot.id.split('_')[1]} claimed ${formatTokenAmount(rewards, pool.rewardToken.decimals)} ${pool.rewardToken.ticker} from ${pool.id}.`);
+        }
+    }
+
+    async function performBotPresaleContribution(botId) {
+        const bot = state.users[botId];
+        const activePresales = Object.values(state.presaleProjects).filter(p => p.status === 'Active' && p.tokensSold < p.tokensForSale);
+
+        if (activePresales.length === 0) return;
+
+        const project = activePresales[Math.floor(Math.random() * activePresales.length)];
+
+        // Bots try to fill the presale quickly (within 1 minute)
+        const remainingUsdtNeeded = project.hardCapUsdt - project.usdtRaised;
+        const botUsdtBalance = bot.balances.USDT;
+
+        // Bot buys a random chunk of the remaining presale, up to its aggressiveness
+        const maxBuyUsdt = Math.min(remainingUsdtNeeded, botUsdtBalance * state.platformSettings.botTradingAggressiveness);
+        const usdtAmount = Math.random() * maxBuyUsdt;
+
+        if (usdtAmount <= 0) return;
+
+        const tokensToReceive = usdtAmount / project.tokenDetails.price_usd;
+        if (project.tokensSold + tokensToReceive > project.tokensForSale) {
+            // Adjust amount to exactly fill if it's too much
+            const actualUsdtAmount = (project.tokensForSale - project.tokensSold) * project.tokenDetails.price_usd;
+            if (actualUsdtAmount <= 0) return;
+            // Ensure bot has enough USDT for this exact amount
+            if (bot.balances.USDT < actualUsdtAmount) return;
+            
+            const confirmBuy = true; // Bots don't need confirmation modal
+            if (confirmBuy) {
+                if (!applyTransactionFee(bot.id, actualUsdtAmount, 'PresaleBuy', null)) return;
+
+                bot.balances.USDT -= actualUsdtAmount;
+                project.usdtRaised += actualUsdtAmount;
+                project.tokensSold += (actualUsdtAmount / project.tokenDetails.price_usd);
+                project.progressPercent = (project.usdtRaised / project.hardCapUsdt) * 100;
+
+                project.buyersList.push({
+                    userId: bot.id,
+                    usdtContributed: actualUsdtAmount,
+                    tokensToReceive: (actualUsdtAmount / project.tokenDetails.price_usd),
+                    claimedAirdrop: false,
+                });
+                addRecentActivity(`Bot ${bot.id.split('_')[1]} bought ${formatTokenAmount((actualUsdtAmount / project.tokenDetails.price_usd), project.tokenDetails.decimals)} ${project.tokenDetails.ticker} in presale.`);
+
+                if (project.progressPercent >= 100) {
+                    project.status = 'Filled';
+                    addRecentActivity(`Presale for ${project.tokenDetails.ticker} filled! Listing on DEX...`);
+                    await listTokenOnDex(project.projectId);
+                }
+            }
+
+        } else { // Regular buy
+            const confirmBuy = true; // Bots don't need confirmation modal
+            if (confirmBuy) {
+                if (!applyTransactionFee(bot.id, usdtAmount, 'PresaleBuy', null)) return;
+
+                bot.balances.USDT -= usdtAmount;
+                project.usdtRaised += usdtAmount;
+                project.tokensSold += tokensToReceive;
+                project.progressPercent = (project.usdtRaised / project.hardCapUsdt) * 100;
+
+                project.buyersList.push({
+                    userId: bot.id,
+                    usdtContributed: usdtAmount,
+                    tokensToReceive: tokensToReceive,
+                    claimedAirdrop: false,
+                });
+                addRecentActivity(`Bot ${bot.id.split('_')[1]} bought ${formatTokenAmount(tokensToReceive, project.tokenDetails.decimals)} ${project.tokenDetails.ticker} in presale.`);
+
+                if (project.progressPercent >= 100) {
+                    project.status = 'Filled';
+                    addRecentActivity(`Presale for ${project.tokenDetails.ticker} filled! Listing on DEX...`);
+                    await listTokenOnDex(project.projectId);
+                }
+            }
+        }
+    }
+
 
     function createBotTokenApplication(botId) {
         const bot = state.users[botId];
@@ -3229,6 +3577,8 @@
                 rug_pull_chance: 0.5,
                 build_chance: 0.5,
                 team_wallet_balance: teamTokenAmount, // Initial team allocation
+                status: 'Pending Approval', // Status for launched tokens
+                build_log: [], // Initialize build log
             },
         };
 
@@ -3255,8 +3605,8 @@
 
     async function performBotBuildingActivity(botId) {
         const bot = state.users[botId];
-        // Find tokens launched by this bot that are 'Listed on DEX'
-        const botLaunchedTokens = Object.values(state.tokens).filter(t => t.creator_id === botId && t.price_usd > 0);
+        // Find tokens launched by this bot that are 'Listed on DEX' and are in 'BUILD' mode
+        const botLaunchedTokens = Object.values(state.tokens).filter(t => t.creator_id === botId && t.launch_details?.status === 'Listed on DEX' && t.launch_details?.build_log.some(log => log.message.includes('BUILD mode')));
 
         for (const token of botLaunchedTokens) {
             // 1. Add More Liquidity (random amount up to 50% of holdings)
@@ -3269,14 +3619,22 @@
 
                     if (amountToAddToken > 0 && amountToAddUsdt > 0 && bot.balances.USDT >= amountToAddUsdt) {
                         const usdValue = calculateTokenUSDValue(token.ticker, amountToAddToken) + calculateTokenUSDValue('USDT', amountToAddUsdt);
-                        if (!applyTransactionFee(bot.id, usdValue, 'AddLiquidity', pool.id, token.ticker, amountToAddToken)) return;
+                        if (!applyTransactionFee(bot.id, usdValue, 'AddLiquidity', pool.id)) return;
 
                         bot.balances[token.ticker] -= amountToAddToken;
                         bot.balances.USDT -= amountToAddUsdt;
                         pool.balanceA += amountToAddToken;
-                        pool.balanceB += amountUsdt;
+                        pool.balanceB += amountToAddUsdt; // Corrected to amountToAddUsdt
                         pool.k = pool.balanceA * pool.balanceB;
-                        pool.lpTokenSupply += Math.sqrt(amountToAddToken * amountUsdt);
+                        pool.lpTokenSupply += Math.sqrt(amountToAddToken * amountToAddUsdt); // Simplified LP token minting
+
+                        // Update token prices based on new pool ratio
+                        state.tokens[pool.tokenA.ticker].price_usd = pool.balanceB / pool.balanceA;
+                        state.tokens[pool.tokenB.ticker].price_usd = pool.balanceA / pool.balanceB;
+                        state.tokens[pool.tokenA.ticker].market_cap_usd = state.tokens[pool.tokenA.ticker].circulating_supply * state.tokens[pool.tokenA.ticker].price_usd;
+                        state.tokens[pool.tokenB.ticker].market_cap_usd = state.tokens[pool.tokenB.ticker].circulating_supply * state.tokens[pool.tokenB.ticker].price_usd;
+
+                        token.launch_details.build_log.push({timestamp: Date.now(), message: `Added ${formatTokenAmount(amountToAddToken, token.decimals)} ${token.ticker} liquidity.`});
                         addRecentActivity(`Bot ${bot.id.split('_')[1]} added more liquidity to ${token.ticker}-USDT.`);
                     }
                 }
@@ -3310,6 +3668,7 @@
                             stakers: {},
                             creator_id: bot.id,
                         };
+                        token.launch_details.build_log.push({timestamp: Date.now(), message: `Created farming pool ${poolId} with ${formatTokenAmount(rewardAmount, token.decimals)} ${token.ticker} rewards.`});
                         addRecentActivity(`Bot ${bot.id.split('_')[1]} created a farming pool for ${token.ticker}.`);
                     }
                 }
@@ -3321,6 +3680,7 @@
                 if (amountToFund > 0) {
                     bot.balances[token.ticker] -= amountToFund;
                     state.gameRewardsPool.availableRewards[token.ticker] = (state.gameRewardsPool.availableRewards[token.ticker] || 0) + amountToFund;
+                    token.launch_details.build_log.push({timestamp: Date.now(), message: `Funded game pool with ${formatTokenAmount(amountToFund, token.decimals)} ${token.ticker}.`});
                     addRecentActivity(`Bot ${bot.id.split('_')[1]} funded game pool with ${formatTokenAmount(amountToFund, token.decimals)} ${token.ticker}.`);
                 }
             }
@@ -3330,13 +3690,13 @@
                 const poolId = `${token.ticker}-USDT`;
                 const pool = state.liquidityPools[poolId];
                 if (pool && bot.balances.USDT > 0) {
-                    const buyAmountUsdt = Math.random() * (bot.balances.USDT * 0.1); // Buy up to 10% of bot's USDT
+                    const buyAmountUsdt = Math.random() * (bot.balances.USDT * state.platformSettings.botTradingAggressiveness); // Buy up to aggressiveness % of bot's USDT
                     if (buyAmountUsdt > 0) {
                         const { outputAmount: tokenReceived } = calculateSwapOutput(buyAmountUsdt, pool.balanceB, pool.balanceA); // USDT to Token
                         if (tokenReceived <= 0) return;
 
                         const swapUsdValue = buyAmountUsdt;
-                        if (!applyTransactionFee(bot.id, swapUsdValue, 'MarketMakeBuy', pool.id, 'USDT', buyAmountUsdt)) return;
+                        if (!applyTransactionFee(bot.id, swapUsdValue, 'MarketMakeBuy', pool.id)) return;
 
                         bot.balances.USDT -= buyAmountUsdt;
                         bot.balances[token.ticker] = (bot.balances[token.ticker] || 0) + tokenReceived;
@@ -3349,6 +3709,7 @@
                         state.tokens[pool.tokenA.ticker].market_cap_usd = state.tokens[pool.tokenA.ticker].circulating_supply * state.tokens[pool.tokenA.ticker].price_usd;
                         state.tokens[pool.tokenB.ticker].market_cap_usd = state.tokens[pool.tokenB.ticker].circulating_supply * state.tokens[pool.tokenB.ticker].price_usd;
 
+                        token.launch_details.build_log.push({timestamp: Date.now(), message: `Bought back ${formatTokenAmount(tokenReceived, token.decimals)} ${token.ticker}.`});
                         addRecentActivity(`Bot ${bot.id.split('_')[1]} bought ${formatTokenAmount(tokenReceived, token.decimals)} ${token.ticker} (market make).`);
                     }
                 }
@@ -3368,6 +3729,7 @@
                         topHolders.forEach(holder => {
                             holder.balances[token.ticker] = (holder.balances[token.ticker] || 0) + amountPerHolder;
                         });
+                        token.launch_details.build_log.push({timestamp: Date.now(), message: `Airdropped ${formatTokenAmount(airdropAmount, token.decimals)} ${token.ticker} to top holders.`});
                         addRecentActivity(`Bot ${bot.id.split('_')[1]} airdropped ${formatTokenAmount(airdropAmount, token.decimals)} ${token.ticker} to top holders.`);
                     }
                 }
@@ -3384,7 +3746,7 @@
         if (bot.balances[payToken] < payAmountToken) return;
 
         // Deduct fee first
-        if (!applyTransactionFee(bot.id, payAmountUsd, 'GamePlay', null, payToken, payAmountToken)) return;
+        if (!applyTransactionFee(bot.id, payAmountUsd, 'GamePlay', null)) return;
 
         bot.balances[payToken] -= payAmountToken;
         state.gameRewardsPool.availableRewards[payToken] = (state.gameRewardsPool.availableRewards[payToken] || 0) + payAmountToken; // $1 goes back to pool
@@ -3477,6 +3839,7 @@
       initializeUsersAndBots();
       state.appStats.recentActivity = []; // Initialize recent activity log
       renderHomePage(); // Render the initial page
+      mainContentDiv.dataset.currentPage = 'home'; // Set initial page for updates
       simulationInterval = setInterval(simulationLoop, SIMULATION_TICK_INTERVAL); // Start simulation loop
     }
 
