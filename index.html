@@ -119,7 +119,7 @@
             opacity: 1;
         }
 
-        .balance-item, .pool-item, .portfolio-item, .proposal-item, .genesis-pool-item, .launch-pool-item, .token-info-item, .dashboard-item {
+        .balance-item, .pool-item, .portfolio-item, .proposal-item, .genesis-pool-item, .launch-pool-item, .token-info-item, .dashboard-item, .staking-pool-item, .short-it-item {
             background-color: #2c3e50;
             padding: 10px 15px;
             border-radius: 10px;
@@ -128,7 +128,7 @@
             align-items: center;
             border: 1px solid #3d5a80;
         }
-        .proposal-item, .genesis-pool-item, .launch-pool-item, .token-info-item, .dashboard-item {
+        .proposal-item, .genesis-pool-item, .launch-pool-item, .token-info-item, .dashboard-item, .staking-pool-item, .short-it-item {
             flex-direction: column;
             align-items: flex-start;
             gap: 10px;
@@ -203,23 +203,23 @@
         }
 
         /* Custom scrollbar for transaction history */
-        .transaction-history-scroll, .pool-list-scroll, .proposals-list-scroll, .genesis-pools-scroll, .launch-pools-scroll, .token-list-scroll {
+        .transaction-history-scroll, .pool-list-scroll, .proposals-list-scroll, .genesis-pools-scroll, .launch-pools-scroll, .token-list-scroll, .staking-pools-scroll, .short-it-history-scroll {
             max-height: 200px; /* Adjust as needed */
             overflow-y: auto;
             scrollbar-width: thin; /* Firefox */
             scrollbar-color: #6366f1 #2c3e50; /* Firefox */
         }
 
-        .transaction-history-scroll::-webkit-scrollbar, .pool-list-scroll::-webkit-scrollbar, .proposals-list-scroll::-webkit-scrollbar, .genesis-pools-scroll::-webkit-scrollbar, .launch-pools-scroll::-webkit-scrollbar, .token-list-scroll::-webkit-scrollbar {
+        .transaction-history-scroll::-webkit-scrollbar, .pool-list-scroll::-webkit-scrollbar, .proposals-list-scroll::-webkit-scrollbar, .genesis-pools-scroll::-webkit-scrollbar, .launch-pools-scroll::-webkit-scrollbar, .token-list-scroll::-webkit-scrollbar, .staking-pools-scroll::-webkit-scrollbar, .short-it-history-scroll::-webkit-scrollbar {
             width: 8px;
         }
 
-        .transaction-history-scroll::-webkit-scrollbar-track, .pool-list-scroll::-webkit-scrollbar-track, .proposals-list-scroll::-webkit-scrollbar-track, .genesis-pools-scroll::-webkit-scrollbar-track, .launch-pools-scroll::-webkit-scrollbar-track, .token-list-scroll::-webkit-scrollbar-track {
+        .transaction-history-scroll::-webkit-scrollbar-track, .pool-list-scroll::-webkit-scrollbar-track, .proposals-list-scroll::-webkit-scrollbar-track, .genesis-pools-scroll::-webkit-scrollbar-track, .launch-pools-scroll::-webkit-scrollbar-track, .token-list-scroll::-webkit-scrollbar-track, .staking-pools-scroll::-webkit-scrollbar-track, .short-it-history-scroll::-webkit-scrollbar-track {
             background: #2c3e50;
             border-radius: 10px;
         }
 
-        .transaction-history-scroll::-webkit-scrollbar-thumb, .pool-list-scroll::-webkit-scrollbar-thumb, .proposals-list-scroll::-webkit-scrollbar-thumb, .genesis-pools-scroll::-webkit-scrollbar-thumb, .launch-pools-scroll::-webkit-scrollbar-thumb, .token-list-scroll::-webkit-scrollbar-thumb {
+        .transaction-history-scroll::-webkit-scrollbar-thumb, .pool-list-scroll::-webkit-scrollbar-thumb, .proposals-list-scroll::-webkit-scrollbar-thumb, .genesis-pools-scroll::-webkit-scrollbar-thumb, .launch-pools-scroll::-webkit-scrollbar-thumb, .token-list-scroll::-webkit-scrollbar-thumb, .staking-pools-scroll::-webkit-scrollbar-thumb, .short-it-history-scroll::-webkit-scrollbar-thumb {
             background-color: #6366f1;
             border-radius: 10px;
             border: 2px solid #2c3e50;
@@ -306,6 +306,31 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        .short-it-chart-container {
+            width: 100%;
+            height: 100px;
+            background-color: #1e2a3b;
+            border-radius: 8px;
+            padding: 5px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end; /* Align bars to the bottom */
+        }
+        .short-it-chart-bar {
+            width: 5px; /* Width of each bar */
+            margin: 0 1px; /* Space between bars */
+            background-color: #6366f1; /* Default color */
+            transition: height 0.1s linear, background-color 0.1s linear;
+            position: relative;
+            bottom: 0;
+        }
+        .short-it-chart-bar.up {
+            background-color: #10b981; /* Green for up */
+        }
+        .short-it-chart-bar.down {
+            background-color: #ef4444; /* Red for down */
+        }
     </style>
 </head>
 <body>
@@ -327,6 +352,8 @@
             <button id="liquidity-tab-btn" class="tab-button mr-2">Liquidity</button>
             <button id="launchpad-tab-btn" class="tab-button mr-2">Launchpad</button>
             <button id="tokens-tab-btn" class="tab-button mr-2">Tokens</button>
+            <button id="staking-tab-btn" class="tab-button mr-2">Staking</button>
+            <button id="short-it-tab-btn" class="tab-button mr-2">Short It</button>
             <button id="governance-tab-btn" class="tab-button mr-2">Governance</button>
             <button id="dashboard-tab-btn" class="tab-button">Dashboard</button>
         </div>
@@ -598,11 +625,80 @@
                             <span class="text-gray-300 font-medium">Top 10 Holders Share</span>
                             <span id="token-top-holders-display" class="text-white text-lg font-semibold"></span>
                         </div>
+                        <div class="token-info-item">
+                            <span class="text-gray-300 font-medium">Buy Volume (24h)</span>
+                            <span id="token-buy-volume-display" class="text-white text-lg font-semibold"></span>
+                        </div>
+                        <div class="token-info-item">
+                            <span class="text-gray-300 font-medium">Sell Volume (24h)</span>
+                            <span id="token-sell-volume-display" class="text-white text-lg font-semibold"></span>
+                        </div>
 
                         <!-- Simple Chart -->
                         <h3 class="text-lg font-semibold text-white mt-4">Price Chart</h3>
                         <div class="chart-container">
                             <svg id="token-chart-svg" class="chart-line" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Staking Interface (NEW) -->
+                <div id="staking-interface" class="space-y-6 hidden">
+                    <h2 class="text-xl font-semibold text-white mb-4">Staking Pools</h2>
+
+                    <div id="staking-pools-list" class="staking-pools-scroll space-y-3">
+                        <p class="text-sm text-gray-500 text-center">No active staking pools.</p>
+                    </div>
+                </div>
+
+                <!-- Short It Interface (NEW) -->
+                <div id="short-it-interface" class="space-y-6 hidden">
+                    <h2 class="text-xl font-semibold text-white mb-4">Short It: Price Prediction Game</h2>
+
+                    <div>
+                        <label for="short-it-token-select" class="block text-sm font-medium text-gray-400 mb-1">Select Token</label>
+                        <select id="short-it-token-select" class="input-group w-full">
+                            <option value="">Select a launched token...</option>
+                        </select>
+                    </div>
+
+                    <div id="short-it-game-area" class="space-y-4 hidden">
+                        <div class="bg-gray-800 p-5 rounded-lg border border-gray-700 space-y-4">
+                            <h3 class="text-lg font-semibold text-white">Place Your Bet</h3>
+                            <div class="flex justify-between items-center text-sm text-gray-400">
+                                <span>Current Price: <span id="short-it-current-price" class="text-white"></span></span>
+                                <span>Pool Balance: <span id="short-it-pool-balance" class="text-white"></span></span>
+                            </div>
+                            <div>
+                                <label for="short-it-amount" class="block text-sm font-medium text-gray-400 mb-1">Bet Amount</label>
+                                <div class="input-group">
+                                    <input type="number" id="short-it-amount" placeholder="0.0" min="0" class="w-full">
+                                    <button class="max-button" data-input-id="short-it-amount" data-balance-token="selectedShortItToken">Max</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="short-it-time" class="block text-sm font-medium text-gray-400 mb-1">Prediction Time</label>
+                                <select id="short-it-time" class="input-group w-full">
+                                    <option value="3">3 Seconds (x2)</option>
+                                    <option value="5">5 Seconds (x3)</option>
+                                    <option value="10">10 Seconds (x4)</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-4">
+                                <button id="short-it-bet-up" class="action-button flex-1 bg-green-600 hover:bg-green-700">Bet UP</button>
+                                <button id="short-it-bet-down" class="action-button flex-1 bg-red-600 hover:bg-red-700">Bet DOWN</button>
+                            </div>
+                            <div class="text-center text-yellow-400 font-semibold" id="short-it-timer"></div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold text-white mt-4">Price Movement</h3>
+                        <div class="short-it-chart-container" id="short-it-chart-container">
+                            <!-- Bars will be dynamically added here -->
+                        </div>
+
+                        <h3 class="text-lg font-semibold text-white mt-4">My Short It History</h3>
+                        <div id="short-it-history" class="short-it-history-scroll space-y-2 p-3 bg-gray-800 rounded-lg border border-gray-700">
+                            <p class="text-sm text-gray-500 text-center">No bets yet.</p>
                         </div>
                     </div>
                 </div>
@@ -734,9 +830,9 @@
             bridgeTimeMinutes: 2, // Simulated bridge time
             transactionHistory: [],
             liquidityPools: {
-                'ETH-USDC': { tokenA: 'ETH', tokenB: 'USDC', tvl: 100000, apr: 0.85, userLiquidityLP: 0, userFees: 0, totalLP: 1000, totalFeesCollected: 0 },
-                'BNB-USDC': { tokenA: 'BNB', tokenB: 'USDC', tvl: 50000, apr: 1.20, userLiquidityLP: 0, userFees: 0, totalLP: 500, totalFeesCollected: 0 },
-                'ETH-DAI': { tokenA: 'ETH', tokenB: 'DAI', tvl: 75000, apr: 0.92, userLiquidityLP: 0, userFees: 0, totalLP: 750, totalFeesCollected: 0 }
+                'ETH-USDC': { tokenA: 'ETH', tokenB: 'USDC', tvl: 100000, apr: 0.85, userLiquidityLP: 0, userFees: 0, totalLP: 1000, totalFeesCollected: 0, devRewards: 0 },
+                'BNB-USDC': { tokenA: 'BNB', tokenB: 'USDC', tvl: 50000, apr: 1.20, userLiquidityLP: 0, userFees: 0, totalLP: 500, totalFeesCollected: 0, devRewards: 0 },
+                'ETH-DAI': { tokenA: 'ETH', tokenB: 'DAI', tvl: 75000, apr: 0.92, userLiquidityLP: 0, userFees: 0, totalLP: 750, totalFeesCollected: 0, devRewards: 0 }
             },
             proposals: [
                 {
@@ -765,8 +861,11 @@
                 }
             ],
             genesisPools: [], // New: Tokens in pre-launch phase
-            launchPools: [], // New: Staking pools for genesis tokens
+            launchPools: [], // New: Staking pools for genesis tokens (GOV staking for new token)
+            stakingPools: {}, // New: Staking pools for launched tokens (launched token staking for launched token)
             launchedTokens: {}, // New: Stores info for launched tokens (key: symbol)
+            shortItPools: {}, // New: Stores short-it game pools
+            shortItHistory: [], // New: User's short-it game history
             totalPortfolioValue: 0,
             totalEarnedFees: 0,
             userVotingPower: 0, // Will be set to GOV balance when connected
@@ -786,6 +885,8 @@
         const liquidityTabBtn = document.getElementById('liquidity-tab-btn');
         const launchpadTabBtn = document.getElementById('launchpad-tab-btn'); // New
         const tokensTabBtn = document.getElementById('tokens-tab-btn'); // New
+        const stakingTabBtn = document.getElementById('staking-tab-btn'); // New
+        const shortItTabBtn = document.getElementById('short-it-tab-btn'); // New
         const governanceTabBtn = document.getElementById('governance-tab-btn');
         const dashboardTabBtn = document.getElementById('dashboard-tab-btn'); // New
         const swapInterface = document.getElementById('swap-interface');
@@ -793,6 +894,8 @@
         const liquidityInterface = document.getElementById('liquidity-interface');
         const launchpadInterface = document.getElementById('launchpad-interface'); // New
         const tokensInterface = document.getElementById('tokens-interface'); // New
+        const stakingInterface = document.getElementById('staking-interface'); // New
+        const shortItInterface = document.getElementById('short-it-interface'); // New
         const governanceInterface = document.getElementById('governance-interface');
         const dashboardInterface = document.getElementById('dashboard-interface'); // New
 
@@ -846,7 +949,25 @@
         const tokenLiquidityDisplay = document.getElementById('token-liquidity-display');
         const tokenDevHoldingsDisplay = document.getElementById('token-dev-holdings-display');
         const tokenTopHoldersDisplay = document.getElementById('token-top-holders-display');
+        const tokenBuyVolumeDisplay = document.getElementById('token-buy-volume-display'); // New
+        const tokenSellVolumeDisplay = document.getElementById('token-sell-volume-display'); // New
         const tokenChartSVG = document.getElementById('token-chart-svg');
+
+        // Staking Elements (New)
+        const stakingPoolsList = document.getElementById('staking-pools-list');
+
+        // Short It Elements (New)
+        const shortItTokenSelect = document.getElementById('short-it-token-select');
+        const shortItGameArea = document.getElementById('short-it-game-area');
+        const shortItCurrentPrice = document.getElementById('short-it-current-price');
+        const shortItPoolBalance = document.getElementById('short-it-pool-balance');
+        const shortItAmountInput = document.getElementById('short-it-amount');
+        const shortItTimeSelect = document.getElementById('short-it-time');
+        const shortItBetUpBtn = document.getElementById('short-it-bet-up');
+        const shortItBetDownBtn = document.getElementById('short-it-bet-down');
+        const shortItTimerDisplay = document.getElementById('short-it-timer');
+        const shortItChartContainer = document.getElementById('short-it-chart-container');
+        const shortItHistoryDiv = document.getElementById('short-it-history');
 
 
         // Governance Elements
@@ -1051,17 +1172,23 @@
             const swapToSelect = document.getElementById('to-token-swap');
             const bridgeFromSelect = document.getElementById('from-token-bridge');
             const bridgeToSelect = document.getElementById('to-token-bridge');
+            const shortItTokenSelect = document.getElementById('short-it-token-select');
+
 
             // Store current selections to re-apply after update
             const currentSwapFrom = swapFromSelect.value;
             const currentSwapTo = swapToSelect.value;
             const currentBridgeFrom = bridgeFromSelect.value;
             const currentBridgeTo = bridgeToSelect.value;
+            const currentShortItToken = shortItTokenSelect.value;
+
 
             swapFromSelect.innerHTML = '';
             swapToSelect.innerHTML = '';
             bridgeFromSelect.innerHTML = '';
             bridgeToSelect.innerHTML = '';
+            shortItTokenSelect.innerHTML = '<option value="">Select a launched token...</option>';
+
 
             allTokens.forEach(token => {
                 const option1 = document.createElement('option');
@@ -1083,6 +1210,14 @@
                 option4.value = token;
                 option4.textContent = token;
                 bridgeToSelect.appendChild(option4);
+
+                // Add launched tokens to Short It select
+                if (state.launchedTokens[token]) {
+                    const optionShortIt = document.createElement('option');
+                    optionShortIt.value = token;
+                    optionShortIt.textContent = token;
+                    shortItTokenSelect.appendChild(optionShortIt);
+                }
             });
 
             // Re-apply previous selections or default
@@ -1090,6 +1225,8 @@
             swapToSelect.value = currentSwapTo && allTokens.includes(currentSwapTo) ? currentSwapTo : 'USDC';
             bridgeFromSelect.value = currentBridgeFrom && allTokens.includes(currentBridgeFrom) ? currentBridgeFrom : 'ETH';
             bridgeToSelect.value = currentBridgeTo && allTokens.includes(currentBridgeTo) ? currentBridgeTo : 'USDC';
+            shortItTokenSelect.value = currentShortItToken && Object.keys(state.launchedTokens).includes(currentShortItToken) ? currentShortItToken : '';
+
 
             // Ensure swap to is not same as swap from
             if (swapFromSelect.value === toTokenSwap.value && allTokens.length > 1) {
@@ -1100,6 +1237,7 @@
                 const newToToken = allTokens.find(t => t !== bridgeFromSelect.value);
                 if (newToToken) bridgeToSelect.value = newToToken;
             }
+            updateShortItGameArea(); // Update short-it game area based on selection
         }
 
 
@@ -1171,6 +1309,24 @@
                         break;
                     case 'contributeGenesis':
                         transactionDescription = `Contributed ${fromAmountDisplay} USDC to ${tx.tokenSymbol} Genesis Pool`;
+                        break;
+                    case 'claimGenesisTokens': // New
+                        transactionDescription = `Claimed ${toAmountDisplay} ${tx.tokenSymbol} from Genesis Pool`;
+                        break;
+                    case 'stakeToken': // New
+                        transactionDescription = `Staked ${fromAmountDisplay} ${tx.tokenSymbol} in Staking Pool`;
+                        break;
+                    case 'unstakeToken': // New
+                        transactionDescription = `Unstaked ${fromAmountDisplay} ${tx.tokenSymbol} from Staking Pool`;
+                        break;
+                    case 'claimStakingReward': // New
+                        transactionDescription = `Claimed ${toAmountDisplay} ${tx.tokenSymbol} from Staking Pool`;
+                        break;
+                    case 'shortItBet': // New
+                        transactionDescription = `Bet ${fromAmountDisplay} ${tx.tokenSymbol} ${tx.direction} for ${tx.time}s`;
+                        break;
+                    case 'shortItResult': // New
+                        transactionDescription = `Short It: ${tx.tokenSymbol} ${tx.result} - ${tx.wonAmount.toFixed(4)} ${tx.tokenSymbol}`;
                         break;
                     default:
                         transactionDescription = `Transaction: ${tx.type}`;
@@ -1245,6 +1401,7 @@
                         </div>
                         <div class="flex justify-between w-full text-sm text-gray-400">
                             <span>Claimable Fees: <span class="text-yellow-300">$${pool.userFees.toFixed(4)}</span></span>
+                            <span>Dev Rewards: <span class="text-purple-300">${pool.devRewards.toFixed(4)} ${pool.tokenA === 'USDC' ? pool.tokenB : pool.tokenA}</span></span>
                         </div>
                     `;
                     availablePoolsList.appendChild(poolItem);
@@ -1302,7 +1459,9 @@
         function updateClaimableFeesDisplay() {
             const selectedPoolName = claimFeesPoolSelect.value;
             if (selectedPoolName && state.liquidityPools[selectedPoolName]) {
-                claimableFeesDisplay.textContent = `$${state.liquidityPools[selectedPoolName].userFees.toFixed(4)}`;
+                const pool = state.liquidityPools[selectedPoolName];
+                const tokenSymbol = pool.tokenA === 'USDC' ? pool.tokenB : pool.tokenA; // The non-USDC token
+                claimableFeesDisplay.textContent = `$${pool.userFees.toFixed(4)} (Fees) + ${pool.devRewards.toFixed(4)} ${tokenSymbol} (Dev Rewards)`;
             } else {
                 claimableFeesDisplay.textContent = '0.00 USDC';
             }
@@ -1375,38 +1534,45 @@
             genesisPoolsList.innerHTML = '';
             launchPoolsList.innerHTML = '';
 
-            if (state.genesisPools.length === 0) {
+            const activeGenesisPools = state.genesisPools.filter(p => p.status === 'genesis' || (p.status === 'launched' && p.userClaimableTokens > 0));
+            const activeLaunchPools = state.launchPools.filter(p => p.status === 'active' || p.userStakedGOV > 0 || p.userEarnedTokens > 0);
+
+
+            if (activeGenesisPools.length === 0) {
                 genesisPoolsList.innerHTML = '<p class="text-sm text-gray-500 text-center">No active genesis pools.</p>';
             }
-            if (state.launchPools.length === 0) {
+            if (activeLaunchPools.length === 0) {
                 launchPoolsList.innerHTML = '<p class="text-sm text-gray-500 text-center">No active launch pools.</p>';
             }
 
-            state.genesisPools.forEach(pool => {
+            activeGenesisPools.forEach(pool => {
                 const timeLeft = Math.max(0, Math.ceil((pool.launchTime - Date.now()) / 1000)); // seconds
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
                 const timeLeftStr = `${minutes}m ${seconds}s`;
-                const canContribute = state.isConnected && state.balances.USDC > 0;
+                const canContribute = state.isConnected && state.balances.USDC > 0 && pool.status === 'genesis';
+                const canClaimGenesis = state.isConnected && pool.status === 'launched' && pool.userClaimableTokens > 0;
 
                 const genesisItem = document.createElement('div');
                 genesisItem.className = 'genesis-pool-item bg-gray-800 p-5 rounded-lg border border-gray-700';
                 genesisItem.innerHTML = `
                     <h3 class="text-xl font-semibold text-white">${pool.tokenSymbol} Launch</h3>
-                    <p class="text-sm text-gray-400">Status: Genesis Phase</p>
+                    <p class="text-sm text-gray-400">Status: <span class="${pool.status === 'genesis' ? 'text-yellow-400' : 'text-green-400'}">${pool.status.toUpperCase()}</span></p>
                     <p class="text-sm text-gray-400">Time to Launch: <span class="text-yellow-400">${timeLeftStr}</span></p>
                     <p class="text-sm text-gray-400">Total Liquidity: <span class="text-white">$${pool.liquidityContributed.toFixed(2)}</span></p>
                     <p class="text-sm text-gray-400">Your Contribution: <span class="text-white">$${pool.userContribution.toFixed(2)}</span></p>
+                    <p class="text-sm text-gray-400">Your Claimable ${pool.tokenSymbol}: <span class="text-yellow-300">${pool.userClaimableTokens.toFixed(4)}</span></p>
                     <div class="flex justify-end w-full gap-3 mt-4">
-                        <input type="number" placeholder="USDC Amt" class="w-28 p-2 rounded-md bg-gray-700 text-white text-sm" id="contribute-usdc-amount-${pool.tokenSymbol}">
-                        <button class="max-button" data-input-id="contribute-usdc-amount-${pool.tokenSymbol}" data-balance-token="USDC">Max</button>
+                        <input type="number" placeholder="USDC Amt" class="w-28 p-2 rounded-md bg-gray-700 text-white text-sm" id="contribute-usdc-amount-${pool.tokenSymbol}" ${pool.status === 'launched' ? 'disabled' : ''}>
+                        <button class="max-button" data-input-id="contribute-usdc-amount-${pool.tokenSymbol}" data-balance-token="USDC" data-action-type="contributeGenesis" data-token-symbol="${pool.tokenSymbol}" ${pool.status === 'launched' ? 'disabled' : ''}>Max</button>
                         <button class="action-button px-4 py-2 text-sm ${!canContribute ? 'opacity-50 cursor-not-allowed' : ''}" data-id="${pool.tokenSymbol}" data-action="contribute" ${!canContribute ? 'disabled' : ''}>Contribute USDC</button>
+                        <button class="action-button px-4 py-2 text-sm ${!canClaimGenesis ? 'opacity-50 cursor-not-allowed' : ''}" data-id="${pool.tokenSymbol}" data-action="claimGenesis" ${!canClaimGenesis ? 'disabled' : ''}>Claim ${pool.tokenSymbol}</button>
                     </div>
                 `;
                 genesisPoolsList.appendChild(genesisItem);
             });
 
-            state.launchPools.forEach(pool => {
+            activeLaunchPools.forEach(pool => {
                 const launchItem = document.createElement('div');
                 launchItem.className = 'launch-pool-item bg-gray-800 p-5 rounded-lg border border-gray-700';
                 const canStake = state.isConnected && pool.status === 'active' && state.balances.GOV > 0;
@@ -1419,8 +1585,8 @@
                     <p class="text-sm text-gray-400">Your Staked GOV: <span class="text-white">${pool.userStakedGOV.toFixed(2)}</span></p>
                     <p class="text-sm text-gray-400">Your Earned ${pool.tokenSymbol}: <span class="text-yellow-300">${pool.userEarnedTokens.toFixed(4)}</span></p>
                     <div class="flex justify-end w-full gap-3 mt-4">
-                        <input type="number" placeholder="GOV Amt" class="w-24 p-2 rounded-md bg-gray-700 text-white text-sm" id="stake-gov-amount-${pool.tokenSymbol}">
-                        <button class="max-button" data-input-id="stake-gov-amount-${pool.tokenSymbol}" data-balance-token="GOV">Max</button>
+                        <input type="number" placeholder="GOV Amt" class="w-24 p-2 rounded-md bg-gray-700 text-white text-sm" id="stake-gov-amount-${pool.tokenSymbol}" ${pool.status === 'closed' ? 'disabled' : ''}>
+                        <button class="max-button" data-input-id="stake-gov-amount-${pool.tokenSymbol}" data-balance-token="GOV" data-action-type="stakeGOV" data-token-symbol="${pool.tokenSymbol}" ${pool.status === 'closed' ? 'disabled' : ''}>Max</button>
                         <button class="action-button px-4 py-2 text-sm ${!canStake ? 'opacity-50 cursor-not-allowed' : ''}" data-id="${pool.tokenSymbol}" data-action="stake" ${!canStake ? 'disabled' : ''}>Stake GOV</button>
                         <button class="action-button px-4 py-2 text-sm ${!canUnstakeClaim ? 'opacity-50 cursor-not-allowed' : ''}" data-id="${pool.tokenSymbol}" data-action="unstake" ${!canUnstakeClaim ? 'disabled' : ''}>Unstake & Claim</button>
                     </div>
@@ -1431,6 +1597,9 @@
             // Add event listeners for new buttons
             genesisPoolsList.querySelectorAll('button[data-action="contribute"]').forEach(button => {
                 button.addEventListener('click', handleContributeGenesis);
+            });
+            genesisPoolsList.querySelectorAll('button[data-action="claimGenesis"]').forEach(button => {
+                button.addEventListener('click', handleClaimGenesisTokens);
             });
             launchPoolsList.querySelectorAll('button[data-action="stake"]').forEach(button => {
                 button.addEventListener('click', handleStakeGOV);
@@ -1446,10 +1615,12 @@
         function renderTokenInfoUI() {
             selectTokenInfo.innerHTML = '<option value="">Select a launched token...</option>';
             const launchedTokenSymbols = Object.keys(state.launchedTokens);
-            if (launchedTokenSymbols.length === 0) {
-                selectedTokenDetails.classList.add('hidden');
-                return;
-            }
+
+            // Add GOV token to the select options
+            const govOption = document.createElement('option');
+            govOption.value = 'GOV';
+            govOption.textContent = 'GOV';
+            selectTokenInfo.appendChild(govOption);
 
             launchedTokenSymbols.forEach(symbol => {
                 const option = document.createElement('option');
@@ -1460,7 +1631,7 @@
 
             // If a token is already selected, try to re-select it. Otherwise, select the first launched token.
             const currentSelectedSymbol = selectTokenInfo.value;
-            if (currentSelectedSymbol && launchedTokenSymbols.includes(currentSelectedSymbol)) {
+            if (currentSelectedSymbol && (launchedTokenSymbols.includes(currentSelectedSymbol) || currentSelectedSymbol === 'GOV')) {
                 selectTokenInfo.value = currentSelectedSymbol;
             } else if (launchedTokenSymbols.length > 0) {
                 selectTokenInfo.value = launchedTokenSymbols[0];
@@ -1470,9 +1641,36 @@
             }
 
             const selectedSymbol = selectTokenInfo.value;
-            if (selectedSymbol && state.launchedTokens[selectedSymbol]) {
-                const token = state.launchedTokens[selectedSymbol];
+            if (selectedSymbol) {
                 selectedTokenDetails.classList.remove('hidden');
+                let token;
+                if (selectedSymbol === 'GOV') {
+                    // Special handling for GOV token info
+                    token = {
+                        symbol: 'GOV',
+                        name: 'Governance Token',
+                        totalSupply: 10000000, // Fixed total supply for GOV
+                        currentPrice: state.exchangeRates['GOV/USDC'],
+                        marketCap: 10000000 * state.exchangeRates['GOV/USDC'],
+                        liquidity: (state.liquidityPools['GOV-USDC'] ? state.liquidityPools['GOV-USDC'].tvl : 0) + (state.liquidityPools['ETH-GOV'] ? state.liquidityPools['ETH-GOV'].tvl : 0), // Sum of liquidity in GOV pairs
+                        devHoldings: 1000000, // Example dev holdings for GOV
+                        top10HoldersShare: 60, // Example top 10 holders for GOV
+                        buyVolume: state.launchedTokens['GOV'] ? state.launchedTokens['GOV'].buyVolume : 0,
+                        sellVolume: state.launchedTokens['GOV'] ? state.launchedTokens['GOV'].sellVolume : 0,
+                        priceHistory: state.launchedTokens['GOV'] ? state.launchedTokens['GOV'].priceHistory : [state.exchangeRates['GOV/USDC']]
+                    };
+                    // Ensure GOV is in launchedTokens for volume/history tracking
+                    if (!state.launchedTokens['GOV']) {
+                        state.launchedTokens['GOV'] = {
+                            symbol: 'GOV', name: 'Governance Token', totalSupply: 10000000, currentPrice: state.exchangeRates['GOV/USDC'],
+                            marketCap: 10000000 * state.exchangeRates['GOV/USDC'], liquidity: 0, devHoldings: 1000000, top10HoldersShare: 60,
+                            buyVolume: 0, sellVolume: 0, priceHistory: [state.exchangeRates['GOV/USDC']]
+                        };
+                    }
+
+                } else {
+                    token = state.launchedTokens[selectedSymbol];
+                }
 
                 tokenSymbolDisplay.textContent = token.symbol;
                 tokenNameDisplay.textContent = token.name;
@@ -1482,6 +1680,8 @@
                 tokenLiquidityDisplay.textContent = `$${token.liquidity.toFixed(2)}`;
                 tokenDevHoldingsDisplay.textContent = `${token.devHoldings.toFixed(2)} (${(token.devHoldings / token.totalSupply * 100).toFixed(2)}%)`;
                 tokenTopHoldersDisplay.textContent = `${token.top10HoldersShare.toFixed(2)}%`;
+                tokenBuyVolumeDisplay.textContent = `$${token.buyVolume.toFixed(2)}`;
+                tokenSellVolumeDisplay.textContent = `$${token.sellVolume.toFixed(2)}`;
 
                 renderTokenChart(token.priceHistory);
             } else {
@@ -1553,6 +1753,130 @@
             defs.appendChild(linearGradient);
         }
 
+        function renderStakingPoolsUI() {
+            stakingPoolsList.innerHTML = '';
+            const activeStakingPools = Object.values(state.stakingPools).filter(pool => pool.status === 'active' || pool.userStakedAmount > 0 || pool.userEarnedRewards > 0);
+
+            if (activeStakingPools.length === 0) {
+                stakingPoolsList.innerHTML = '<p class="text-sm text-gray-500 text-center">No active staking pools.</p>';
+                return;
+            }
+
+            activeStakingPools.forEach(pool => {
+                const canStake = state.isConnected && pool.status === 'active' && state.balances[pool.tokenSymbol] > 0;
+                const canUnstakeClaim = state.isConnected && (pool.userStakedAmount > 0 || pool.userEarnedRewards > 0);
+
+                const totalStakedValue = pool.stakedAmount * (state.exchangeRates[`${pool.tokenSymbol}/USDC`] || 0);
+                const totalRewardValue = pool.totalRewardsDistributed * (state.exchangeRates[`${pool.tokenSymbol}/USDC`] || 0);
+                const aprDisplay = totalStakedValue > 0 ? ((pool.totalRewardsDistributed / totalStakedValue) * 365 * 100).toFixed(2) : '0.00'; // Simplified APR based on total rewards vs. TVL
+
+                const stakingItem = document.createElement('div');
+                stakingItem.className = 'staking-pool-item bg-gray-800 p-5 rounded-lg border border-gray-700';
+                stakingItem.innerHTML = `
+                    <h3 class="text-xl font-semibold text-white">${pool.tokenSymbol} Staking Pool</h3>
+                    <p class="text-sm text-gray-400">Status: <span class="${pool.status === 'active' ? 'text-green-400' : 'text-red-400'}">${pool.status.toUpperCase()}</span></p>
+                    <p class="text-sm text-gray-400">APR: <span class="text-green-400 font-bold">${aprDisplay}%</span></p>
+                    <p class="text-sm text-gray-400">Total Staked: <span class="text-white">${pool.stakedAmount.toFixed(2)} ${pool.tokenSymbol}</span></p>
+                    <p class="text-sm text-gray-400">Your Staked: <span class="text-white">${pool.userStakedAmount.toFixed(2)} ${pool.tokenSymbol}</span></p>
+                    <p class="text-sm text-gray-400">Your Earned: <span class="text-yellow-300">${pool.userEarnedRewards.toFixed(4)} ${pool.tokenSymbol}</span></p>
+                    <p class="text-sm text-gray-400">% Supply Staked: <span class="text-white">${state.launchedTokens[pool.tokenSymbol] ? ((pool.stakedAmount / state.launchedTokens[pool.tokenSymbol].totalSupply) * 100).toFixed(2) : '0.00'}%</span></p>
+                    <div class="flex justify-end w-full gap-3 mt-4">
+                        <input type="number" placeholder="Amt" class="w-24 p-2 rounded-md bg-gray-700 text-white text-sm" id="stake-token-amount-${pool.tokenSymbol}" ${!canStake ? 'disabled' : ''}>
+                        <button class="max-button" data-input-id="stake-token-amount-${pool.tokenSymbol}" data-balance-token="${pool.tokenSymbol}" data-action-type="stakeToken" data-token-symbol="${pool.tokenSymbol}" ${!canStake ? 'disabled' : ''}>Max</button>
+                        <button class="action-button px-4 py-2 text-sm ${!canStake ? 'opacity-50 cursor-not-allowed' : ''}" data-id="${pool.tokenSymbol}" data-action="stakeToken" ${!canStake ? 'disabled' : ''}>Stake ${pool.tokenSymbol}</button>
+                        <button class="action-button px-4 py-2 text-sm ${!canUnstakeClaim ? 'opacity-50 cursor-not-allowed' : ''}" data-id="${pool.tokenSymbol}" data-action="unstakeToken" ${!canUnstakeClaim ? 'disabled' : ''}>Unstake & Claim</button>
+                    </div>
+                `;
+                stakingPoolsList.appendChild(stakingItem);
+            });
+
+            stakingPoolsList.querySelectorAll('button[data-action="stakeToken"]').forEach(button => {
+                button.addEventListener('click', handleStakeToken);
+            });
+            stakingPoolsList.querySelectorAll('button[data-action="unstakeToken"]').forEach(button => {
+                button.addEventListener('click', handleUnstakeClaimStakingReward);
+            });
+            document.querySelectorAll('.max-button').forEach(button => {
+                button.addEventListener('click', handleMaxButtonClick);
+            });
+        }
+
+        let shortItChartInterval;
+        function updateShortItGameArea() {
+            const selectedTokenSymbol = shortItTokenSelect.value;
+            if (!selectedTokenSymbol || !state.launchedTokens[selectedTokenSymbol]) {
+                shortItGameArea.classList.add('hidden');
+                shortItTimerDisplay.textContent = '';
+                clearInterval(shortItChartInterval);
+                return;
+            }
+
+            shortItGameArea.classList.remove('hidden');
+            const token = state.launchedTokens[selectedTokenSymbol];
+            const shortItPool = state.shortItPools[selectedTokenSymbol] || { balance: 0, history: [] };
+            state.shortItPools[selectedTokenSymbol] = shortItPool; // Ensure pool exists
+
+            shortItCurrentPrice.textContent = `$${token.currentPrice.toFixed(6)}`;
+            shortItPoolBalance.textContent = `${shortItPool.balance.toFixed(2)} ${selectedTokenSymbol}`;
+
+            renderShortItChart(token.priceHistory);
+            renderShortItHistory();
+
+            // Clear previous interval if switching tokens
+            clearInterval(shortItChartInterval);
+            // Start interval to update chart for active token
+            shortItChartInterval = setInterval(() => {
+                renderShortItChart(state.launchedTokens[selectedTokenSymbol].priceHistory);
+            }, 100); // Update chart more frequently for short-it
+        }
+
+        function renderShortItChart(priceHistory) {
+            shortItChartContainer.innerHTML = ''; // Clear previous bars
+            if (priceHistory.length < 2) return;
+
+            const minPrice = Math.min(...priceHistory);
+            const maxPrice = Math.max(...priceHistory);
+            const priceRange = maxPrice - minPrice;
+            const effectivePriceRange = priceRange === 0 ? 0.000001 : priceRange;
+
+            const chartHeight = shortItChartContainer.clientHeight;
+
+            priceHistory.forEach((price, index) => {
+                const prevPrice = index > 0 ? priceHistory[index - 1] : price;
+                const barHeight = ((price - minPrice) / effectivePriceRange) * chartHeight;
+                const bar = document.createElement('div');
+                bar.className = 'short-it-chart-bar';
+                bar.style.height = `${Math.max(1, barHeight)}px`; // Ensure min height
+                if (price > prevPrice) {
+                    bar.classList.add('up');
+                } else if (price < prevPrice) {
+                    bar.classList.add('down');
+                }
+                shortItChartContainer.appendChild(bar);
+            });
+        }
+
+        function renderShortItHistory() {
+            shortItHistoryDiv.innerHTML = '';
+            const userHistory = state.shortItHistory.filter(h => h.isUser);
+            if (userHistory.length === 0) {
+                shortItHistoryDiv.innerHTML = '<p class="text-sm text-gray-500 text-center">No bets yet.</p>';
+                return;
+            }
+
+            userHistory.forEach(bet => {
+                const historyItem = document.createElement('div');
+                historyItem.className = `p-2 rounded-lg text-sm ${bet.result === 'WIN' ? 'bg-green-900/30 border-green-700' : bet.result === 'LOSS' ? 'bg-red-900/30 border-red-700' : 'bg-gray-700/30 border-gray-600'} border`;
+                historyItem.innerHTML = `
+                    <p class="font-semibold text-white">Bet ${bet.betAmount.toFixed(4)} ${bet.tokenSymbol} ${bet.direction.toUpperCase()} for ${bet.time}s</p>
+                    <p class="text-xs text-gray-400">Result: <span class="${bet.result === 'WIN' ? 'text-green-300' : bet.result === 'LOSS' ? 'text-red-300' : 'text-yellow-300'}">${bet.result}</span></p>
+                    <p class="text-xs text-gray-500">Gain/Loss: ${bet.wonAmount.toFixed(4)} ${bet.tokenSymbol}</p>
+                `;
+                shortItHistoryDiv.appendChild(historyItem);
+            });
+        }
+
+
         function renderDashboardUI() {
             let totalTVL = 0;
             let totalAPR = 0;
@@ -1568,8 +1892,10 @@
             }
 
             state.totalPlatformTVL = totalTVL;
-            state.averagePoolAPR = activePoolCount > 0 ? totalAPR / activePoolCount : 0;
+            // state.totalPlatformRevenue is updated directly in transaction handlers
+            // state.totalTradingVolume is updated directly in transaction handlers
             state.totalLaunchedTokensCount = Object.keys(state.launchedTokens).length;
+            state.averagePoolAPR = activePoolCount > 0 ? totalAPR / activePoolCount : 0;
 
             dashboardTVL.textContent = `$${state.totalPlatformTVL.toFixed(2)}`;
             dashboardRevenue.textContent = `$${state.totalPlatformRevenue.toFixed(2)}`;
@@ -1592,7 +1918,7 @@
             }
 
             const rateKey = `${from}/${to}`;
-            const rate = state.exchangeRates[rateKey];
+            let rate = state.exchangeRates[rateKey];
 
             if (!rate) {
                 toAmountSwap.value = 'N/A';
@@ -1601,6 +1927,21 @@
             }
 
             let estimatedOutput = amount * rate;
+
+            // Simulate price impact for user swaps on launched tokens
+            if (state.launchedTokens[from] || state.launchedTokens[to]) {
+                const liquidityPool = state.liquidityPools[`${from}-USDC`] || state.liquidityPools[`${to}-USDC`]; // Simplified to USDC pair
+                if (liquidityPool && liquidityPool.tvl > 0) {
+                    const priceImpactFactor = amount / liquidityPool.tvl; // Simple impact based on swap size vs. TVL
+                    if (from === liquidityPool.tokenA) { // Selling tokenA for tokenB (USDC)
+                        rate *= (1 - priceImpactFactor * 0.1); // Price goes down
+                    } else if (from === liquidityPool.tokenB) { // Selling tokenB (USDC) for tokenA
+                        rate *= (1 + priceImpactFactor * 0.1); // Price goes up
+                    }
+                    estimatedOutput = amount * rate;
+                }
+            }
+
 
             // Apply slippage (randomly reduce output by up to slippagePercentage)
             const actualSlippage = Math.random() * state.slippagePercentage / 100;
@@ -1656,7 +1997,7 @@
                 return;
             }
 
-            // Simple 1:1 ratio for adding liquidity based on initial exchange rate for simplicity
+            // Get exchange rate for the pair
             const rateKey = `${pool.tokenA}/${pool.tokenB}`;
             const rate = state.exchangeRates[rateKey];
 
@@ -1679,7 +2020,6 @@
             const fromToken = fromTokenSwap.value;
             const toToken = toTokenSwap.value;
             const amount = parseFloat(fromAmountSwap.value);
-            const receivedAmount = parseFloat(toAmountSwap.value);
             const gasFee = state.gasFeeEth;
 
             if (isNaN(amount) || amount <= 0) {
@@ -1697,6 +2037,14 @@
             if (state.balances.ETH < gasFee) { // Check ETH for gas
                 updateTransactionStatus('Insufficient ETH for gas fee.', 'error');
                 return;
+            }
+
+            // Recalculate output right before transaction to include latest price impact
+            calculateSwapOutput();
+            const receivedAmount = parseFloat(toAmountSwap.value);
+            if (isNaN(receivedAmount) || receivedAmount <= 0) {
+                 updateTransactionStatus('Unable to calculate received amount. Please check token selection or amount.', 'error');
+                 return;
             }
 
 
@@ -1717,7 +2065,15 @@
                 // Simulate platform revenue and volume
                 const swapValueUSDC = amount * (state.exchangeRates[`${fromToken}/USDC`] || 1);
                 state.totalTradingVolume += swapValueUSDC;
-                state.totalPlatformRevenue += swapValueUSDC * 0.003; // 0.3% swap fee
+                state.totalPlatformRevenue += swapValueUSDC * 0.0005; // 0.05% swap fee
+
+                // Update buy/sell volume for relevant token
+                if (state.launchedTokens[fromToken]) {
+                    state.launchedTokens[fromToken].sellVolume += swapValueUSDC;
+                }
+                if (state.launchedTokens[toToken]) {
+                    state.launchedTokens[toToken].buyVolume += swapValueUSDC;
+                }
 
                 updateBalancesUI();
                 updatePortfolioTrackerUI();
@@ -1763,7 +2119,7 @@
             const toToken = toTokenBridge.value;
             const amount = parseFloat(fromAmountBridge.value);
             const receivedAmount = parseFloat(toAmountBridge.value);
-            const bridgeFee = state.bridgeFeeEth;
+            const bridgeFee = state.gasFeeEth; // Using gasFeeEth as bridge fee for simplicity
 
             if (isNaN(amount) || amount <= 0) {
                 updateTransactionStatus('Please enter a valid amount to bridge.', 'error');
@@ -1801,7 +2157,7 @@
                 // Simulate platform revenue and volume
                 const bridgeValueUSDC = amount * (state.exchangeRates[`${fromToken}/USDC`] || 1);
                 state.totalTradingVolume += bridgeValueUSDC;
-                state.totalPlatformRevenue += bridgeValueUSDC * 0.001; // 0.1% bridge fee
+                state.totalPlatformRevenue += bridgeValueUSDC * 0.0005; // 0.05% bridge fee
 
                 updateBalancesUI();
                 updatePortfolioTrackerUI();
@@ -1877,6 +2233,10 @@
                 pool.totalLP += lpTokensReceived; // Update total LP tokens in pool
                 pool.tvl += (amountA * (state.exchangeRates[`${pool.tokenA}/USDC`] || 1) + amountB * (state.exchangeRates[`${pool.tokenB}/USDC`] || 1));
 
+                // Platform revenue from adding liquidity
+                const addLiquidityValueUSDC = amountA * (state.exchangeRates[`${pool.tokenA}/USDC`] || 1) + amountB * (state.exchangeRates[`${pool.tokenB}/USDC`] || 1);
+                state.totalPlatformRevenue += addLiquidityValueUSDC * 0.0005; // 0.05% fee on liquidity adds
+
                 updateBalancesUI();
                 renderLiquidityPoolsUI();
                 updatePortfolioTrackerUI();
@@ -1951,6 +2311,10 @@
                 pool.totalLP -= lpAmount;
                 pool.tvl -= (tokenAReceived * (state.exchangeRates[`${pool.tokenA}/USDC`] || 1) + tokenBReceived * (state.exchangeRates[`${pool.tokenB}/USDC`] || 1));
 
+                // Platform revenue from removing liquidity
+                const removeLiquidityValueUSDC = tokenAReceived * (state.exchangeRates[`${pool.tokenA}/USDC`] || 1) + tokenBReceived * (state.exchangeRates[`${pool.tokenB}/USDC`] || 1);
+                state.totalPlatformRevenue += removeLiquidityValueUSDC * 0.0005; // 0.05% fee on liquidity removes
+
 
                 updateBalancesUI();
                 renderLiquidityPoolsUI();
@@ -1996,12 +2360,12 @@
                 updateTransactionStatus('Please select a pool to claim fees from.', 'error');
                 return;
             }
-            if (pool.userFees <= 0) {
-                updateTransactionStatus('No claimable fees for this pool.', 'error');
+            if (pool.userFees <= 0 && pool.devRewards <= 0) {
+                updateTransactionStatus('No claimable fees or dev rewards for this pool.', 'error');
                 return;
             }
 
-            updateTransactionStatus(`Claiming fees from ${poolName} pool...`, 'pending');
+            updateTransactionStatus(`Claiming fees and rewards from ${poolName} pool...`, 'pending');
             claimFeesBtn.disabled = true;
             claimFeesBtn.innerHTML = '<div class="spinner"></div> Claiming...';
 
@@ -2010,22 +2374,29 @@
             const success = Math.random() > 0.05; // 95% chance of success
 
             if (success) {
-                const claimedAmount = pool.userFees;
-                state.balances['USDC'] += claimedAmount; // Assume fees are claimed in USDC for simplicity
-                state.totalEarnedFees += claimedAmount;
-                state.totalPlatformRevenue += claimedAmount; // Add claimed fees to platform revenue
+                const claimedFeesUSDC = pool.userFees;
+                const claimedDevRewards = pool.devRewards;
+                const tokenSymbol = pool.tokenA === 'USDC' ? pool.tokenB : pool.tokenA; // The non-USDC token
+
+                state.balances['USDC'] += claimedFeesUSDC; // Assume fees are claimed in USDC for simplicity
+                state.balances[tokenSymbol] = (state.balances[tokenSymbol] || 0) + claimedDevRewards; // Claim dev rewards in the token itself
+
+                state.totalEarnedFees += claimedFeesUSDC; // Only USDC fees count towards general earned fees
+                state.totalPlatformRevenue += claimedFeesUSDC; // Add claimed fees to platform revenue
+
                 pool.userFees = 0; // Reset fees for the user in this pool
+                pool.devRewards = 0; // Reset dev rewards for the user in this pool
 
                 updateBalancesUI();
                 renderLiquidityPoolsUI();
                 updatePortfolioTrackerUI();
-                updateTransactionStatus(`Successfully claimed $${claimedAmount.toFixed(4)} from ${poolName}.`, 'success');
+                updateTransactionStatus(`Successfully claimed $${claimedFeesUSDC.toFixed(4)} (Fees) and ${claimedDevRewards.toFixed(4)} ${tokenSymbol} (Dev Rewards) from ${poolName}.`, 'success');
                 addTransactionToHistory({
                     type: 'claimFees',
                     fromToken: poolName,
                     fromAmount: 0,
-                    toToken: 'USDC',
-                    toAmount: claimedAmount,
+                    toToken: `USDC & ${tokenSymbol}`,
+                    toAmount: `${claimedFeesUSDC.toFixed(2)} & ${claimedDevRewards.toFixed(2)}`,
                     status: 'success',
                     timestamp: Date.now()
                 });
@@ -2109,6 +2480,60 @@
             event.target.disabled = false;
             event.target.innerHTML = 'Contribute USDC';
             inputElement.value = '';
+        }
+
+        async function handleClaimGenesisTokens(event) {
+            if (!state.isConnected) {
+                updateTransactionStatus('Please connect your wallet to claim tokens.', 'error');
+                return;
+            }
+            const tokenSymbol = event.target.dataset.id;
+            const genesisPool = state.genesisPools.find(p => p.tokenSymbol === tokenSymbol);
+
+            if (!genesisPool || genesisPool.status !== 'launched' || genesisPool.userClaimableTokens <= 0) {
+                updateTransactionStatus('No tokens to claim from this Genesis Pool, or it\'s not launched.', 'error');
+                return;
+            }
+
+            updateTransactionStatus(`Claiming ${genesisPool.userClaimableTokens.toFixed(4)} ${tokenSymbol} from Genesis Pool...`, 'pending');
+            event.target.disabled = true;
+            event.target.innerHTML = '<div class="spinner"></div> Claiming...';
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const success = Math.random() > 0.05;
+
+            if (success) {
+                state.balances[tokenSymbol] = (state.balances[tokenSymbol] || 0) + genesisPool.userClaimableTokens;
+                const claimedAmount = genesisPool.userClaimableTokens;
+                genesisPool.userClaimableTokens = 0; // Reset after claiming
+
+                updateBalancesUI();
+                renderLaunchpadUI();
+                updatePortfolioTrackerUI();
+                updateTransactionStatus(`Successfully claimed ${claimedAmount.toFixed(4)} ${tokenSymbol}.`, 'success');
+                addTransactionToHistory({
+                    type: 'claimGenesisTokens',
+                    tokenSymbol: tokenSymbol,
+                    fromAmount: 0,
+                    toAmount: claimedAmount,
+                    status: 'success',
+                    timestamp: Date.now()
+                });
+                triggerBurstEffect();
+            } else {
+                updateTransactionStatus(`Failed to claim ${tokenSymbol} from Genesis Pool.`, 'error');
+                addTransactionToHistory({
+                    type: 'claimGenesisTokens',
+                    tokenSymbol: tokenSymbol,
+                    fromAmount: 0,
+                    toAmount: 0,
+                    status: 'failed',
+                    timestamp: Date.now()
+                });
+            }
+            event.target.disabled = false;
+            event.target.innerHTML = `Claim ${tokenSymbol}`;
         }
 
 
@@ -2248,6 +2673,248 @@
             event.target.innerHTML = 'Unstake & Claim';
         }
 
+        async function handleStakeToken(event) {
+            if (!state.isConnected) {
+                updateTransactionStatus('Please connect your wallet to stake tokens.', 'error');
+                return;
+            }
+            const tokenSymbol = event.target.dataset.id;
+            const inputElement = document.getElementById(`stake-token-amount-${tokenSymbol}`);
+            const amount = parseFloat(inputElement.value);
+            const stakingPool = state.stakingPools[tokenSymbol];
+
+            if (isNaN(amount) || amount <= 0) {
+                updateTransactionStatus('Please enter a valid amount to stake.', 'error');
+                return;
+            }
+            if (!stakingPool || stakingPool.status !== 'active') {
+                updateTransactionStatus('This staking pool is not active.', 'error');
+                return;
+            }
+            if (!state.balances[tokenSymbol] || state.balances[tokenSymbol] < amount) {
+                updateTransactionStatus(`Insufficient ${tokenSymbol} balance.`, 'error');
+                return;
+            }
+
+            updateTransactionStatus(`Staking ${amount.toFixed(2)} ${tokenSymbol} in Staking Pool...`, 'pending');
+            event.target.disabled = true;
+            event.target.innerHTML = '<div class="spinner"></div> Staking...';
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const success = Math.random() > 0.1;
+
+            if (success) {
+                state.balances[tokenSymbol] -= amount;
+                stakingPool.userStakedAmount += amount;
+                stakingPool.stakedAmount += amount; // Update total staked in pool
+
+                updateBalancesUI();
+                updatePortfolioTrackerUI();
+                renderStakingPoolsUI();
+                updateTransactionStatus(`Successfully staked ${amount.toFixed(2)} ${tokenSymbol}.`, 'success');
+                addTransactionToHistory({
+                    type: 'stakeToken',
+                    tokenSymbol: tokenSymbol,
+                    fromAmount: amount,
+                    fromToken: tokenSymbol,
+                    status: 'success',
+                    timestamp: Date.now()
+                });
+                triggerBurstEffect();
+            } else {
+                updateTransactionStatus(`Failed to stake ${tokenSymbol}.`, 'error');
+                addTransactionToHistory({
+                    type: 'stakeToken',
+                    tokenSymbol: tokenSymbol,
+                    fromAmount: amount,
+                    fromToken: tokenSymbol,
+                    status: 'failed',
+                    timestamp: Date.now()
+                });
+            }
+            event.target.disabled = false;
+            event.target.innerHTML = `Stake ${tokenSymbol}`;
+            inputElement.value = '';
+        }
+
+        async function handleUnstakeClaimStakingReward(event) {
+            if (!state.isConnected) {
+                updateTransactionStatus('Please connect your wallet.', 'error');
+                return;
+            }
+            const tokenSymbol = event.target.dataset.id;
+            const stakingPool = state.stakingPools[tokenSymbol];
+
+            if (!stakingPool || (stakingPool.userStakedAmount <= 0 && stakingPool.userEarnedRewards <= 0)) {
+                updateTransactionStatus('Nothing to unstake or claim from this pool.', 'error');
+                return;
+            }
+
+            updateTransactionStatus(`Unstaking and claiming rewards from ${tokenSymbol} Staking Pool...`, 'pending');
+            event.target.disabled = true;
+            event.target.innerHTML = '<div class="spinner"></div> Processing...';
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            const success = Math.random() > 0.05;
+
+            if (success) {
+                // Return staked tokens
+                state.balances[tokenSymbol] = (state.balances[tokenSymbol] || 0) + stakingPool.userStakedAmount;
+                const unstakedAmount = stakingPool.userStakedAmount;
+                stakingPool.userStakedAmount = 0;
+
+                // Claim earned rewards
+                state.balances[tokenSymbol] += stakingPool.userEarnedRewards;
+                const claimedRewards = stakingPool.userEarnedRewards;
+                stakingPool.userEarnedRewards = 0;
+
+                // If pool is empty of user's stake and rewards, and not active, consider removing/marking
+                if (stakingPool.stakedAmount <= 0 && stakingPool.status !== 'active') {
+                    // delete state.stakingPools[tokenSymbol]; // Can remove if desired
+                }
+
+                updateBalancesUI();
+                updatePortfolioTrackerUI();
+                renderStakingPoolsUI();
+                updateTransactionStatus(`Successfully unstaked ${unstakedAmount.toFixed(2)} ${tokenSymbol} and claimed ${claimedRewards.toFixed(4)} ${tokenSymbol}.`, 'success');
+                addTransactionToHistory({
+                    type: 'unstakeToken',
+                    tokenSymbol: tokenSymbol,
+                    fromAmount: unstakedAmount,
+                    fromToken: tokenSymbol,
+                    toAmount: claimedRewards,
+                    status: 'success',
+                    timestamp: Date.now()
+                });
+                triggerBurstEffect();
+            } else {
+                updateTransactionStatus(`Failed to unstake/claim from ${tokenSymbol} Staking Pool.`, 'error');
+                addTransactionToHistory({
+                    type: 'unstakeToken',
+                    tokenSymbol: tokenSymbol,
+                    fromAmount: 0,
+                    fromToken: tokenSymbol,
+                    toAmount: 0,
+                    status: 'failed',
+                    timestamp: Date.now()
+                });
+            }
+            event.target.disabled = false;
+            event.target.innerHTML = 'Unstake & Claim';
+        }
+
+
+        async function handleBetShortIt(direction) {
+            if (!state.isConnected) {
+                updateTransactionStatus('Please connect your wallet to bet.', 'error');
+                return;
+            }
+            const tokenSymbol = shortItTokenSelect.value;
+            const betAmount = parseFloat(shortItAmountInput.value);
+            const betTime = parseInt(shortItTimeSelect.value);
+
+            if (!tokenSymbol || !state.launchedTokens[tokenSymbol]) {
+                updateTransactionStatus('Please select a valid token.', 'error');
+                return;
+            }
+            if (isNaN(betAmount) || betAmount <= 0) {
+                updateTransactionStatus('Please enter a valid bet amount.', 'error');
+                return;
+            }
+            if (!state.balances[tokenSymbol] || state.balances[tokenSymbol] < betAmount) {
+                updateTransactionStatus(`Insufficient ${tokenSymbol} balance to place bet.`, 'error');
+                return;
+            }
+
+            const shortItPool = state.shortItPools[tokenSymbol];
+            const payoutMultiplier = betTime === 3 ? 2 : (betTime === 5 ? 3 : 4);
+            const potentialPayout = betAmount * payoutMultiplier;
+
+            if (shortItPool.balance < potentialPayout) {
+                updateTransactionStatus(`Short It pool for ${tokenSymbol} has insufficient balance to cover potential payout.`, 'error');
+                return;
+            }
+
+            updateTransactionStatus(`Placing ${direction.toUpperCase()} bet for ${betAmount.toFixed(4)} ${tokenSymbol} over ${betTime}s...`, 'pending');
+            shortItBetUpBtn.disabled = true;
+            shortItBetDownBtn.disabled = true;
+
+            state.balances[tokenSymbol] -= betAmount; // Deduct bet amount immediately
+            shortItPool.balance += betAmount; // Add bet to pool (will be deducted if user wins)
+
+            updateBalancesUI();
+            updateShortItGameArea(); // Update pool balance display
+
+            const initialPrice = state.launchedTokens[tokenSymbol].currentPrice;
+            let timer = betTime;
+            shortItTimerDisplay.textContent = `Time left: ${timer}s`;
+
+            const timerInterval = setInterval(() => {
+                timer--;
+                shortItTimerDisplay.textContent = `Time left: ${timer}s`;
+                if (timer <= 0) {
+                    clearInterval(timerInterval);
+                    shortItTimerDisplay.textContent = 'Determining Result...';
+                    setTimeout(() => {
+                        const finalPrice = state.launchedTokens[tokenSymbol].currentPrice;
+                        let result = '';
+                        let wonAmount = -betAmount; // Default to loss
+                        let status = 'failed';
+
+                        if (direction === 'up' && finalPrice > initialPrice) {
+                            result = 'WIN';
+                            wonAmount = potentialPayout;
+                            status = 'success';
+                            state.balances[tokenSymbol] += wonAmount; // Add payout to balance
+                            shortItPool.balance -= potentialPayout; // Deduct from pool
+                        } else if (direction === 'down' && finalPrice < initialPrice) {
+                            result = 'WIN';
+                            wonAmount = potentialPayout;
+                            status = 'success';
+                            state.balances[tokenSymbol] += wonAmount; // Add payout to balance
+                            shortItPool.balance -= potentialPayout; // Deduct from pool
+                        } else {
+                            result = 'LOSS';
+                            // Amount already deducted
+                        }
+
+                        state.shortItHistory.unshift({
+                            isUser: true,
+                            tokenSymbol,
+                            betAmount,
+                            direction,
+                            time: betTime,
+                            initialPrice,
+                            finalPrice,
+                            result,
+                            wonAmount,
+                            timestamp: Date.now()
+                        });
+
+                        updateBalancesUI();
+                        updatePortfolioTrackerUI();
+                        updateShortItGameArea(); // Update pool balance and history
+                        updateTransactionStatus(`Short It: ${tokenSymbol} - ${result}! ${wonAmount.toFixed(4)} ${tokenSymbol}`, status);
+                        addTransactionToHistory({
+                            type: 'shortItResult',
+                            tokenSymbol,
+                            result,
+                            wonAmount,
+                            status,
+                            timestamp: Date.now()
+                        });
+
+                        shortItBetUpBtn.disabled = false;
+                        shortItBetDownBtn.disabled = false;
+                        shortItAmountInput.value = '';
+                    }, 500); // Small delay for result display
+                }
+            }, 1000);
+        }
+
+
         async function handleVote(event) {
             if (!state.isConnected) {
                 updateTransactionStatus('Please connect your wallet to vote.', 'error');
@@ -2368,6 +3035,7 @@
         // --- New Token Launch Logic ---
         const tokenNames = ['Quantum', 'Nebula', 'Fusion', 'Aether', 'Zenith', 'Cosmos', 'Vortex', 'Pulsar', 'Chrono', 'Lumin'];
         let nextTokenIndex = 0;
+        let proposalCounter = 3; // Start from 3 as 1 and 2 are initial proposals
 
         function generateRandomTokenSymbol() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -2388,40 +3056,43 @@
             nextTokenIndex++;
 
             // Ensure unique symbol
-            if (state.balances[tokenSymbol] || state.launchedTokens[tokenSymbol] || state.genesisPools.some(p => p.tokenSymbol === tokenSymbol)) {
+            if (state.balances[tokenSymbol] || Object.keys(state.launchedTokens).includes(tokenSymbol) || state.genesisPools.some(p => p.tokenSymbol === tokenSymbol)) {
                 return launchNewTokenGenesis(); // Try again if symbol exists
             }
 
             const initialSupply = Math.floor(Math.random() * 1000000) + 500000; // 500k to 1.5M
-            const initialPriceUSDC = (Math.random() * 0.05) + 0.001; // $0.001 to $0.05
-            const initialLiquidityUSDC = initialSupply * initialPriceUSDC * (0.1 + Math.random() * 0.2); // 10-30% of market cap for initial liquidity
+            const genesisAllocationPercentage = 0.20 + Math.random() * 0.10; // 20-30% of total supply for genesis presale
             const devHoldings = initialSupply * (0.05 + Math.random() * 0.15); // 5-20% for dev
             const top10HoldersShare = (Math.random() * 20) + 30; // 30-50% for top 10
+            const genesisDurationMinutes = Math.floor(Math.random() * 26) + 5; // 5 to 30 minutes
 
             const genesisPool = {
+                id: `genesis-${tokenSymbol}`, // Unique ID for genesis pool
                 tokenSymbol,
                 tokenName,
                 initialSupply,
-                initialPriceUSDC,
-                liquidityContributed: 0, // Bots will add this
-                userContribution: 0, // User's contribution
+                genesisAllocationPercentage,
+                liquidityContributed: 0, // Bots and users will add this USDC
+                userContribution: 0, // User's specific USDC contribution
+                userClaimableTokens: 0, // Tokens user can claim after launch
                 devHoldings,
                 top10HoldersShare,
-                launchTime: Date.now() + 60 * 1000 * 2, // 2 minutes genesis phase
+                launchTime: Date.now() + 60 * 1000 * genesisDurationMinutes, // Random genesis phase duration
                 status: 'genesis',
-                priceHistory: [initialPriceUSDC] // Initial price point
+                priceHistory: [], // Will be populated dynamically based on liquidity
+                buyVolume: 0, // Initialize buy volume for token info
+                sellVolume: 0 // Initialize sell volume for token info
             };
             state.genesisPools.push(genesisPool);
 
-            // Create a corresponding launch pool
+            // Create a corresponding launch pool (GOV staking for new token)
             state.launchPools.push({
                 tokenSymbol,
                 stakedGOV: 0,
                 userStakedGOV: 0,
                 userEarnedTokens: 0,
                 status: 'active',
-                distributionRate: (Math.random() * 0.001) + 0.0001, // New tokens per GOV staked per tick
-                totalTokensToDistribute: initialSupply * (0.05 + Math.random() * 0.10) // 5-15% of total supply for staking rewards
+                totalTokensToDistribute: initialSupply * (0.05 + Math.random() * 0.10) // 5-15% of total supply for GOV staking rewards
             });
 
             console.log(`New token ${tokenSymbol} (${tokenName}) entered Genesis Pool!`);
@@ -2431,30 +3102,34 @@
 
         function checkGenesisPoolsAndLaunch() {
             const now = Date.now();
-            state.genesisPools = state.genesisPools.filter(pool => {
+            state.genesisPools.forEach(pool => {
                 if (pool.status === 'genesis' && now >= pool.launchTime) {
                     finalizeTokenLaunch(pool);
-                    return false; // Remove from genesis pools
                 }
-                return true; // Keep in genesis pools
             });
+            // Filter out fully launched and claimed genesis pools if desired, or keep them for history
+            // For now, they remain but their status changes
             renderLaunchpadUI();
         }
 
         function finalizeTokenLaunch(genesisPool) {
-            const { tokenSymbol, tokenName, initialSupply, initialPriceUSDC, liquidityContributed, userContribution, devHoldings, top10HoldersShare, priceHistory } = genesisPool;
+            const { tokenSymbol, tokenName, initialSupply, genesisAllocationPercentage, liquidityContributed, userContribution, devHoldings, top10HoldersShare, priceHistory } = genesisPool;
 
-            // Add token to main balances (dev holdings + remaining supply)
-            state.balances[tokenSymbol] = (state.balances[tokenSymbol] || 0); // Initialize if not exists
+            // Calculate total tokens allocated for genesis presale
+            const totalTokensForGenesisPresale = initialSupply * genesisAllocationPercentage;
 
-            // Calculate user's share of the newly launched token based on their contribution
-            let userTokenAllocation = 0;
+            // Calculate initial price based on total liquidity contributed and total tokens for presale
+            // If no liquidity contributed, set a default very low price to avoid division by zero
+            const initialPriceUSDC = liquidityContributed > 0 ? liquidityContributed / totalTokensForGenesisPresale : 0.000001;
+
+            // Calculate user's claimable tokens from genesis pool
             if (liquidityContributed > 0 && userContribution > 0) {
                 const userShareOfTotalContribution = userContribution / liquidityContributed;
-                // Allocate a percentage of the total supply based on user's contribution to initial liquidity
-                userTokenAllocation = initialSupply * userShareOfTotalContribution * (0.1 + Math.random() * 0.1); // 10-20% of total supply for contributors
-                state.balances[tokenSymbol] += userTokenAllocation;
+                genesisPool.userClaimableTokens = totalTokensForGenesisPresale * userShareOfTotalContribution;
+            } else {
+                genesisPool.userClaimableTokens = 0;
             }
+            genesisPool.status = 'launched'; // Mark genesis pool as launched
 
             // Add exchange rate for the new token
             state.exchangeRates[`${tokenSymbol}/USDC`] = initialPriceUSDC;
@@ -2462,15 +3137,19 @@
 
             // Create a new liquidity pool for the launched token (e.g., against USDC)
             const poolName = `${tokenSymbol}-USDC`;
+            const initialLiquidityTokenAmount = totalTokensForGenesisPresale * 0.5; // 50% of presale tokens for initial LP
+            const initialLiquidityUSDC = liquidityContributed * 0.5; // 50% of contributed USDC for initial LP
+
             state.liquidityPools[poolName] = {
                 tokenA: tokenSymbol,
                 tokenB: 'USDC',
-                tvl: liquidityContributed * 2, // Initial liquidity provided by bots, assume 50/50 token/USDC
+                tvl: initialLiquidityUSDC * 2, // Total value of the LP pool
                 apr: (Math.random() * 1.5) + 0.5, // High APR for new pools (50% to 200%)
                 userLiquidityLP: 0,
                 userFees: 0,
-                totalLP: (liquidityContributed * 2) / 1000, // Simplified LP token calculation
-                totalFeesCollected: 0 // Initialize total fees collected for dashboard
+                totalLP: (initialLiquidityUSDC * 2) / 1000, // Simplified LP token calculation
+                totalFeesCollected: 0,
+                devRewards: 0 // Initialize dev rewards for this pool
             };
 
             // Add to launched tokens for info page
@@ -2480,13 +3159,34 @@
                 totalSupply: initialSupply,
                 currentPrice: initialPriceUSDC,
                 marketCap: initialSupply * initialPriceUSDC,
-                liquidity: liquidityContributed * 2,
+                liquidity: initialLiquidityUSDC * 2, // Initial liquidity from genesis pool
                 devHoldings: devHoldings,
                 top10HoldersShare: top10HoldersShare,
-                priceHistory: priceHistory // Keep the initial history
+                priceHistory: [initialPriceUSDC], // Initial price point
+                buyVolume: 0, // Initialize buy volume
+                sellVolume: 0 // Initialize sell volume
             };
 
-            // Close the corresponding launch pool and distribute rewards
+            // Create a new staking pool for the launched token (token staking for token)
+            state.stakingPools[tokenSymbol] = {
+                tokenSymbol: tokenSymbol,
+                stakedAmount: 0,
+                userStakedAmount: 0,
+                userEarnedRewards: 0,
+                status: 'active',
+                // Dev supplies 5-10% of total supply for staking rewards
+                totalRewardsDistributed: initialSupply * (0.05 + Math.random() * 0.05)
+            };
+
+            // Create a Short It pool for the new token
+            state.shortItPools[tokenSymbol] = {
+                tokenSymbol: tokenSymbol,
+                balance: initialSupply * 0.01, // 1% of total supply as initial pool balance
+                history: []
+            };
+
+
+            // Close the corresponding launch pool (GOV staking) and distribute rewards
             const launchPool = state.launchPools.find(p => p.tokenSymbol === tokenSymbol);
             if (launchPool) {
                 launchPool.status = 'closed';
@@ -2501,6 +3201,9 @@
             updateBalancesUI();
             renderLiquidityPoolsUI();
             renderTokenInfoUI();
+            renderLaunchpadUI(); // Update genesis pool status and claim button
+            renderStakingPoolsUI(); // Show new staking pool
+            updateShortItGameArea(); // Update short-it token select
             updatePortfolioTrackerUI();
             updateTransactionStatus(`${tokenName} (${tokenSymbol}) has launched!`, 'success');
         }
@@ -2526,6 +3229,15 @@
                     const earned = userShareOfTVL * dailyFeeRate * (Math.random() * 0.1 + 0.05); // Simulate daily fee accumulation
                     pool.userFees += earned;
                     pool.totalFeesCollected += earned; // Track total fees for dashboard
+
+                    // Simulate dev token rewards for LP providers
+                    if (state.launchedTokens[pool.tokenA] && pool.tokenB === 'USDC') { // If tokenA is a launched token
+                        const devRewardAmount = (state.launchedTokens[pool.tokenA].totalSupply * 0.00001) * userShareOfTVL / pool.tvl; // Small percentage of total supply
+                        pool.devRewards += devRewardAmount;
+                    } else if (state.launchedTokens[pool.tokenB] && pool.tokenA === 'USDC') { // If tokenB is a launched token
+                        const devRewardAmount = (state.launchedTokens[pool.tokenB].totalSupply * 0.00001) * userShareOfTVL / pool.tvl;
+                        pool.devRewards += devRewardAmount;
+                    }
                 }
             }
             renderLiquidityPoolsUI(); // Update display
@@ -2562,11 +3274,70 @@
             });
             renderLaunchpadUI(); // Update launchpad display
 
-            // Update launched token prices and charts
+            // Simulate bot activity in new Staking Pools
+            for (const tokenSymbol in state.stakingPools) {
+                const pool = state.stakingPools[tokenSymbol];
+                if (pool.status === 'active') {
+                    const botStakeAmount = Math.floor(Math.random() * 100); // Bots stake up to 100 of the token
+                    pool.stakedAmount += botStakeAmount;
+
+                    // Simulate reward accumulation for all stakers (including user)
+                    // This is a simplified emission model, not strictly APR based on TVL, but proportional to total rewards
+                    if (pool.stakedAmount > 0) {
+                        const dailyRewardRate = pool.totalRewardsDistributed / 365; // Total rewards distributed over a year
+                        const rewardPerStakedUnit = dailyRewardRate / pool.stakedAmount; // Reward per unit staked per day
+                        pool.userEarnedRewards += pool.userStakedAmount * rewardPerStakedUnit * (Math.random() * 0.1 + 0.05); // Daily accumulation
+                    }
+                }
+            }
+            renderStakingPoolsUI(); // Update staking pools display
+
+            // Update launched token prices and charts, and simulate bot trading
             for (const symbol in state.launchedTokens) {
                 const token = state.launchedTokens[symbol];
                 // Simulate price fluctuation
-                token.currentPrice = Math.max(0.0001, token.currentPrice + (Math.random() - 0.5) * 0.0005); // Small random change
+                let priceChange = (Math.random() - 0.5) * 0.0005; // Small random change
+
+                // Simulate bot trading activity (buy/sell volume and price impact)
+                const botTradeAmountUSDC = Math.random() * 1000; // Bots trade up to $1000 worth
+                const isBotBuy = Math.random() > 0.4; // 60% chance of buy (bias towards buys)
+
+                if (isBotBuy) {
+                    token.buyVolume += botTradeAmountUSDC;
+                    priceChange += (botTradeAmountUSDC / token.liquidity) * 0.001; // Small positive price impact
+                } else {
+                    token.sellVolume += botTradeAmountUSDC;
+                    priceChange -= (botTradeAmountUSDC / token.liquidity) * 0.001; // Small negative price impact
+                }
+
+                // Simulate "pump and dump" for a random token every now and then
+                if (Math.random() < 0.01 && symbol !== 'GOV') { // 1% chance for a pump/dump cycle
+                    console.log(`PUMP/DUMP cycle for ${symbol}`);
+                    const pumpAmount = Math.random() * 5000 + 1000; // Large buy
+                    token.buyVolume += pumpAmount;
+                    priceChange += (pumpAmount / token.liquidity) * 0.01; // Significant positive impact
+                    setTimeout(() => { // Simulate dump after a short period
+                        const dumpAmount = pumpAmount * (0.8 + Math.random() * 0.2); // Sell most of it
+                        token.sellVolume += dumpAmount;
+                        priceChange -= (dumpAmount / token.liquidity) * 0.015; // Significant negative impact
+                    }, 5000);
+                }
+
+                // Market Cap Threshold Pumps/Dumps
+                if (token.marketCap > 1000000 && Math.random() < 0.02) { // 2% chance for large event at >$1M MC
+                    const isMassivePump = Math.random() > 0.5;
+                    const impactFactor = Math.random() * 0.1 + 0.05; // 5-15% impact
+                    if (isMassivePump) {
+                        priceChange += token.currentPrice * impactFactor; // Massive pump
+                        console.log(`MASSIVE PUMP for ${symbol}!`);
+                    } else {
+                        priceChange -= token.currentPrice * impactFactor; // Massive dump
+                        console.log(`MASSIVE DUMP for ${symbol}!`);
+                    }
+                }
+
+
+                token.currentPrice = Math.max(0.0001, token.currentPrice + priceChange); // Apply price change
                 token.marketCap = token.totalSupply * token.currentPrice;
                 token.liquidity = state.liquidityPools[`${symbol}-USDC`] ? state.liquidityPools[`${symbol}-USDC`].tvl : 0; // Update liquidity from pool
                 state.exchangeRates[`${symbol}/USDC`] = token.currentPrice;
@@ -2580,6 +3351,56 @@
             }
             renderTokenInfoUI(); // Re-render token info if currently displayed
             renderDashboardUI(); // Update dashboard stats
+
+            // Simulate bot activity in Short It pools
+            const launchedTokenSymbols = Object.keys(state.launchedTokens).filter(s => s !== 'GOV'); // Bots don't short GOV
+            if (launchedTokenSymbols.length > 0 && Math.random() < 0.2) { // 20% chance for a bot bet
+                const randomToken = launchedTokenSymbols[Math.floor(Math.random() * launchedTokenSymbols.length)];
+                const token = state.launchedTokens[randomToken];
+                const shortItPool = state.shortItPools[randomToken];
+                if (shortItPool && token.currentPrice > 0) {
+                    const botBetAmount = Math.random() * 10; // Bots bet up to 10 tokens
+                    const botBetDirection = Math.random() > 0.5 ? 'up' : 'down';
+                    const botBetTime = [3, 5, 10][Math.floor(Math.random() * 3)];
+                    const payoutMultiplier = botBetTime === 3 ? 2 : (botBetTime === 5 ? 3 : 4);
+                    const potentialPayout = botBetAmount * payoutMultiplier;
+
+                    if (shortItPool.balance >= potentialPayout) { // Only bet if pool can cover
+                        shortItPool.balance += botBetAmount; // Add bet to pool
+                        const initialPrice = token.currentPrice;
+                        setTimeout(() => {
+                            const finalPrice = token.currentPrice;
+                            let result = '';
+                            let wonAmount = -botBetAmount;
+
+                            if (botBetDirection === 'up' && finalPrice > initialPrice) {
+                                result = 'WIN';
+                                wonAmount = potentialPayout;
+                                shortItPool.balance -= potentialPayout; // Deduct from pool
+                            } else if (botBetDirection === 'down' && finalPrice < initialPrice) {
+                                result = 'WIN';
+                                wonAmount = potentialPayout;
+                                shortItPool.balance -= potentialPayout; // Deduct from pool
+                            } else {
+                                result = 'LOSS';
+                            }
+                            state.shortItHistory.unshift({
+                                isUser: false,
+                                tokenSymbol: randomToken,
+                                betAmount: botBetAmount,
+                                direction: botBetDirection,
+                                time: botBetTime,
+                                initialPrice,
+                                finalPrice,
+                                result,
+                                wonAmount,
+                                timestamp: Date.now()
+                            });
+                            updateShortItGameArea(); // Update pool balance and history
+                        }, botBetTime * 1000);
+                    }
+                }
+            }
         }
 
 
@@ -2595,6 +3416,8 @@
             renderProposalsUI(); // Initial proposals display
             renderLaunchpadUI(); // Initial launchpad display
             renderTokenInfoUI(); // Initial token info display
+            renderStakingPoolsUI(); // Initial staking pools display
+            renderShortItHistory(); // Initial short-it history
             renderDashboardUI(); // Initial dashboard display
             updatePortfolioTrackerUI(); // Initial portfolio display
 
@@ -2603,9 +3426,11 @@
             // Check proposal status periodically
             setInterval(checkProposalStatus, 1000); // Check every second
             // Periodically launch new tokens
-            setInterval(launchNewTokenGenesis, 60 * 1000 * 3); // Launch a new token every 3 minutes
+            setInterval(launchNewTokenGenesis, 60 * 1000 * 1); // Launch a new token every 1 minute
             // Check genesis pools for launch
             setInterval(checkGenesisPoolsAndLaunch, 1000); // Check every second
+            // Periodically add new proposals
+            setInterval(generateRandomProposal, 60 * 1000 * 5); // New proposal every 5 minutes
         };
 
 
@@ -2626,6 +3451,8 @@
             }
             renderProposalsUI(); // Re-render proposals to update vote button states
             renderLaunchpadUI(); // Re-render launchpad to update stake button states
+            renderStakingPoolsUI(); // Re-render staking pools to update stake button states
+            updateShortItGameArea(); // Re-render short-it game area
         });
 
         swapTabBtn.addEventListener('click', () => {
@@ -2634,6 +3461,8 @@
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
+            stakingTabBtn.classList.remove('active'); // New
+            shortItTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
             dashboardTabBtn.classList.remove('active'); // New
             swapInterface.classList.remove('hidden');
@@ -2641,6 +3470,8 @@
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
+            stakingInterface.classList.add('hidden'); // New
+            shortItInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
             dashboardInterface.classList.add('hidden'); // New
             updateTransactionStatus('No active transactions.', 'info'); // Clear status when switching tabs
@@ -2653,6 +3484,8 @@
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
+            stakingTabBtn.classList.remove('active'); // New
+            shortItTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
             dashboardTabBtn.classList.remove('active'); // New
             bridgeInterface.classList.remove('hidden');
@@ -2660,6 +3493,8 @@
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
+            stakingInterface.classList.add('hidden'); // New
+            shortItInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
             dashboardInterface.classList.add('hidden'); // New
             updateTransactionStatus('No active transactions.', 'info'); // Clear status when switching tabs
@@ -2672,6 +3507,8 @@
             bridgeTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
+            stakingTabBtn.classList.remove('active'); // New
+            shortItTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
             dashboardTabBtn.classList.remove('active'); // New
             liquidityInterface.classList.remove('hidden');
@@ -2679,6 +3516,8 @@
             bridgeInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
+            stakingInterface.classList.add('hidden'); // New
+            shortItInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
             dashboardInterface.classList.add('hidden'); // New
             updateTransactionStatus('No active transactions.', 'info'); // Clear status when switching tabs
@@ -2692,6 +3531,8 @@
             bridgeTabBtn.classList.remove('active');
             liquidityTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
+            stakingTabBtn.classList.remove('active'); // New
+            shortItTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
             dashboardTabBtn.classList.remove('active'); // New
             launchpadInterface.classList.remove('hidden');
@@ -2699,6 +3540,8 @@
             bridgeInterface.classList.add('hidden');
             liquidityInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
+            stakingInterface.classList.add('hidden'); // New
+            shortItInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
             dashboardInterface.classList.add('hidden'); // New
             updateTransactionStatus('No active transactions.', 'info');
@@ -2711,6 +3554,8 @@
             bridgeTabBtn.classList.remove('active');
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
+            stakingTabBtn.classList.remove('active'); // New
+            shortItTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
             dashboardTabBtn.classList.remove('active'); // New
             tokensInterface.classList.remove('hidden');
@@ -2718,10 +3563,58 @@
             bridgeInterface.classList.add('hidden');
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
+            stakingInterface.classList.add('hidden'); // New
+            shortItInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
             dashboardInterface.classList.add('hidden'); // New
             updateTransactionStatus('No active transactions.', 'info');
             renderTokenInfoUI(); // Re-render token info
+        });
+
+        stakingTabBtn.addEventListener('click', () => { // New
+            stakingTabBtn.classList.add('active');
+            swapTabBtn.classList.remove('active');
+            bridgeTabBtn.classList.remove('active');
+            liquidityTabBtn.classList.remove('active');
+            launchpadTabBtn.classList.remove('active');
+            tokensTabBtn.classList.remove('active');
+            shortItTabBtn.classList.remove('active'); // New
+            governanceTabBtn.classList.remove('active');
+            dashboardTabBtn.classList.remove('active'); // New
+            stakingInterface.classList.remove('hidden');
+            swapInterface.classList.add('hidden');
+            bridgeInterface.classList.add('hidden');
+            liquidityInterface.classList.add('hidden');
+            launchpadInterface.classList.add('hidden');
+            tokensInterface.classList.add('hidden');
+            shortItInterface.classList.add('hidden'); // New
+            governanceInterface.classList.add('hidden');
+            dashboardInterface.classList.add('hidden'); // New
+            updateTransactionStatus('No active transactions.', 'info');
+            renderStakingPoolsUI(); // Re-render staking pools
+        });
+
+        shortItTabBtn.addEventListener('click', () => { // New
+            shortItTabBtn.classList.add('active');
+            swapTabBtn.classList.remove('active');
+            bridgeTabBtn.classList.remove('active');
+            liquidityTabBtn.classList.remove('active');
+            launchpadTabBtn.classList.remove('active');
+            tokensTabBtn.classList.remove('active');
+            stakingTabBtn.classList.remove('active');
+            governanceTabBtn.classList.remove('active');
+            dashboardTabBtn.classList.remove('active');
+            shortItInterface.classList.remove('hidden');
+            swapInterface.classList.add('hidden');
+            bridgeInterface.classList.add('hidden');
+            liquidityInterface.classList.add('hidden');
+            launchpadInterface.classList.add('hidden');
+            tokensInterface.classList.add('hidden');
+            stakingInterface.classList.add('hidden');
+            governanceInterface.classList.add('hidden');
+            dashboardInterface.classList.add('hidden');
+            updateTransactionStatus('No active transactions.', 'info');
+            updateShortItGameArea(); // Render short-it game area
         });
 
         governanceTabBtn.addEventListener('click', () => {
@@ -2731,6 +3624,8 @@
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
+            stakingTabBtn.classList.remove('active'); // New
+            shortItTabBtn.classList.remove('active'); // New
             dashboardTabBtn.classList.remove('active'); // New
             governanceInterface.classList.remove('hidden');
             swapInterface.classList.add('hidden');
@@ -2738,6 +3633,8 @@
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
+            stakingInterface.classList.add('hidden'); // New
+            shortItInterface.classList.add('hidden'); // New
             dashboardInterface.classList.add('hidden'); // New
             updateTransactionStatus('No active transactions.', 'info'); // Clear status when switching tabs
             renderProposalsUI(); // Re-render proposals when tab is active
@@ -2750,6 +3647,8 @@
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
+            stakingTabBtn.classList.remove('active'); // New
+            shortItTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
             dashboardInterface.classList.remove('hidden');
             swapInterface.classList.add('hidden');
@@ -2757,6 +3656,8 @@
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
+            stakingInterface.classList.add('hidden'); // New
+            shortItInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
             updateTransactionStatus('No active transactions.', 'info');
             renderDashboardUI(); // Re-render dashboard stats
@@ -2793,18 +3694,92 @@
         // Token Info select listener
         selectTokenInfo.addEventListener('change', renderTokenInfoUI);
 
+        // Short It listeners
+        shortItTokenSelect.addEventListener('change', updateShortItGameArea);
+        shortItBetUpBtn.addEventListener('click', () => handleBetShortIt('up'));
+        shortItBetDownBtn.addEventListener('click', () => handleBetShortIt('down'));
+
+
         // Max button handler
         function handleMaxButtonClick(event) {
             const inputId = event.target.dataset.inputId;
             const balanceToken = event.target.dataset.balanceToken;
+            const actionType = event.target.dataset.actionType; // New: action to perform
+            const tokenSymbol = event.target.dataset.tokenSymbol; // New: token symbol for some actions
+
             const inputElement = document.getElementById(inputId);
+
             if (inputElement && state.balances[balanceToken] !== undefined) {
                 inputElement.value = state.balances[balanceToken].toFixed(2);
                 // Trigger relevant calculation if applicable
                 if (inputId.includes('add-liquidity-amount-a')) {
                     calculateAddLiquidityOutput();
                 }
+
+                // Automatically trigger the action if 'Max' is pressed
+                if (actionType === 'contributeGenesis') {
+                    handleContributeGenesis({ target: { dataset: { id: tokenSymbol, action: 'contribute' }, disabled: false, innerHTML: 'Contribute USDC' }, currentTarget: event.currentTarget });
+                } else if (actionType === 'stakeGOV') {
+                    handleStakeGOV({ target: { dataset: { id: tokenSymbol, action: 'stake' }, disabled: false, innerHTML: 'Stake GOV' }, currentTarget: event.currentTarget });
+                } else if (actionType === 'stakeToken') {
+                    handleStakeToken({ target: { dataset: { id: tokenSymbol, action: 'stakeToken' }, disabled: false, innerHTML: `Stake ${tokenSymbol}` }, currentTarget: event.currentTarget });
+                } else if (inputId === 'short-it-amount') {
+                    // For short it, just setting the amount is enough, user still clicks up/down
+                }
             }
+        }
+
+        function generateRandomProposal() {
+            const proposalTypes = [
+                {
+                    title: 'Increase Liquidity Pool Fee to 0.5%',
+                    description: 'This proposal aims to increase the trading fee on all liquidity pools to boost platform revenue.',
+                    effect: { type: 'adjustSwapFee', newFee: 0.005 }
+                },
+                {
+                    title: 'Reduce Bridge Fee to 0.005 ETH',
+                    description: 'A proposal to reduce the bridge fee, making cross-chain transfers more affordable.',
+                    effect: { type: 'adjustBridgeFee', newFee: 0.005 }
+                },
+                {
+                    title: 'Increase GOV Staking Rewards by 10%',
+                    description: 'This proposal seeks to increase the rewards for GOV stakers, encouraging more participation in governance.',
+                    effect: { type: 'adjustGovStakingRewards', percentageIncrease: 0.10 }
+                },
+                {
+                    title: 'Launch New Liquidity Mining Program',
+                    description: 'A proposal to allocate additional GOV tokens for a new liquidity mining program in a selected pool.',
+                    effect: { type: 'newLiquidityMining', pool: 'ETH-USDC', amount: 500 } // Example
+                },
+                {
+                    title: 'Adjust Short It Payout Multiplier (x3 for 3s)',
+                    description: 'A proposal to increase the payout for 3-second Short It predictions to attract more players.',
+                    effect: { type: 'adjustShortItPayout', time: 3, newMultiplier: 3 }
+                },
+                {
+                    title: 'Decrease Staking Pool APR by 5%',
+                    description: 'A proposal to slightly reduce the APR on all token staking pools to manage token emissions.',
+                    effect: { type: 'adjustAllStakingApr', percentageDecrease: 0.05 }
+                }
+            ];
+
+            const randomProposal = proposalTypes[Math.floor(Math.random() * proposalTypes.length)];
+            const newProposal = {
+                id: `prop-${proposalCounter++}`,
+                title: randomProposal.title,
+                description: randomProposal.description,
+                status: 'active',
+                votesYes: Math.floor(Math.random() * 100) + 50, // Initial bot votes
+                votesNo: Math.floor(Math.random() * 50) + 20,
+                totalVotingPower: 0, // Will be sum of yes/no
+                endsAt: Date.now() + 60 * 1000 * (Math.floor(Math.random() * 5) + 5), // Ends in 5-10 minutes
+                effect: randomProposal.effect,
+                hasVoted: false
+            };
+            newProposal.totalVotingPower = newProposal.votesYes + newProposal.votesNo;
+            state.proposals.push(newProposal);
+            renderProposalsUI();
+            updateTransactionStatus(`New Governance Proposal: "${newProposal.title}"`, 'info');
         }
 
 
