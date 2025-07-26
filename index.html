@@ -119,7 +119,7 @@
             opacity: 1;
         }
 
-        .balance-item, .pool-item, .portfolio-item, .proposal-item, .genesis-pool-item, .launch-pool-item, .token-info-item, .dashboard-item, .staking-pool-item, .short-it-item {
+        .balance-item, .pool-item, .portfolio-item, .proposal-item, .genesis-pool-item, .launch-pool-item, .token-info-item, .dashboard-item, .staking-pool-item, .short-it-item, .nft-item {
             background-color: #2c3e50;
             padding: 10px 15px;
             border-radius: 10px;
@@ -128,7 +128,7 @@
             align-items: center;
             border: 1px solid #3d5a80;
         }
-        .proposal-item, .genesis-pool-item, .launch-pool-item, .token-info-item, .dashboard-item, .staking-pool-item, .short-it-item {
+        .proposal-item, .genesis-pool-item, .launch-pool-item, .token-info-item, .dashboard-item, .staking-pool-item, .short-it-item, .nft-item {
             flex-direction: column;
             align-items: flex-start;
             gap: 10px;
@@ -203,23 +203,23 @@
         }
 
         /* Custom scrollbar for transaction history */
-        .transaction-history-scroll, .pool-list-scroll, .proposals-list-scroll, .genesis-pools-scroll, .launch-pools-scroll, .token-list-scroll, .staking-pools-scroll, .short-it-history-scroll {
+        .transaction-history-scroll, .pool-list-scroll, .proposals-list-scroll, .genesis-pools-scroll, .launch-pools-scroll, .token-list-scroll, .staking-pools-scroll, .short-it-history-scroll, .nft-list-scroll, .nft-marketplace-scroll, .nft-staking-scroll {
             max-height: 200px; /* Adjust as needed */
             overflow-y: auto;
             scrollbar-width: thin; /* Firefox */
             scrollbar-color: #6366f1 #2c3e50; /* Firefox */
         }
 
-        .transaction-history-scroll::-webkit-scrollbar, .pool-list-scroll::-webkit-scrollbar, .proposals-list-scroll::-webkit-scrollbar, .genesis-pools-scroll::-webkit-scrollbar, .launch-pools-scroll::-webkit-scrollbar, .token-list-scroll::-webkit-scrollbar, .staking-pools-scroll::-webkit-scrollbar, .short-it-history-scroll::-webkit-scrollbar {
+        .transaction-history-scroll::-webkit-scrollbar, .pool-list-scroll::-webkit-scrollbar, .proposals-list-scroll::-webkit-scrollbar, .genesis-pools-scroll::-webkit-scrollbar, .launch-pools-scroll::-webkit-scrollbar, .token-list-scroll::-webkit-scrollbar, .staking-pools-scroll::-webkit-scrollbar, .short-it-history-scroll::-webkit-scrollbar, .nft-list-scroll::-webkit-scrollbar, .nft-marketplace-scroll::-webkit-scrollbar, .nft-staking-scroll::-webkit-scrollbar {
             width: 8px;
         }
 
-        .transaction-history-scroll::-webkit-scrollbar-track, .pool-list-scroll::-webkit-scrollbar-track, .proposals-list-scroll::-webkit-scrollbar-track, .genesis-pools-scroll::-webkit-scrollbar-track, .launch-pools-scroll::-webkit-scrollbar-track, .token-list-scroll::-webkit-scrollbar-track, .staking-pools-scroll::-webkit-scrollbar-track, .short-it-history-scroll::-webkit-scrollbar-track {
+        .transaction-history-scroll::-webkit-scrollbar-track, .pool-list-scroll::-webkit-scrollbar-track, .proposals-list-scroll::-webkit-scrollbar-track, .genesis-pools-scroll::-webkit-scrollbar-track, .launch-pools-scroll::-webkit-scrollbar-track, .token-list-scroll::-webkit-scrollbar-track, .staking-pools-scroll::-webkit-scrollbar-track, .short-it-history-scroll::-webkit-scrollbar-track, .nft-list-scroll::-webkit-scrollbar-track, .nft-marketplace-scroll::-webkit-scrollbar-track, .nft-staking-scroll::-webkit-scrollbar-track {
             background: #2c3e50;
             border-radius: 10px;
         }
 
-        .transaction-history-scroll::-webkit-scrollbar-thumb, .pool-list-scroll::-webkit-scrollbar-thumb, .proposals-list-scroll::-webkit-scrollbar-thumb, .genesis-pools-scroll::-webkit-scrollbar-thumb, .launch-pools-scroll::-webkit-scrollbar-thumb, .token-list-scroll::-webkit-scrollbar-thumb, .staking-pools-scroll::-webkit-scrollbar-thumb, .short-it-history-scroll::-webkit-scrollbar-thumb {
+        .transaction-history-scroll::-webkit-scrollbar-thumb, .pool-list-scroll::-webkit-scrollbar-thumb, .proposals-list-scroll::-webkit-scrollbar-thumb, .genesis-pools-scroll::-webkit-scrollbar-thumb, .launch-pools-scroll::-webkit-scrollbar-thumb, .token-list-scroll::-webkit-scrollbar-thumb, .staking-pools-scroll::-webkit-scrollbar-thumb, .short-it-history-scroll::-webkit-scrollbar-thumb, .nft-list-scroll::-webkit-scrollbar-thumb, .nft-marketplace-scroll::-webkit-scrollbar-thumb, .nft-staking-scroll::-webkit-scrollbar-thumb {
             background-color: #6366f1;
             border-radius: 10px;
             border: 2px solid #2c3e50;
@@ -331,6 +331,29 @@
         .short-it-chart-bar.down {
             background-color: #ef4444; /* Red for down */
         }
+        .nft-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+        .nft-card {
+            background-color: #1e2a3b;
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        .nft-card img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        .nft-trait {
+            font-weight: 600;
+            color: #a78bfa;
+        }
     </style>
 </head>
 <body>
@@ -354,6 +377,7 @@
             <button id="tokens-tab-btn" class="tab-button mr-2">Tokens</button>
             <button id="staking-tab-btn" class="tab-button mr-2">Staking</button>
             <button id="short-it-tab-btn" class="tab-button mr-2">Short It</button>
+            <button id="nft-tab-btn" class="tab-button mr-2">NFT</button>
             <button id="governance-tab-btn" class="tab-button mr-2">Governance</button>
             <button id="dashboard-tab-btn" class="tab-button">Dashboard</button>
         </div>
@@ -703,6 +727,114 @@
                     </div>
                 </div>
 
+                <!-- NFT Interface (NEW) -->
+                <div id="nft-interface" class="space-y-6 hidden">
+                    <h2 class="text-xl font-semibold text-white mb-4">NFT Launchpad & Marketplace</h2>
+
+                    <div id="nft-launch-section" class="bg-gray-800 p-5 rounded-lg border border-gray-700 space-y-4">
+                        <h3 class="text-lg font-semibold text-white">Launch Your NFT Collection</h3>
+                        <p class="text-sm text-gray-400">Launch your collection and a paired token once!</p>
+                        <div>
+                            <label for="nft-collection-name" class="block text-sm font-medium text-gray-400 mb-1">Collection Name</label>
+                            <input type="text" id="nft-collection-name" placeholder="My Awesome Collection" class="input-group w-full">
+                        </div>
+                        <div>
+                            <label for="nft-base-mint-price" class="block text-sm font-medium text-gray-400 mb-1">Base Mint Price (USDC)</label>
+                            <input type="number" id="nft-base-mint-price" placeholder="100" min="1" class="input-group w-full">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="nft-common-count" class="block text-sm font-medium text-gray-400 mb-1">Common NFTs (Count)</label>
+                                <input type="number" id="nft-common-count" placeholder="100" min="0" class="input-group w-full">
+                                <label for="nft-common-img" class="block text-sm font-medium text-gray-400 mt-2 mb-1">Common Image (Imgur URL)</label>
+                                <input type="text" id="nft-common-img" placeholder="https://i.imgur.com/common.png" class="input-group w-full">
+                            </div>
+                            <div>
+                                <label for="nft-rare-count" class="block text-sm font-medium text-gray-400 mb-1">Rare NFTs (Count)</label>
+                                <input type="number" id="nft-rare-count" placeholder="20" min="0" class="input-group w-full">
+                                <label for="nft-rare-img" class="block text-sm font-medium text-gray-400 mt-2 mb-1">Rare Image (Imgur URL)</label>
+                                <input type="text" id="nft-rare-img" placeholder="https://i.imgur.com/rare.png" class="input-group w-full">
+                            </div>
+                            <div>
+                                <label for="nft-legendary-count" class="block text-sm font-medium text-gray-400 mb-1">Legendary NFTs (Count)</label>
+                                <input type="number" id="nft-legendary-count" placeholder="5" min="0" class="input-group w-full">
+                                <label for="nft-legendary-img" class="block text-sm font-medium text-gray-400 mt-2 mb-1">Legendary Image (Imgur URL)</label>
+                                <input type="text" id="nft-legendary-img" placeholder="https://i.imgur.com/legendary.png" class="input-group w-full">
+                            </div>
+                        </div>
+                        <h4 class="text-md font-semibold text-white mt-4">Paired Token Allocation (%)</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="nft-token-lp-percent" class="block text-sm font-medium text-gray-400 mb-1">LP Allocation (%)</label>
+                                <input type="number" id="nft-token-lp-percent" placeholder="50" min="0" max="100" class="input-group w-full">
+                            </div>
+                            <div>
+                                <label for="nft-token-lp-rewards-percent" class="block text-sm font-medium text-gray-400 mb-1">LP Rewards (%)</label>
+                                <input type="number" id="nft-token-lp-rewards-percent" placeholder="10" min="0" max="100" class="input-group w-full">
+                            </div>
+                            <div>
+                                <label for="nft-token-staking-rewards-percent" class="block text-sm font-medium text-gray-400 mb-1">Staking Rewards (%)</label>
+                                <input type="number" id="nft-token-staking-rewards-percent" placeholder="10" min="0" max="100" class="input-group w-full">
+                            </div>
+                            <div>
+                                <label for="nft-token-dev-wallet-percent" class="block text-sm font-medium text-gray-400 mb-1">Your Wallet (%)</label>
+                                <input type="number" id="nft-token-dev-wallet-percent" placeholder="30" min="0" max="100" class="input-group w-full">
+                            </div>
+                        </div>
+                        <button id="launch-nft-collection-btn" class="action-button w-full mt-6">Launch Collection</button>
+                    </div>
+
+                    <div id="nft-collection-info" class="space-y-4 hidden">
+                        <h3 class="text-lg font-semibold text-white">Your Collection: <span id="my-nft-collection-name"></span></h3>
+                        <div class="nft-info-item">
+                            <span class="text-gray-300 font-medium">Floor Price</span>
+                            <span id="my-nft-floor-price" class="text-white text-lg font-semibold"></span>
+                        </div>
+                        <div class="nft-info-item">
+                            <span class="text-gray-300 font-medium">Total Minted</span>
+                            <span id="my-nft-total-minted" class="text-white text-lg font-semibold"></span>
+                        </div>
+                        <div class="nft-info-item">
+                            <span class="text-gray-300 font-medium">Your NFTs</span>
+                            <span id="my-nft-owned" class="text-white text-lg font-semibold"></span>
+                        </div>
+                        <button id="claim-nft-fees-btn" class="action-button w-full">Claim NFT Marketplace Fees</button>
+                        <p class="text-sm text-gray-400">Claimable: <span id="my-nft-claimable-fees">0.00</span> <span id="my-nft-token-symbol"></span></p>
+
+                        <h3 class="text-lg font-semibold text-white mt-4">NFT Marketplace</h3>
+                        <div id="nft-marketplace-list" class="nft-marketplace-scroll nft-grid space-y-3">
+                            <p class="text-sm text-gray-500 text-center col-span-full">No NFTs listed for sale.</p>
+                        </div>
+
+                        <h3 class="text-lg font-semibold text-white mt-4">NFT Staking Pool</h3>
+                        <div id="nft-staking-pool-info" class="bg-gray-800 p-5 rounded-lg border border-gray-700 space-y-4">
+                            <p class="text-sm text-gray-400">Total Staked NFTs: <span id="nft-staking-total-staked">0</span></p>
+                            <p class="text-sm text-gray-400">Your Staked NFTs: <span id="nft-staking-user-staked">0</span></p>
+                            <p class="text-sm text-gray-400">Your Earned Rewards: <span id="nft-staking-user-earned">0.00</span> <span id="nft-staking-reward-token"></span></p>
+                            <p class="text-sm text-gray-400">Rewards Supplied by Dev: <span id="nft-staking-dev-supplied-rewards">0.00</span> <span id="nft-staking-reward-token-dev"></span></p>
+                            <div>
+                                <label for="nft-staking-supply-amount" class="block text-sm font-medium text-gray-400 mb-1">Supply Rewards</label>
+                                <div class="input-group">
+                                    <input type="number" id="nft-staking-supply-amount" placeholder="0.0" min="0" class="w-full">
+                                    <select id="nft-staking-supply-token" class="w-24">
+                                        <!-- Populated dynamically with all available tokens -->
+                                    </select>
+                                </div>
+                                <button id="supply-nft-staking-rewards-btn" class="action-button w-full mt-2">Supply Rewards</button>
+                            </div>
+                            <div class="flex gap-4">
+                                <button id="stake-my-nft-btn" class="action-button flex-1">Stake My NFT</button>
+                                <button id="unstake-claim-nft-rewards-btn" class="action-button flex-1">Unstake & Claim</button>
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold text-white mt-4">Your Staked NFTs</h3>
+                        <div id="my-staked-nfts-list" class="nft-staking-scroll nft-grid space-y-3">
+                            <p class="text-sm text-gray-500 text-center col-span-full">No NFTs staked.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Governance Interface -->
                 <div id="governance-interface" class="space-y-6 hidden">
                     <h2 class="text-xl font-semibold text-white mb-4">Governance Proposals</h2>
@@ -804,7 +936,11 @@
                 USDC: 50000.00,
                 BNB: 50.00,
                 DAI: 10000.00,
-                GOV: 1000.00 // New governance token
+                GOV: 1000.00, // New governance token
+                PEPE: 1000000.00, // New base asset
+                DOGE: 500000.00, // New base asset
+                XRP: 10000.00, // New base asset
+                SUI: 5000.00, // New base asset
             },
             exchangeRates: { // Base rates for simulation (1 ETH = 2000 USDC)
                 'ETH/USDC': 2000,
@@ -823,6 +959,14 @@
                 'USDC/GOV': 1 / 0.5,
                 'ETH/GOV': 2000 / 0.5, // ETH price / GOV price
                 'GOV/ETH': 0.5 / 2000,
+                'PEPE/USDC': 0.000001, // New base asset price
+                'USDC/PEPE': 1 / 0.000001,
+                'DOGE/USDC': 0.08, // New base asset price
+                'USDC/DOGE': 1 / 0.08,
+                'XRP/USDC': 0.5, // New base asset price
+                'USDC/XRP': 1 / 0.5,
+                'SUI/USDC': 1.2, // New base asset price
+                'USDC/SUI': 1 / 1.2,
             },
             slippagePercentage: 0.5, // Default slippage
             gasFeeEth: 0.005, // Simulated gas fee in ETH
@@ -832,7 +976,11 @@
             liquidityPools: {
                 'ETH-USDC': { tokenA: 'ETH', tokenB: 'USDC', tvl: 100000, apr: 0.85, userLiquidityLP: 0, userFees: 0, totalLP: 1000, totalFeesCollected: 0, devRewards: 0 },
                 'BNB-USDC': { tokenA: 'BNB', tokenB: 'USDC', tvl: 50000, apr: 1.20, userLiquidityLP: 0, userFees: 0, totalLP: 500, totalFeesCollected: 0, devRewards: 0 },
-                'ETH-DAI': { tokenA: 'ETH', tokenB: 'DAI', tvl: 75000, apr: 0.92, userLiquidityLP: 0, userFees: 0, totalLP: 750, totalFeesCollected: 0, devRewards: 0 }
+                'ETH-DAI': { tokenA: 'ETH', tokenB: 'DAI', tvl: 75000, apr: 0.92, userLiquidityLP: 0, userFees: 0, totalLP: 750, totalFeesCollected: 0, devRewards: 0 },
+                'PEPE-USDC': { tokenA: 'PEPE', tokenB: 'USDC', tvl: 10000, apr: 1.50, userLiquidityLP: 0, userFees: 0, totalLP: 100, totalFeesCollected: 0, devRewards: 0 },
+                'DOGE-USDC': { tokenA: 'DOGE', tokenB: 'USDC', tvl: 20000, apr: 1.00, userLiquidityLP: 0, userFees: 0, totalLP: 200, totalFeesCollected: 0, devRewards: 0 },
+                'XRP-USDC': { tokenA: 'XRP', tokenB: 'USDC', tvl: 15000, apr: 0.90, userLiquidityLP: 0, userFees: 0, totalLP: 150, totalFeesCollected: 0, devRewards: 0 },
+                'SUI-USDC': { tokenA: 'SUI', tokenB: 'USDC', tvl: 12000, apr: 1.10, userLiquidityLP: 0, userFees: 0, totalLP: 120, totalFeesCollected: 0, devRewards: 0 },
             },
             proposals: [
                 {
@@ -866,6 +1014,11 @@
             launchedTokens: {}, // New: Stores info for launched tokens (key: symbol)
             shortItPools: {}, // New: Stores short-it game pools
             shortItHistory: [], // New: User's short-it game history
+            nftCollections: {}, // New: Stores launched NFT collections
+            myNFTCollection: null, // Stores the user's launched NFT collection
+            myNFTs: [], // User's owned NFTs
+            nftMarketplaceListings: [], // NFTs listed for sale by bots or users
+            nftStakingPool: null, // The single NFT staking pool for the user's collection
             totalPortfolioValue: 0,
             totalEarnedFees: 0,
             userVotingPower: 0, // Will be set to GOV balance when connected
@@ -887,6 +1040,7 @@
         const tokensTabBtn = document.getElementById('tokens-tab-btn'); // New
         const stakingTabBtn = document.getElementById('staking-tab-btn'); // New
         const shortItTabBtn = document.getElementById('short-it-tab-btn'); // New
+        const nftTabBtn = document.getElementById('nft-tab-btn'); // New
         const governanceTabBtn = document.getElementById('governance-tab-btn');
         const dashboardTabBtn = document.getElementById('dashboard-tab-btn'); // New
         const swapInterface = document.getElementById('swap-interface');
@@ -896,6 +1050,7 @@
         const tokensInterface = document.getElementById('tokens-interface'); // New
         const stakingInterface = document.getElementById('staking-interface'); // New
         const shortItInterface = document.getElementById('short-it-interface'); // New
+        const nftInterface = document.getElementById('nft-interface'); // New
         const governanceInterface = document.getElementById('governance-interface');
         const dashboardInterface = document.getElementById('dashboard-interface'); // New
 
@@ -968,6 +1123,47 @@
         const shortItTimerDisplay = document.getElementById('short-it-timer');
         const shortItChartContainer = document.getElementById('short-it-chart-container');
         const shortItHistoryDiv = document.getElementById('short-it-history');
+
+        // NFT Elements (New)
+        const nftLaunchSection = document.getElementById('nft-launch-section');
+        const nftCollectionInfo = document.getElementById('nft-collection-info');
+        const nftCollectionNameInput = document.getElementById('nft-collection-name');
+        const nftBaseMintPriceInput = document.getElementById('nft-base-mint-price');
+        const nftCommonCountInput = document.getElementById('nft-common-count');
+        const nftCommonImgInput = document.getElementById('nft-common-img');
+        const nftRareCountInput = document.getElementById('nft-rare-count');
+        const nftRareImgInput = document.getElementById('nft-rare-img');
+        const nftLegendaryCountInput = document.getElementById('nft-legendary-count');
+        const nftLegendaryImgInput = document.getElementById('nft-legendary-img');
+        const nftTokenLpPercentInput = document.getElementById('nft-token-lp-percent');
+        const nftTokenLpRewardsPercentInput = document.getElementById('nft-token-lp-rewards-percent');
+        const nftTokenStakingRewardsPercentInput = document.getElementById('nft-token-staking-rewards-percent');
+        const nftTokenDevWalletPercentInput = document.getElementById('nft-token-dev-wallet-percent');
+        const launchNftCollectionBtn = document.getElementById('launch-nft-collection-btn');
+
+        const myNftCollectionNameDisplay = document.getElementById('my-nft-collection-name');
+        const myNftFloorPriceDisplay = document.getElementById('my-nft-floor-price');
+        const myNftTotalMintedDisplay = document.getElementById('my-nft-total-minted');
+        const myNftOwnedDisplay = document.getElementById('my-nft-owned');
+        const myNftClaimableFeesDisplay = document.getElementById('my-nft-claimable-fees');
+        const myNftTokenSymbolDisplay = document.getElementById('my-nft-token-symbol');
+        const claimNftFeesBtn = document.getElementById('claim-nft-fees-btn');
+
+        const nftMarketplaceList = document.getElementById('nft-marketplace-list');
+
+        const nftStakingPoolInfo = document.getElementById('nft-staking-pool-info');
+        const nftStakingTotalStakedDisplay = document.getElementById('nft-staking-total-staked');
+        const nftStakingUserStakedDisplay = document.getElementById('nft-staking-user-staked');
+        const nftStakingUserEarnedDisplay = document.getElementById('nft-staking-user-earned');
+        const nftStakingRewardTokenDisplay = document.getElementById('nft-staking-reward-token');
+        const nftStakingDevSuppliedRewardsDisplay = document.getElementById('nft-staking-dev-supplied-rewards');
+        const nftStakingRewardTokenDevDisplay = document.getElementById('nft-staking-reward-token-dev');
+        const nftStakingSupplyAmountInput = document.getElementById('nft-staking-supply-amount');
+        const nftStakingSupplyTokenSelect = document.getElementById('nft-staking-supply-token');
+        const supplyNftStakingRewardsBtn = document.getElementById('supply-nft-staking-rewards-btn');
+        const stakeMyNftBtn = document.getElementById('stake-my-nft-btn');
+        const unstakeClaimNftRewardsBtn = document.getElementById('unstake-claim-nft-rewards-btn');
+        const myStakedNftsList = document.getElementById('my-staked-nfts-list');
 
 
         // Governance Elements
@@ -1173,6 +1369,7 @@
             const bridgeFromSelect = document.getElementById('from-token-bridge');
             const bridgeToSelect = document.getElementById('to-token-bridge');
             const shortItTokenSelect = document.getElementById('short-it-token-select');
+            const nftStakingSupplyTokenSelect = document.getElementById('nft-staking-supply-token');
 
 
             // Store current selections to re-apply after update
@@ -1181,6 +1378,7 @@
             const currentBridgeFrom = bridgeFromSelect.value;
             const currentBridgeTo = bridgeToSelect.value;
             const currentShortItToken = shortItTokenSelect.value;
+            const currentNftStakingSupplyToken = nftStakingSupplyTokenSelect.value;
 
 
             swapFromSelect.innerHTML = '';
@@ -1188,6 +1386,7 @@
             bridgeFromSelect.innerHTML = '';
             bridgeToSelect.innerHTML = '';
             shortItTokenSelect.innerHTML = '<option value="">Select a launched token...</option>';
+            nftStakingSupplyTokenSelect.innerHTML = '';
 
 
             allTokens.forEach(token => {
@@ -1218,6 +1417,12 @@
                     optionShortIt.textContent = token;
                     shortItTokenSelect.appendChild(optionShortIt);
                 }
+
+                // Add all tokens to NFT staking supply select
+                const optionNftStaking = document.createElement('option');
+                optionNftStaking.value = token;
+                optionNftStaking.textContent = token;
+                nftStakingSupplyTokenSelect.appendChild(optionNftStaking);
             });
 
             // Re-apply previous selections or default
@@ -1226,6 +1431,7 @@
             bridgeFromSelect.value = currentBridgeFrom && allTokens.includes(currentBridgeFrom) ? currentBridgeFrom : 'ETH';
             bridgeToSelect.value = currentBridgeTo && allTokens.includes(currentBridgeTo) ? currentBridgeTo : 'USDC';
             shortItTokenSelect.value = currentShortItToken && Object.keys(state.launchedTokens).includes(currentShortItToken) ? currentShortItToken : '';
+            nftStakingSupplyTokenSelect.value = currentNftStakingSupplyToken && allTokens.includes(currentNftStakingSupplyToken) ? currentNftStakingSupplyToken : 'USDC';
 
 
             // Ensure swap to is not same as swap from
@@ -1327,6 +1533,33 @@
                         break;
                     case 'shortItResult': // New
                         transactionDescription = `Short It: ${tx.tokenSymbol} ${tx.result} - ${tx.wonAmount.toFixed(4)} ${tx.tokenSymbol}`;
+                        break;
+                    case 'launchNFT': // New
+                        transactionDescription = `Launched NFT Collection: ${tx.collectionName} with token ${tx.tokenSymbol}`;
+                        break;
+                    case 'mintNFT': // New
+                        transactionDescription = `Minted ${tx.nftName} (${tx.trait}) for ${tx.price.toFixed(2)} USDC`;
+                        break;
+                    case 'listNFT': // New
+                        transactionDescription = `Listed NFT #${tx.nftId} for ${tx.price.toFixed(2)} ${tx.tokenSymbol}`;
+                        break;
+                    case 'buyNFT': // New
+                        transactionDescription = `Bought NFT #${tx.nftId} for ${tx.price.toFixed(2)} ${tx.tokenSymbol}`;
+                        break;
+                    case 'claimNFTFees': // New
+                        transactionDescription = `Claimed ${toAmountDisplay} ${tx.tokenSymbol} NFT fees`;
+                        break;
+                    case 'stakeNFT': // New
+                        transactionDescription = `Staked NFT #${tx.nftId} from ${tx.collectionName}`;
+                        break;
+                    case 'unstakeNFT': // New
+                        transactionDescription = `Unstaked NFT #${tx.nftId} from ${tx.collectionName}`;
+                        break;
+                    case 'claimNFTReward': // New
+                        transactionDescription = `Claimed ${toAmountDisplay} ${tx.rewardToken} from NFT Staking`;
+                        break;
+                    case 'supplyNFTRewards': // New
+                        transactionDescription = `Supplied ${fromAmountDisplay} ${tx.rewardToken} to NFT Staking Pool`;
                         break;
                     default:
                         transactionDescription = `Transaction: ${tx.type}`;
@@ -1873,6 +2106,107 @@
                     <p class="text-xs text-gray-500">Gain/Loss: ${bet.wonAmount.toFixed(4)} ${bet.tokenSymbol}</p>
                 `;
                 shortItHistoryDiv.appendChild(historyItem);
+            });
+        }
+
+        function renderNFTUI() {
+            if (state.myNFTCollection) {
+                nftLaunchSection.classList.add('hidden');
+                nftCollectionInfo.classList.remove('hidden');
+
+                const collection = state.myNFTCollection;
+                myNftCollectionNameDisplay.textContent = collection.name;
+                myNftFloorPriceDisplay.textContent = `$${collection.floorPrice.toFixed(2)}`;
+                myNftTotalMintedDisplay.textContent = collection.totalMinted;
+                myNftOwnedDisplay.textContent = state.myNFTs.filter(nft => nft.owner === 'user').length;
+                myNftClaimableFeesDisplay.textContent = collection.userClaimableFees.toFixed(4);
+                myNftTokenSymbolDisplay.textContent = collection.tokenSymbol;
+
+                // Populate NFT staking reward token options
+                nftStakingSupplyTokenSelect.innerHTML = '';
+                Object.keys(state.balances).forEach(token => {
+                    const option = document.createElement('option');
+                    option.value = token;
+                    option.textContent = token;
+                    nftStakingSupplyTokenSelect.appendChild(option);
+                });
+                nftStakingSupplyTokenSelect.value = collection.tokenSymbol; // Default to collection token
+
+                // NFT Staking Pool Info
+                if (state.nftStakingPool) {
+                    const stakingPool = state.nftStakingPool;
+                    nftStakingTotalStakedDisplay.textContent = stakingPool.totalStakedNFTs;
+                    nftStakingUserStakedDisplay.textContent = stakingPool.userStakedNFTs.length;
+                    nftStakingUserEarnedDisplay.textContent = stakingPool.userEarnedRewards.toFixed(4);
+                    nftStakingRewardTokenDisplay.textContent = stakingPool.rewardToken;
+                    nftStakingDevSuppliedRewardsDisplay.textContent = stakingPool.devSuppliedRewards.toFixed(4);
+                    nftStakingRewardTokenDevDisplay.textContent = stakingPool.rewardToken;
+                } else {
+                    nftStakingTotalStakedDisplay.textContent = '0';
+                    nftStakingUserStakedDisplay.textContent = '0';
+                    nftStakingUserEarnedDisplay.textContent = '0.00';
+                    nftStakingRewardTokenDisplay.textContent = 'N/A';
+                    nftStakingDevSuppliedRewardsDisplay.textContent = '0.00';
+                    nftStakingRewardTokenDevDisplay.textContent = 'N/A';
+                }
+
+
+                renderNFTMarketplace();
+                renderMyStakedNFTs();
+
+            } else {
+                nftLaunchSection.classList.remove('hidden');
+                nftCollectionInfo.classList.add('hidden');
+            }
+        }
+
+        function renderNFTMarketplace() {
+            nftMarketplaceList.innerHTML = '';
+            const listedNFTs = state.nftMarketplaceListings.filter(nft => nft.isListed);
+
+            if (listedNFTs.length === 0) {
+                nftMarketplaceList.innerHTML = '<p class="text-sm text-gray-500 text-center col-span-full">No NFTs listed for sale.</p>';
+                return;
+            }
+
+            listedNFTs.forEach(nft => {
+                const nftCard = document.createElement('div');
+                nftCard.className = 'nft-card bg-gray-700 p-3 rounded-lg border border-gray-600';
+                const canBuy = state.isConnected && state.balances[state.myNFTCollection.tokenSymbol] >= nft.price;
+
+                nftCard.innerHTML = `
+                    <img src="${nft.imageUrl}" alt="${nft.name}" onerror="this.onerror=null;this.src='https://placehold.co/100x100/3d5a80/e0e0e0?text=NFT'">
+                    <p class="font-semibold text-white">${nft.name}</p>
+                    <p class="nft-trait">${nft.trait}</p>
+                    <p class="text-gray-400">${nft.price.toFixed(2)} ${state.myNFTCollection.tokenSymbol}</p>
+                    <button class="action-button px-3 py-1 text-xs mt-2 ${!canBuy ? 'opacity-50 cursor-not-allowed' : ''}" data-id="${nft.id}" data-action="buyNFT" ${!canBuy ? 'disabled' : ''}>Buy</button>
+                `;
+                nftMarketplaceList.appendChild(nftCard);
+            });
+
+            nftMarketplaceList.querySelectorAll('button[data-action="buyNFT"]').forEach(button => {
+                button.addEventListener('click', handleBuyNFT);
+            });
+        }
+
+        function renderMyStakedNFTs() {
+            myStakedNftsList.innerHTML = '';
+            const userStakedNFTs = state.myNFTs.filter(nft => nft.owner === 'user' && nft.isStaked);
+
+            if (userStakedNFTs.length === 0) {
+                myStakedNftsList.innerHTML = '<p class="text-sm text-gray-500 text-center col-span-full">No NFTs staked.</p>';
+                return;
+            }
+
+            userStakedNFTs.forEach(nft => {
+                const nftCard = document.createElement('div');
+                nftCard.className = 'nft-card bg-gray-700 p-3 rounded-lg border border-gray-600';
+                nftCard.innerHTML = `
+                    <img src="${nft.imageUrl}" alt="${nft.name}" onerror="this.onerror=null;this.src='https://placehold.co/100x100/3d5a80/e0e0e0?text=NFT'">
+                    <p class="font-semibold text-white">${nft.name}</p>
+                    <p class="nft-trait">${nft.trait}</p>
+                `;
+                myStakedNftsList.appendChild(nftCard);
             });
         }
 
@@ -2914,6 +3248,521 @@
             }, 1000);
         }
 
+        // --- NFT Launch & Marketplace Logic ---
+        let nextNftId = 1;
+
+        async function handleLaunchNFTCollection() {
+            if (state.myNFTCollection) {
+                updateTransactionStatus('You have already launched an NFT collection.', 'error');
+                return;
+            }
+            if (!state.isConnected) {
+                updateTransactionStatus('Please connect your wallet to launch NFTs.', 'error');
+                return;
+            }
+
+            const collectionName = nftCollectionNameInput.value.trim();
+            const baseMintPrice = parseFloat(nftBaseMintPriceInput.value);
+            const commonCount = parseInt(nftCommonCountInput.value);
+            const rareCount = parseInt(nftRareCountInput.value);
+            const legendaryCount = parseInt(nftLegendaryCountInput.value);
+            const commonImg = nftCommonImgInput.value.trim();
+            const rareImg = nftRareImgInput.value.trim();
+            const legendaryImg = nftLegendaryImgInput.value.trim();
+
+            const lpPercent = parseFloat(nftTokenLpPercentInput.value);
+            const lpRewardsPercent = parseFloat(nftTokenLpRewardsPercentInput.value);
+            const stakingRewardsPercent = parseFloat(nftTokenStakingRewardsPercentInput.value);
+            const devWalletPercent = parseFloat(nftTokenDevWalletPercentInput.value);
+
+            if (!collectionName || isNaN(baseMintPrice) || baseMintPrice <= 0 ||
+                isNaN(commonCount) || commonCount < 0 || isNaN(rareCount) || rareCount < 0 || isNaN(legendaryCount) || legendaryCount < 0 ||
+                !commonImg || !rareImg || !legendaryImg ||
+                isNaN(lpPercent) || isNaN(lpRewardsPercent) || isNaN(stakingRewardsPercent) || isNaN(devWalletPercent) ||
+                (lpPercent + lpRewardsPercent + stakingRewardsPercent + devWalletPercent !== 100)) {
+                updateTransactionStatus('Please fill all fields correctly and ensure token allocation percentages sum to 100%.', 'error');
+                return;
+            }
+            if (commonCount + rareCount + legendaryCount === 0) {
+                updateTransactionStatus('You must mint at least one NFT.', 'error');
+                return;
+            }
+
+            updateTransactionStatus(`Launching NFT Collection "${collectionName}" and paired token...`, 'pending');
+            launchNftCollectionBtn.disabled = true;
+            launchNftCollectionBtn.innerHTML = '<div class="spinner"></div> Launching...';
+
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Simulate launch time
+
+            const success = Math.random() > 0.05;
+
+            if (success) {
+                const nftTokenSymbol = generateRandomTokenSymbol();
+                const nftTokenName = collectionName.replace(/\s/g, '') + 'Token';
+                const totalNFTs = commonCount + rareCount + legendaryCount;
+                const totalInitialUSDCFromMinting = totalNFTs * baseMintPrice;
+                const initialTokenSupply = totalNFTs * 1000; // Example: 1000 tokens per NFT
+
+                // Calculate token allocations
+                const lpTokens = initialTokenSupply * (lpPercent / 100);
+                const lpRewardsTokens = initialTokenSupply * (lpRewardsPercent / 100);
+                const stakingRewardsTokens = initialTokenSupply * (stakingRewardsPercent / 100);
+                const devWalletTokens = initialTokenSupply * (devWalletPercent / 100);
+
+                // Update balances and exchange rates for the new token
+                state.balances[nftTokenSymbol] = (state.balances[nftTokenSymbol] || 0) + devWalletTokens; // Add dev's share to balance
+                state.exchangeRates[`${nftTokenSymbol}/USDC`] = totalInitialUSDCFromMinting / lpTokens; // Initial price based on LP
+                state.exchangeRates[`USDC/${nftTokenSymbol}`] = 1 / state.exchangeRates[`${nftTokenSymbol}/USDC`];
+
+                // Create the new liquidity pool for the NFT token
+                const nftPoolName = `${nftTokenSymbol}-USDC`;
+                state.liquidityPools[nftPoolName] = {
+                    tokenA: nftTokenSymbol,
+                    tokenB: 'USDC',
+                    tvl: totalInitialUSDCFromMinting * 2, // Assuming 50/50 initial liquidity from minting
+                    apr: (Math.random() * 1.5) + 0.5,
+                    userLiquidityLP: 0,
+                    userFees: 0,
+                    totalLP: (totalInitialUSDCFromMinting * 2) / 1000,
+                    totalFeesCollected: 0,
+                    devRewards: lpRewardsTokens // Dev rewards supplied to LP pool
+                };
+
+                // Create the NFT staking pool
+                state.nftStakingPool = {
+                    collectionName: collectionName,
+                    tokenSymbol: nftTokenSymbol,
+                    totalStakedNFTs: 0,
+                    userStakedNFTs: [],
+                    userEarnedRewards: 0,
+                    devSuppliedRewards: stakingRewardsTokens, // Dev rewards supplied to NFT staking pool
+                    rewardToken: nftTokenSymbol, // Rewards are in the NFT's token
+                    status: 'active'
+                };
+
+                // Create the NFT collection object
+                state.myNFTCollection = {
+                    name: collectionName,
+                    tokenSymbol: nftTokenSymbol,
+                    baseMintPrice: baseMintPrice,
+                    floorPrice: baseMintPrice, // Initial floor price
+                    totalMinted: 0,
+                    common: { count: commonCount, img: commonImg, minted: 0 },
+                    rare: { count: rareCount, img: rareImg, minted: 0 },
+                    legendary: { count: legendaryCount, img: legendaryImg, minted: 0 },
+                    userClaimableFees: 0, // Fees from marketplace sales
+                    totalNFTs: totalNFTs,
+                    isLaunched: true
+                };
+
+                state.launchedTokens[nftTokenSymbol] = {
+                    symbol: nftTokenSymbol,
+                    name: nftTokenName,
+                    totalSupply: initialTokenSupply,
+                    currentPrice: state.exchangeRates[`${nftTokenSymbol}/USDC`],
+                    marketCap: initialTokenSupply * state.exchangeRates[`${nftTokenSymbol}/USDC`],
+                    liquidity: state.liquidityPools[nftPoolName].tvl,
+                    devHoldings: devWalletTokens,
+                    top10HoldersShare: (Math.random() * 20) + 30,
+                    priceHistory: [state.exchangeRates[`${nftTokenSymbol}/USDC`]],
+                    buyVolume: 0,
+                    sellVolume: 0
+                };
+
+                state.nftCollections[collectionName] = state.myNFTCollection; // Store in general collections
+
+                updateBalancesUI();
+                renderLiquidityPoolsUI();
+                renderTokenInfoUI();
+                renderNFTUI();
+                updatePortfolioTrackerUI();
+                updateTransactionStatus(`NFT Collection "${collectionName}" and token ${nftTokenSymbol} launched successfully!`, 'success');
+                addTransactionToHistory({
+                    type: 'launchNFT',
+                    collectionName,
+                    tokenSymbol: nftTokenSymbol,
+                    status: 'success',
+                    timestamp: Date.now()
+                });
+
+                // Start bot minting
+                setTimeout(() => simulateBotMinting(collectionName), 5000);
+
+            } else {
+                updateTransactionStatus('Failed to launch NFT collection. Please try again.', 'error');
+                addTransactionToHistory({
+                    type: 'launchNFT',
+                    collectionName,
+                    tokenSymbol: 'N/A',
+                    status: 'failed',
+                    timestamp: Date.now()
+                });
+            }
+            launchNftCollectionBtn.disabled = false;
+            launchNftCollectionBtn.innerHTML = 'Launch Collection';
+        }
+
+        function simulateBotMinting(collectionName) {
+            const collection = state.nftCollections[collectionName];
+            if (!collection || collection.totalMinted >= collection.totalNFTs) return;
+
+            const mintCount = Math.floor(Math.random() * 5) + 1; // Bots mint 1-5 NFTs at a time
+            for (let i = 0; i < mintCount; i++) {
+                if (collection.totalMinted >= collection.totalNFTs) break;
+
+                let traitType = 'common';
+                const rand = Math.random();
+                if (rand < 0.05 && collection.legendary.minted < collection.legendary.count) {
+                    traitType = 'legendary';
+                } else if (rand < 0.25 && collection.rare.minted < collection.rare.count) {
+                    traitType = 'rare';
+                } else if (collection.common.minted >= collection.common.count) {
+                    // Fallback if common are all minted, try rare/legendary even if odds are low
+                    if (collection.rare.minted < collection.rare.count) traitType = 'rare';
+                    else if (collection.legendary.minted < collection.legendary.count) traitType = 'legendary';
+                    else continue; // No more NFTs to mint
+                }
+
+                if (collection[traitType].minted < collection[traitType].count) {
+                    collection[traitType].minted++;
+                    collection.totalMinted++;
+                    const nftId = nextNftId++;
+                    const nft = {
+                        id: nftId,
+                        collectionName: collectionName,
+                        name: `${collection.name} #${nftId}`,
+                        trait: traitType,
+                        imageUrl: collection[traitType].img,
+                        owner: 'bot',
+                        isListed: false,
+                        isStaked: false,
+                        price: collection.baseMintPrice * (traitType === 'legendary' ? 1.5 : (traitType === 'rare' ? 1.2 : 1)) // Rarity price adjustment
+                    };
+                    state.myNFTs.push(nft); // Add to general NFT list
+
+                    // Simulate bot buying from marketplace (if listed by other bots)
+                    if (Math.random() < 0.5) { // 50% chance to list for sale
+                        nft.isListed = true;
+                        nft.price = nft.price * (1 + (Math.random() - 0.5) * 0.1); // Small price fluctuation
+                        state.nftMarketplaceListings.push(nft);
+                    }
+                    // Simulate minting USDC going to LP
+                    state.liquidityPools[`${collection.tokenSymbol}-USDC`].tvl += collection.baseMintPrice;
+                    state.liquidityPools[`${collection.tokenSymbol}-USDC`].totalLP += collection.baseMintPrice / 1000; // Simplified LP token
+                    state.totalPlatformRevenue += collection.baseMintPrice * 0.0005; // 0.05% fee on minting
+
+                    updateTransactionStatus(`Bot minted ${nft.name} (${nft.trait}) from ${collection.name}.`, 'info');
+                    addTransactionToHistory({
+                        type: 'mintNFT',
+                        nftName: nft.name,
+                        trait: nft.trait,
+                        price: collection.baseMintPrice,
+                        status: 'success',
+                        timestamp: Date.now()
+                    });
+                }
+            }
+            renderNFTUI();
+            updateBalancesUI();
+            updatePortfolioTrackerUI();
+            renderLiquidityPoolsUI();
+            renderTokenInfoUI(); // Update token info if the NFT token is selected
+        }
+
+        async function handleBuyNFT(event) {
+            if (!state.isConnected) {
+                updateTransactionStatus('Please connect your wallet to buy NFTs.', 'error');
+                return;
+            }
+            const nftId = parseInt(event.target.dataset.id);
+            const nftToBuy = state.nftMarketplaceListings.find(nft => nft.id === nftId);
+            const collection = state.myNFTCollection;
+
+            if (!nftToBuy || !collection) {
+                updateTransactionStatus('NFT not found or collection not launched.', 'error');
+                return;
+            }
+            if (state.balances[collection.tokenSymbol] < nftToBuy.price) {
+                updateTransactionStatus(`Insufficient ${collection.tokenSymbol} to buy this NFT.`, 'error');
+                return;
+            }
+
+            updateTransactionStatus(`Buying NFT #${nftId} for ${nftToBuy.price.toFixed(2)} ${collection.tokenSymbol}...`, 'pending');
+            event.target.disabled = true;
+            event.target.innerHTML = '<div class="spinner"></div> Buying...';
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const success = Math.random() > 0.1;
+
+            if (success) {
+                state.balances[collection.tokenSymbol] -= nftToBuy.price; // Deduct price from user
+                // Simulate payment to bot (no actual bot balance tracking, just removed from user)
+
+                // Remove from marketplace listings
+                state.nftMarketplaceListings = state.nftMarketplaceListings.filter(nft => nft.id !== nftId);
+
+                // Update NFT owner to user
+                const ownedNft = state.myNFTs.find(nft => nft.id === nftId);
+                if (ownedNft) ownedNft.owner = 'user';
+
+                // Update floor price (simple average of last few sales or just based on recent activity)
+                collection.floorPrice = collection.floorPrice * (1 + (Math.random() * 0.05)); // Small increase on buy
+
+                // Creator fee (0.1% of sale price)
+                const creatorFee = nftToBuy.price * 0.001;
+                collection.userClaimableFees += creatorFee;
+                state.totalPlatformRevenue += creatorFee; // Add to platform revenue
+
+                updateBalancesUI();
+                renderNFTUI();
+                updatePortfolioTrackerUI();
+                updateTransactionStatus(`Successfully bought NFT #${nftId}.`, 'success');
+                addTransactionToHistory({
+                    type: 'buyNFT',
+                    nftId: nftId,
+                    price: nftToBuy.price,
+                    tokenSymbol: collection.tokenSymbol,
+                    status: 'success',
+                    timestamp: Date.now()
+                });
+                triggerBurstEffect();
+            } else {
+                updateTransactionStatus(`Failed to buy NFT #${nftId}.`, 'error');
+                addTransactionToHistory({
+                    type: 'buyNFT',
+                    nftId: nftId,
+                    price: nftToBuy.price,
+                    tokenSymbol: collection.tokenSymbol,
+                    status: 'failed',
+                    timestamp: Date.now()
+                });
+            }
+            event.target.disabled = false;
+            event.target.innerHTML = 'Buy';
+        }
+
+        async function handleClaimNFTFees() {
+            if (!state.isConnected) {
+                updateTransactionStatus('Please connect your wallet.', 'error');
+                return;
+            }
+            const collection = state.myNFTCollection;
+            if (!collection || collection.userClaimableFees <= 0) {
+                updateTransactionStatus('No NFT marketplace fees to claim.', 'error');
+                return;
+            }
+
+            updateTransactionStatus(`Claiming NFT marketplace fees...`, 'pending');
+            claimNftFeesBtn.disabled = true;
+            claimNftFeesBtn.innerHTML = '<div class="spinner"></div> Claiming...';
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const success = Math.random() > 0.05;
+
+            if (success) {
+                state.balances[collection.tokenSymbol] = (state.balances[collection.tokenSymbol] || 0) + collection.userClaimableFees;
+                const claimedAmount = collection.userClaimableFees;
+                collection.userClaimableFees = 0;
+
+                updateBalancesUI();
+                renderNFTUI();
+                updatePortfolioTrackerUI();
+                updateTransactionStatus(`Successfully claimed ${claimedAmount.toFixed(4)} ${collection.tokenSymbol} NFT fees.`, 'success');
+                addTransactionToHistory({
+                    type: 'claimNFTFees',
+                    tokenSymbol: collection.tokenSymbol,
+                    toAmount: claimedAmount,
+                    status: 'success',
+                    timestamp: Date.now()
+                });
+                triggerBurstEffect();
+            } else {
+                updateTransactionStatus('Failed to claim NFT fees.', 'error');
+                addTransactionToHistory({
+                    type: 'claimNFTFees',
+                    tokenSymbol: collection.tokenSymbol,
+                    toAmount: 0,
+                    status: 'failed',
+                    timestamp: Date.now()
+                });
+            }
+            claimNftFeesBtn.disabled = false;
+            claimNftFeesBtn.innerHTML = 'Claim NFT Marketplace Fees';
+        }
+
+        async function handleSupplyNFTRewards() {
+            if (!state.isConnected) {
+                updateTransactionStatus('Please connect your wallet.', 'error');
+                return;
+            }
+            const amount = parseFloat(nftStakingSupplyAmountInput.value);
+            const token = nftStakingSupplyTokenSelect.value;
+            const stakingPool = state.nftStakingPool;
+
+            if (isNaN(amount) || amount <= 0) {
+                updateTransactionStatus('Please enter a valid amount to supply.', 'error');
+                return;
+            }
+            if (!stakingPool) {
+                updateTransactionStatus('NFT Staking Pool not found.', 'error');
+                return;
+            }
+            if (!state.balances[token] || state.balances[token] < amount) {
+                updateTransactionStatus(`Insufficient ${token} balance to supply rewards.`, 'error');
+                return;
+            }
+
+            updateTransactionStatus(`Supplying ${amount.toFixed(2)} ${token} to NFT Staking Pool...`, 'pending');
+            supplyNftStakingRewardsBtn.disabled = true;
+            supplyNftStakingRewardsBtn.innerHTML = '<div class="spinner"></div> Supplying...';
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const success = Math.random() > 0.05;
+
+            if (success) {
+                state.balances[token] -= amount;
+                stakingPool.devSuppliedRewards += amount;
+                stakingPool.rewardToken = token; // Set reward token based on what's supplied
+
+                updateBalancesUI();
+                renderNFTUI();
+                updatePortfolioTrackerUI();
+                updateTransactionStatus(`Successfully supplied ${amount.toFixed(2)} ${token} to NFT Staking Pool.`, 'success');
+                addTransactionToHistory({
+                    type: 'supplyNFTRewards',
+                    fromAmount: amount,
+                    rewardToken: token,
+                    status: 'success',
+                    timestamp: Date.now()
+                });
+                triggerBurstEffect();
+            } else {
+                updateTransactionStatus('Failed to supply NFT staking rewards.', 'error');
+                addTransactionToHistory({
+                    type: 'supplyNFTRewards',
+                    fromAmount: amount,
+                    rewardToken: token,
+                    status: 'failed',
+                    timestamp: Date.now()
+                });
+            }
+            supplyNftStakingRewardsBtn.disabled = false;
+            supplyNftStakingRewardsBtn.innerHTML = 'Supply Rewards';
+            nftStakingSupplyAmountInput.value = '';
+        }
+
+        async function handleStakeMyNFT() {
+            if (!state.isConnected) {
+                updateTransactionStatus('Please connect your wallet.', 'error');
+                return;
+            }
+            const unstakedNFTs = state.myNFTs.filter(nft => nft.owner === 'user' && !nft.isStaked);
+            if (unstakedNFTs.length === 0) {
+                updateTransactionStatus('You have no unstaked NFTs to stake.', 'error');
+                return;
+            }
+            const nftToStake = unstakedNFTs[0]; // Just stake the first available
+
+            updateTransactionStatus(`Staking NFT #${nftToStake.id} from ${nftToStake.collectionName}...`, 'pending');
+            stakeMyNftBtn.disabled = true;
+            stakeMyNftBtn.innerHTML = '<div class="spinner"></div> Staking...';
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const success = Math.random() > 0.1;
+
+            if (success) {
+                nftToStake.isStaked = true;
+                state.nftStakingPool.userStakedNFTs.push(nftToStake);
+                state.nftStakingPool.totalStakedNFTs++;
+
+                updateBalancesUI(); // No balance change, but UI might need refresh
+                renderNFTUI();
+                updatePortfolioTrackerUI();
+                updateTransactionStatus(`Successfully staked NFT #${nftToStake.id}.`, 'success');
+                addTransactionToHistory({
+                    type: 'stakeNFT',
+                    nftId: nftToStake.id,
+                    collectionName: nftToStake.collectionName,
+                    status: 'success',
+                    timestamp: Date.now()
+                });
+                triggerBurstEffect();
+            } else {
+                updateTransactionStatus(`Failed to stake NFT #${nftToStake.id}.`, 'error');
+                addTransactionToHistory({
+                    type: 'stakeNFT',
+                    nftId: nftToStake.id,
+                    collectionName: nftToStake.collectionName,
+                    status: 'failed',
+                    timestamp: Date.now()
+                });
+            }
+            stakeMyNftBtn.disabled = false;
+            stakeMyNftBtn.innerHTML = 'Stake My NFT';
+        }
+
+        async function handleUnstakeClaimNFTRewards() {
+            if (!state.isConnected) {
+                updateTransactionStatus('Please connect your wallet.', 'error');
+                return;
+            }
+            const stakingPool = state.nftStakingPool;
+            if (!stakingPool || (stakingPool.userStakedNFTs.length === 0 && stakingPool.userEarnedRewards <= 0)) {
+                updateTransactionStatus('No staked NFTs or rewards to claim.', 'error');
+                return;
+            }
+
+            updateTransactionStatus(`Unstaking NFTs and claiming rewards...`, 'pending');
+            unstakeClaimNftRewardsBtn.disabled = true;
+            unstakeClaimNftRewardsBtn.innerHTML = '<div class="spinner"></div> Processing...';
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            const success = Math.random() > 0.05;
+
+            if (success) {
+                // Unstake all user's NFTs
+                stakingPool.userStakedNFTs.forEach(nft => {
+                    nft.isStaked = false;
+                    state.nftStakingPool.totalStakedNFTs--;
+                });
+                stakingPool.userStakedNFTs = [];
+
+                // Claim rewards
+                state.balances[stakingPool.rewardToken] = (state.balances[stakingPool.rewardToken] || 0) + stakingPool.userEarnedRewards;
+                const claimedRewards = stakingPool.userEarnedRewards;
+                stakingPool.userEarnedRewards = 0;
+
+                updateBalancesUI();
+                renderNFTUI();
+                updatePortfolioTrackerUI();
+                updateTransactionStatus(`Successfully unstaked NFTs and claimed ${claimedRewards.toFixed(4)} ${stakingPool.rewardToken}.`, 'success');
+                addTransactionToHistory({
+                    type: 'claimNFTReward',
+                    rewardToken: stakingPool.rewardToken,
+                    toAmount: claimedRewards,
+                    status: 'success',
+                    timestamp: Date.now()
+                });
+                triggerBurstEffect();
+            } else {
+                updateTransactionStatus('Failed to unstake NFTs or claim rewards.', 'error');
+                addTransactionToHistory({
+                    type: 'claimNFTReward',
+                    rewardToken: stakingPool.rewardToken,
+                    toAmount: 0,
+                    status: 'failed',
+                    timestamp: Date.now()
+                });
+            }
+            unstakeClaimNftRewardsBtn.disabled = false;
+            unstakeClaimNftRewardsBtn.innerHTML = 'Unstake & Claim';
+        }
+
 
         async function handleVote(event) {
             if (!state.isConnected) {
@@ -3239,6 +4088,23 @@
                         pool.devRewards += devRewardAmount;
                     }
                 }
+
+                // Bots add/remove liquidity from all pools
+                if (Math.random() < 0.1) { // 10% chance for bot LP activity
+                    const lpAction = Math.random() > 0.5 ? 'add' : 'remove';
+                    const amount = Math.random() * 1000; // Up to $1000 worth
+                    if (lpAction === 'add') {
+                        // Simplified bot adding liquidity
+                        pool.tvl += amount;
+                        pool.totalLP += amount / 1000;
+                    } else if (pool.tvl > 1000) { // Only remove if enough TVL
+                        // Simplified bot removing liquidity
+                        pool.tvl -= amount;
+                        pool.totalLP -= amount / 1000;
+                        if (pool.tvl < 0) pool.tvl = 0;
+                        if (pool.totalLP < 0) pool.totalLP = 0;
+                    }
+                }
             }
             renderLiquidityPoolsUI(); // Update display
             updatePortfolioTrackerUI(); // Update portfolio with new fee values
@@ -3401,6 +4267,64 @@
                     }
                 }
             }
+
+            // Simulate bot NFT activity
+            if (state.myNFTCollection && state.myNFTCollection.isLaunched) {
+                // Bots minting
+                if (Math.random() < 0.2) { // 20% chance to mint
+                    simulateBotMinting(state.myNFTCollection.name);
+                }
+
+                // Bots buying/selling NFTs
+                if (state.nftMarketplaceListings.length > 0 && Math.random() < 0.3) { // 30% chance to buy/sell
+                    const action = Math.random() > 0.5 ? 'buy' : 'list';
+                    if (action === 'buy') {
+                        const nftToBuy = state.nftMarketplaceListings[Math.floor(Math.random() * state.nftMarketplaceListings.length)];
+                        // Simulate bot buying (no actual balance check for bot)
+                        state.nftMarketplaceListings = state.nftMarketplaceListings.filter(nft => nft.id !== nftToBuy.id);
+                        const ownedNft = state.myNFTs.find(nft => nft.id === nftToBuy.id);
+                        if (ownedNft) ownedNft.owner = 'bot'; // Transfer ownership to bot
+                        state.myNFTCollection.floorPrice = state.myNFTCollection.floorPrice * (1 + (Math.random() * 0.02)); // Small increase on buy
+                        const creatorFee = nftToBuy.price * 0.001;
+                        state.myNFTCollection.userClaimableFees += creatorFee;
+                        state.totalPlatformRevenue += creatorFee;
+                        updateTransactionStatus(`Bot bought NFT #${nftToBuy.id}.`, 'info');
+                    } else { // List for sale (if bot owns any)
+                        const botOwnedNFTs = state.myNFTs.filter(nft => nft.owner === 'bot' && !nft.isListed);
+                        if (botOwnedNFTs.length > 0) {
+                            const nftToList = botOwnedNFTs[Math.floor(Math.random() * botOwnedNFTs.length)];
+                            nftToList.isListed = true;
+                            nftToList.price = nftToList.price * (1 + (Math.random() - 0.5) * 0.1); // Price fluctuation
+                            state.nftMarketplaceListings.push(nftToList);
+                            updateTransactionStatus(`Bot listed NFT #${nftToList.id} for sale.`, 'info');
+                        }
+                    }
+                    renderNFTUI();
+                }
+
+                // Bots staking NFTs
+                if (Math.random() < 0.1 && state.nftStakingPool) { // 10% chance to stake
+                    const botOwnedUnstakedNFTs = state.myNFTs.filter(nft => nft.owner === 'bot' && !nft.isStaked);
+                    if (botOwnedUnstakedNFTs.length > 0) {
+                        const nftToStake = botOwnedUnstakedNFTs[Math.floor(Math.random() * botOwnedUnstakedNFTs.length)];
+                        nftToStake.isStaked = true;
+                        state.nftStakingPool.totalStakedNFTs++;
+                        updateTransactionStatus(`Bot staked NFT #${nftToStake.id}.`, 'info');
+                        renderNFTUI();
+                    }
+                }
+
+                // Bots claiming NFT staking rewards
+                if (Math.random() < 0.05 && state.nftStakingPool && state.nftStakingPool.totalStakedNFTs > 0) {
+                    // Simulate bot claiming rewards (no actual balance tracking for bot)
+                    // Just reset a small portion of dev supplied rewards as "claimed by bots"
+                    const claimedByBots = state.nftStakingPool.devSuppliedRewards * 0.01; // 1% of dev rewards claimed by bots
+                    state.nftStakingPool.devSuppliedRewards -= claimedByBots;
+                    if (state.nftStakingPool.devSuppliedRewards < 0) state.nftStakingPool.devSuppliedRewards = 0;
+                    updateTransactionStatus(`Bots claimed ${claimedByBots.toFixed(4)} ${state.nftStakingPool.rewardToken} from NFT staking.`, 'info');
+                    renderNFTUI();
+                }
+            }
         }
 
 
@@ -3418,6 +4342,7 @@
             renderTokenInfoUI(); // Initial token info display
             renderStakingPoolsUI(); // Initial staking pools display
             renderShortItHistory(); // Initial short-it history
+            renderNFTUI(); // Initial NFT UI
             renderDashboardUI(); // Initial dashboard display
             updatePortfolioTrackerUI(); // Initial portfolio display
 
@@ -3453,6 +4378,7 @@
             renderLaunchpadUI(); // Re-render launchpad to update stake button states
             renderStakingPoolsUI(); // Re-render staking pools to update stake button states
             updateShortItGameArea(); // Re-render short-it game area
+            renderNFTUI(); // Re-render NFT UI
         });
 
         swapTabBtn.addEventListener('click', () => {
@@ -3461,19 +4387,21 @@
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
-            stakingTabBtn.classList.remove('active'); // New
-            shortItTabBtn.classList.remove('active'); // New
+            stakingTabBtn.classList.remove('active');
+            shortItTabBtn.classList.remove('active');
+            nftTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
-            dashboardTabBtn.classList.remove('active'); // New
+            dashboardTabBtn.classList.remove('active');
             swapInterface.classList.remove('hidden');
             bridgeInterface.classList.add('hidden');
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
-            stakingInterface.classList.add('hidden'); // New
-            shortItInterface.classList.add('hidden'); // New
+            stakingInterface.classList.add('hidden');
+            shortItInterface.classList.add('hidden');
+            nftInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
-            dashboardInterface.classList.add('hidden'); // New
+            dashboardInterface.classList.add('hidden');
             updateTransactionStatus('No active transactions.', 'info'); // Clear status when switching tabs
             calculateSwapOutput(); // Recalculate output based on current tokens
         });
@@ -3484,19 +4412,21 @@
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
-            stakingTabBtn.classList.remove('active'); // New
-            shortItTabBtn.classList.remove('active'); // New
+            stakingTabBtn.classList.remove('active');
+            shortItTabBtn.classList.remove('active');
+            nftTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
-            dashboardTabBtn.classList.remove('active'); // New
+            dashboardTabBtn.classList.remove('active');
             bridgeInterface.classList.remove('hidden');
             swapInterface.classList.add('hidden');
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
-            stakingInterface.classList.add('hidden'); // New
-            shortItInterface.classList.add('hidden'); // New
+            stakingInterface.classList.add('hidden');
+            shortItInterface.classList.add('hidden');
+            nftInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
-            dashboardInterface.classList.add('hidden'); // New
+            dashboardInterface.classList.add('hidden');
             updateTransactionStatus('No active transactions.', 'info'); // Clear status when switching tabs
             calculateBridgeOutput(); // Recalculate output based on current tokens
         });
@@ -3507,19 +4437,21 @@
             bridgeTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
-            stakingTabBtn.classList.remove('active'); // New
-            shortItTabBtn.classList.remove('active'); // New
+            stakingTabBtn.classList.remove('active');
+            shortItTabBtn.classList.remove('active');
+            nftTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
-            dashboardTabBtn.classList.remove('active'); // New
+            dashboardTabBtn.classList.remove('active');
             liquidityInterface.classList.remove('hidden');
             swapInterface.classList.add('hidden');
             bridgeInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
-            stakingInterface.classList.add('hidden'); // New
-            shortItInterface.classList.add('hidden'); // New
+            stakingInterface.classList.add('hidden');
+            shortItInterface.classList.add('hidden');
+            nftInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
-            dashboardInterface.classList.add('hidden'); // New
+            dashboardInterface.classList.add('hidden');
             updateTransactionStatus('No active transactions.', 'info'); // Clear status when switching tabs
             renderLiquidityPoolsUI(); // Re-render pools when tab is active
             calculateAddLiquidityOutput(); // Recalculate for add liquidity
@@ -3531,19 +4463,21 @@
             bridgeTabBtn.classList.remove('active');
             liquidityTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
-            stakingTabBtn.classList.remove('active'); // New
-            shortItTabBtn.classList.remove('active'); // New
+            stakingTabBtn.classList.remove('active');
+            shortItTabBtn.classList.remove('active');
+            nftTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
-            dashboardTabBtn.classList.remove('active'); // New
+            dashboardTabBtn.classList.remove('active');
             launchpadInterface.classList.remove('hidden');
             swapInterface.classList.add('hidden');
             bridgeInterface.classList.add('hidden');
             liquidityInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
-            stakingInterface.classList.add('hidden'); // New
-            shortItInterface.classList.add('hidden'); // New
+            stakingInterface.classList.add('hidden');
+            shortItInterface.classList.add('hidden');
+            nftInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
-            dashboardInterface.classList.add('hidden'); // New
+            dashboardInterface.classList.add('hidden');
             updateTransactionStatus('No active transactions.', 'info');
             renderLaunchpadUI(); // Re-render launchpad pools
         });
@@ -3554,19 +4488,21 @@
             bridgeTabBtn.classList.remove('active');
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
-            stakingTabBtn.classList.remove('active'); // New
-            shortItTabBtn.classList.remove('active'); // New
+            stakingTabBtn.classList.remove('active');
+            shortItTabBtn.classList.remove('active');
+            nftTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
-            dashboardTabBtn.classList.remove('active'); // New
+            dashboardTabBtn.classList.remove('active');
             tokensInterface.classList.remove('hidden');
             swapInterface.classList.add('hidden');
             bridgeInterface.classList.add('hidden');
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
-            stakingInterface.classList.add('hidden'); // New
-            shortItInterface.classList.add('hidden'); // New
+            stakingInterface.classList.add('hidden');
+            shortItInterface.classList.add('hidden');
+            nftInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
-            dashboardInterface.classList.add('hidden'); // New
+            dashboardInterface.classList.add('hidden');
             updateTransactionStatus('No active transactions.', 'info');
             renderTokenInfoUI(); // Re-render token info
         });
@@ -3578,18 +4514,20 @@
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
-            shortItTabBtn.classList.remove('active'); // New
+            shortItTabBtn.classList.remove('active');
+            nftTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
-            dashboardTabBtn.classList.remove('active'); // New
+            dashboardTabBtn.classList.remove('active');
             stakingInterface.classList.remove('hidden');
             swapInterface.classList.add('hidden');
             bridgeInterface.classList.add('hidden');
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
-            shortItInterface.classList.add('hidden'); // New
+            shortItInterface.classList.add('hidden');
+            nftInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
-            dashboardInterface.classList.add('hidden'); // New
+            dashboardInterface.classList.add('hidden');
             updateTransactionStatus('No active transactions.', 'info');
             renderStakingPoolsUI(); // Re-render staking pools
         });
@@ -3602,6 +4540,7 @@
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
             stakingTabBtn.classList.remove('active');
+            nftTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
             dashboardTabBtn.classList.remove('active');
             shortItInterface.classList.remove('hidden');
@@ -3611,10 +4550,36 @@
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
             stakingInterface.classList.add('hidden');
+            nftInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
             dashboardInterface.classList.add('hidden');
             updateTransactionStatus('No active transactions.', 'info');
             updateShortItGameArea(); // Render short-it game area
+        });
+
+        nftTabBtn.addEventListener('click', () => { // New
+            nftTabBtn.classList.add('active');
+            swapTabBtn.classList.remove('active');
+            bridgeTabBtn.classList.remove('active');
+            liquidityTabBtn.classList.remove('active');
+            launchpadTabBtn.classList.remove('active');
+            tokensTabBtn.classList.remove('active');
+            stakingTabBtn.classList.remove('active');
+            shortItTabBtn.classList.remove('active');
+            governanceTabBtn.classList.remove('active');
+            dashboardTabBtn.classList.remove('active');
+            nftInterface.classList.remove('hidden');
+            swapInterface.classList.add('hidden');
+            bridgeInterface.classList.add('hidden');
+            liquidityInterface.classList.add('hidden');
+            launchpadInterface.classList.add('hidden');
+            tokensInterface.classList.add('hidden');
+            stakingInterface.classList.add('hidden');
+            shortItInterface.classList.add('hidden');
+            governanceInterface.classList.add('hidden');
+            dashboardInterface.classList.add('hidden');
+            updateTransactionStatus('No active transactions.', 'info');
+            renderNFTUI(); // Render NFT UI
         });
 
         governanceTabBtn.addEventListener('click', () => {
@@ -3624,18 +4589,20 @@
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
-            stakingTabBtn.classList.remove('active'); // New
-            shortItTabBtn.classList.remove('active'); // New
-            dashboardTabBtn.classList.remove('active'); // New
+            stakingTabBtn.classList.remove('active');
+            shortItTabBtn.classList.remove('active');
+            nftTabBtn.classList.remove('active'); // New
+            dashboardTabBtn.classList.remove('active');
             governanceInterface.classList.remove('hidden');
             swapInterface.classList.add('hidden');
             bridgeInterface.classList.add('hidden');
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
-            stakingInterface.classList.add('hidden'); // New
-            shortItInterface.classList.add('hidden'); // New
-            dashboardInterface.classList.add('hidden'); // New
+            stakingInterface.classList.add('hidden');
+            shortItInterface.classList.add('hidden');
+            nftInterface.classList.add('hidden'); // New
+            dashboardInterface.classList.add('hidden');
             updateTransactionStatus('No active transactions.', 'info'); // Clear status when switching tabs
             renderProposalsUI(); // Re-render proposals when tab is active
         });
@@ -3647,8 +4614,9 @@
             liquidityTabBtn.classList.remove('active');
             launchpadTabBtn.classList.remove('active');
             tokensTabBtn.classList.remove('active');
-            stakingTabBtn.classList.remove('active'); // New
-            shortItTabBtn.classList.remove('active'); // New
+            stakingTabBtn.classList.remove('active');
+            shortItTabBtn.classList.remove('active');
+            nftTabBtn.classList.remove('active'); // New
             governanceTabBtn.classList.remove('active');
             dashboardInterface.classList.remove('hidden');
             swapInterface.classList.add('hidden');
@@ -3656,8 +4624,9 @@
             liquidityInterface.classList.add('hidden');
             launchpadInterface.classList.add('hidden');
             tokensInterface.classList.add('hidden');
-            stakingInterface.classList.add('hidden'); // New
-            shortItInterface.classList.add('hidden'); // New
+            stakingInterface.classList.add('hidden');
+            shortItInterface.classList.add('hidden');
+            nftInterface.classList.add('hidden'); // New
             governanceInterface.classList.add('hidden');
             updateTransactionStatus('No active transactions.', 'info');
             renderDashboardUI(); // Re-render dashboard stats
@@ -3699,32 +4668,35 @@
         shortItBetUpBtn.addEventListener('click', () => handleBetShortIt('up'));
         shortItBetDownBtn.addEventListener('click', () => handleBetShortIt('down'));
 
+        // NFT Listeners
+        launchNftCollectionBtn.addEventListener('click', handleLaunchNFTCollection);
+        claimNftFeesBtn.addEventListener('click', handleClaimNFTFees);
+        supplyNftStakingRewardsBtn.addEventListener('click', handleSupplyNFTRewards);
+        stakeMyNftBtn.addEventListener('click', handleStakeMyNFT);
+        unstakeClaimNftRewardsBtn.addEventListener('click', handleUnstakeClaimNFTRewards);
+
 
         // Max button handler
         function handleMaxButtonClick(event) {
             const inputId = event.target.dataset.inputId;
             const balanceToken = event.target.dataset.balanceToken;
-            const actionType = event.target.dataset.actionType; // New: action to perform
-            const tokenSymbol = event.target.dataset.tokenSymbol; // New: token symbol for some actions
-
             const inputElement = document.getElementById(inputId);
 
-            if (inputElement && state.balances[balanceToken] !== undefined) {
-                inputElement.value = state.balances[balanceToken].toFixed(2);
+            let amountToSet = 0;
+            if (balanceToken === 'selectedShortItToken') {
+                const selectedToken = shortItTokenSelect.value;
+                if (selectedToken && state.balances[selectedToken] !== undefined) {
+                    amountToSet = state.balances[selectedToken];
+                }
+            } else if (state.balances[balanceToken] !== undefined) {
+                amountToSet = state.balances[balanceToken];
+            }
+
+            if (inputElement) {
+                inputElement.value = amountToSet.toFixed(2);
                 // Trigger relevant calculation if applicable
                 if (inputId.includes('add-liquidity-amount-a')) {
                     calculateAddLiquidityOutput();
-                }
-
-                // Automatically trigger the action if 'Max' is pressed
-                if (actionType === 'contributeGenesis') {
-                    handleContributeGenesis({ target: { dataset: { id: tokenSymbol, action: 'contribute' }, disabled: false, innerHTML: 'Contribute USDC' }, currentTarget: event.currentTarget });
-                } else if (actionType === 'stakeGOV') {
-                    handleStakeGOV({ target: { dataset: { id: tokenSymbol, action: 'stake' }, disabled: false, innerHTML: 'Stake GOV' }, currentTarget: event.currentTarget });
-                } else if (actionType === 'stakeToken') {
-                    handleStakeToken({ target: { dataset: { id: tokenSymbol, action: 'stakeToken' }, disabled: false, innerHTML: `Stake ${tokenSymbol}` }, currentTarget: event.currentTarget });
-                } else if (inputId === 'short-it-amount') {
-                    // For short it, just setting the amount is enough, user still clicks up/down
                 }
             }
         }
