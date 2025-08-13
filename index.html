@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AVAX Balance Checker</title>
+  <title>Universal AVAX Balance Checker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Ethers.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
   <!-- WalletConnect v1 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
-    body { font-family: 'Inter', Arial, sans-serif; background: #f6faff; margin: 0; }
-    .container { background: #fff; max-width: 420px; margin: 40px auto; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 2rem 1.5rem 2rem 1.5rem; text-align: center; }
+    body { font-family: 'Inter', Arial, sans-serif; background: #f6faff; margin: 0;}
+    .container { background: #fff; max-width: 420px; margin: 40px auto; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 2rem 1.5rem; text-align: center; }
     .logo { width: 64px; margin-bottom: 18px; }
     button {
       background: #e84142;
@@ -20,7 +20,7 @@
       padding: 0.7em 1.4em;
       font-size: 1.07em;
       cursor: pointer;
-      margin: 1em 0;
+      margin: 1em 0.3em;
       transition: background 0.2s;
     }
     button:disabled { background: #e8414260; cursor: not-allowed; }
@@ -45,9 +45,10 @@
 <body>
   <div class="container">
     <img src="https://cryptologos.cc/logos/avalanche-avax-logo.png?v=029" alt="AVAX logo" class="logo">
-    <h2>AVAX Balance Checker</h2>
+    <h2>Universal AVAX Balance Checker</h2>
     <div class="network" id="networkDiv"></div>
-    <button id="connectBtn">Connect Wallet</button>
+    <button id="connectMetaMaskBtn">Connect with Browser Wallet</button>
+    <button id="connectWCBtn">Connect with WalletConnect</button>
     <button id="disconnectBtn" style="display:none;">Disconnect</button>
 
     <div class="loading" id="loadingDiv"></div>
@@ -71,7 +72,7 @@
       </tr>
     </table>
     <div class="help">
-      <b>How it works:</b> Connect your wallet (Trust Wallet, MetaMask Mobile, etc.) via WalletConnect.<br>
+      <b>How it works:</b> Connect with any browser wallet (MetaMask, Rabby, Coinbase, etc.) or use WalletConnect for mobile wallets.<br>
       The dApp will show your AVAX address, balance, and estimated fiat value.<br>
       <b>Note:</b> No wallet data is stored. Always verify dApp URLs before connecting!
     </div>
@@ -85,7 +86,8 @@
     const AVAX_CHAIN_ID = 43114;
     const AVAX_RPC_URL = "https://api.avax.network/ext/bc/C/rpc";
 
-    const connectBtn = document.getElementById('connectBtn');
+    const connectMetaMaskBtn = document.getElementById('connectMetaMaskBtn');
+    const connectWCBtn = document.getElementById('connectWCBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
     const addressCell = document.getElementById('addressCell');
     const balanceCell = document.getElementById('balanceCell');
@@ -96,7 +98,7 @@
     const loadingDiv = document.getElementById('loadingDiv');
     const errorDiv = document.getElementById('errorDiv');
 
-    let wcProvider, provider, signer;
+    let provider, signer, wcProvider;
     let avaxPrice = null;
 
     async function fetchAvaxPrice() {
@@ -114,8 +116,82 @@
       }
     }
 
-    async function connectWallet() {
-      connectBtn.disabled = true;
+    async function connectMetaMask() {
+      connectMetaMaskBtn.disabled = true;
+      connectWCBtn.disabled = true;
+      loadingDiv.textContent = "Connecting to browser wallet...";
+      errorDiv.textContent = "";
+
+      try {
+        if (window.ethereum) {
+          provider = new window.ethers.BrowserProvider(window.ethereum);
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+          // Switch to Avalanche C-Chain if needed
+          const network = await provider.getNetwork();
+          if (network.chainId !== AVAX_CHAIN_ID) {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0xa86a' }]
+              });
+            } catch (switchError) {
+              // If not added, try to add Avalanche
+              if (switchError.code === 4902) {
+                await window.ethereum.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [{
+                    chainId: '0xa86a',
+                    rpcUrls: [AVAX_RPC_URL],
+                    chainName: 'Avalanche C-Chain',
+                    nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+                    blockExplorerUrls: ['https://snowtrace.io/']
+                  }]
+                });
+              } else {
+                throw switchError;
+              }
+            }
+          }
+
+          signer = await provider.getSigner();
+          const network2 = await provider.getNetwork();
+          networkDiv.textContent = `Network: ${network2.name || "Avalanche"} (${network2.chainId})`;
+
+          const userAddress = await signer.getAddress();
+          addressCell.textContent = userAddress;
+
+          loadingDiv.textContent = "Fetching balance...";
+          const bal = await provider.getBalance(userAddress);
+          const avaxBal = window.ethers.formatEther(bal);
+          balanceCell.textContent = `${avaxBal} AVAX`;
+
+          await fetchAvaxPrice();
+          if (avaxPrice) {
+            fiatCell.textContent = `$${(avaxBal * avaxPrice).toFixed(2)} USD`;
+          } else {
+            fiatCell.textContent = "Unavailable";
+          }
+
+          infoTable.style.display = "";
+          disconnectBtn.style.display = "";
+          connectMetaMaskBtn.style.display = "none";
+          connectWCBtn.style.display = "none";
+          loadingDiv.textContent = "";
+        } else {
+          throw new Error("No browser wallet found (MetaMask, Rabby, etc.)");
+        }
+      } catch (err) {
+        errorDiv.textContent = `Failed to connect wallet: ${err.message || err}`;
+        connectMetaMaskBtn.disabled = false;
+        connectWCBtn.disabled = false;
+        loadingDiv.textContent = "";
+      }
+    }
+
+    async function connectWalletConnect() {
+      connectMetaMaskBtn.disabled = true;
+      connectWCBtn.disabled = true;
       loadingDiv.textContent = "Initializing WalletConnect...";
       errorDiv.textContent = "";
 
@@ -129,21 +205,17 @@
         provider = new window.ethers.BrowserProvider(wcProvider);
         signer = await provider.getSigner();
 
-        // Get network info
         const network = await provider.getNetwork();
         networkDiv.textContent = `Network: ${network.name || "Avalanche"} (${network.chainId})`;
 
-        // Get address
         const userAddress = await signer.getAddress();
         addressCell.textContent = userAddress;
 
-        // Get AVAX balance
         loadingDiv.textContent = "Fetching balance...";
         const bal = await provider.getBalance(userAddress);
         const avaxBal = window.ethers.formatEther(bal);
         balanceCell.textContent = `${avaxBal} AVAX`;
 
-        // Fetch AVAX price and calculate fiat value
         await fetchAvaxPrice();
         if (avaxPrice) {
           fiatCell.textContent = `$${(avaxBal * avaxPrice).toFixed(2)} USD`;
@@ -153,11 +225,13 @@
 
         infoTable.style.display = "";
         disconnectBtn.style.display = "";
-        connectBtn.style.display = "none";
+        connectMetaMaskBtn.style.display = "none";
+        connectWCBtn.style.display = "none";
         loadingDiv.textContent = "";
       } catch (err) {
         errorDiv.textContent = `Failed to connect wallet: ${err.message || err}`;
-        connectBtn.disabled = false;
+        connectMetaMaskBtn.disabled = false;
+        connectWCBtn.disabled = false;
         loadingDiv.textContent = "";
       }
     }
@@ -168,13 +242,15 @@
           await wcProvider.disconnect();
         }
       } catch (err) {}
-      wcProvider = null;
       provider = null;
       signer = null;
+      wcProvider = null;
       infoTable.style.display = "none";
       disconnectBtn.style.display = "none";
-      connectBtn.style.display = "";
-      connectBtn.disabled = false;
+      connectMetaMaskBtn.style.display = "";
+      connectMetaMaskBtn.disabled = false;
+      connectWCBtn.style.display = "";
+      connectWCBtn.disabled = false;
       networkDiv.textContent = "";
       errorDiv.textContent = "";
       addressCell.textContent = "";
@@ -183,8 +259,10 @@
       priceCell.textContent = "";
     }
 
-    connectBtn.onclick = connectWallet;
+    connectMetaMaskBtn.onclick = connectMetaMask;
+    connectWCBtn.onclick = connectWalletConnect;
     disconnectBtn.onclick = disconnectWallet;
+
     fetchAvaxPrice();
   </script>
 </body>
