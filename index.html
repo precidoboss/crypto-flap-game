@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AVAX Balance Checker</title>
+  <title>AVAX Balance Checker (WalletConnect v2)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Web3Modal v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/web3modal@2.7.2/dist/index.js"></script>
   <!-- Ethers.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
-  <!-- WalletConnect v1 SDK (deprecated, but works for Trust Wallet) -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
     body { font-family: sans-serif; max-width: 400px; margin: 50px auto; text-align: center; }
     button { padding: 0.5em 1em; font-size: 1em; }
@@ -15,39 +15,58 @@
   </style>
 </head>
 <body>
-  <h2>AVAX Balance Checker</h2>
-  <button id="connectBtn">Connect Trust Wallet</button>
+  <h2>AVAX Balance Checker (WC v2)</h2>
+  <button id="connectBtn">Connect Wallet</button>
   <div class="address" id="addressDiv"></div>
   <div class="balance" id="balanceDiv"></div>
 
   <script>
+    const AVAX_CHAIN_ID = 43114;
     const AVAX_RPC_URL = "https://api.avax.network/ext/bc/C/rpc";
     const connectBtn = document.getElementById('connectBtn');
     const addressDiv = document.getElementById('addressDiv');
     const balanceDiv = document.getElementById('balanceDiv');
 
+    let provider;
+
     connectBtn.onclick = async function() {
       connectBtn.disabled = true;
       connectBtn.textContent = "Connecting...";
-      try {
-        const wcProvider = new window.WalletConnectProvider.default({
-          rpc: { 43114: AVAX_RPC_URL },
-          chainId: 43114,
-        });
-        await wcProvider.enable();
 
-        const ethersProvider = new window.ethers.BrowserProvider(wcProvider);
-        const signer = await ethersProvider.getSigner();
+      try {
+        // Setup Web3Modal with Avalanche chain
+        const web3Modal = new window.Web3Modal.default({
+          projectId: "149ddeec1dea68dd9f14f2b11411147a", // Replace with your WalletConnect Cloud Project ID
+          chains: [
+            {
+              id: AVAX_CHAIN_ID,
+              name: "Avalanche",
+              rpc: AVAX_RPC_URL,
+              nativeCurrency: {
+                name: "Avalanche",
+                symbol: "AVAX",
+                decimals: 18,
+              },
+            },
+          ],
+          themeMode: "light"
+        });
+
+        const instance = await web3Modal.connect();
+        provider = new window.ethers.BrowserProvider(instance);
+
+        const signer = await provider.getSigner();
         const userAddress = await signer.getAddress();
         addressDiv.innerHTML = `<strong>Connected Address:</strong><br>${userAddress}`;
 
-        const bal = await ethersProvider.getBalance(userAddress);
+        const bal = await provider.getBalance(userAddress);
         balanceDiv.innerHTML = `<strong>Balance:</strong><br>${window.ethers.formatEther(bal)} AVAX`;
+
         connectBtn.style.display = "none";
       } catch (err) {
         alert("Failed to connect wallet: " + err);
         connectBtn.disabled = false;
-        connectBtn.textContent = "Connect Trust Wallet";
+        connectBtn.textContent = "Connect Wallet";
       }
     };
   </script>
