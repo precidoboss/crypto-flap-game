@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AVAX Balance Checker (WalletConnect v2)</title>
+  <title>AVAX Balance Checker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Web3Modal v2 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/web3modal@2.7.2/dist/index.js"></script>
   <!-- Ethers.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+  <!-- WalletConnect v1 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
     body { font-family: 'Inter', Arial, sans-serif; background: #f6faff; margin: 0; }
     .container { background: #fff; max-width: 420px; margin: 40px auto; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 2rem 1.5rem 2rem 1.5rem; text-align: center; }
@@ -84,7 +84,6 @@
   <script>
     const AVAX_CHAIN_ID = 43114;
     const AVAX_RPC_URL = "https://api.avax.network/ext/bc/C/rpc";
-    const PROJECT_ID = "149ddeec1dea68dd9f14f2b11411147a"; // Your WalletConnect Cloud Project ID
 
     const connectBtn = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
@@ -97,11 +96,10 @@
     const loadingDiv = document.getElementById('loadingDiv');
     const errorDiv = document.getElementById('errorDiv');
 
-    let web3Modal, provider, signer, walletInstance;
+    let wcProvider, provider, signer;
     let avaxPrice = null;
 
     async function fetchAvaxPrice() {
-      // Use CoinGecko API
       try {
         loadingDiv.textContent = "Fetching AVAX price...";
         const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd");
@@ -122,23 +120,13 @@
       errorDiv.textContent = "";
 
       try {
-        if (!web3Modal) {
-          web3Modal = new window.Web3Modal({
-            projectId: PROJECT_ID,
-            chains: [
-              {
-                id: AVAX_CHAIN_ID,
-                name: "Avalanche",
-                rpc: AVAX_RPC_URL,
-                nativeCurrency: { name: "Avalanche", symbol: "AVAX", decimals: 18 },
-              },
-            ],
-            themeMode: "light"
-          });
-        }
+        wcProvider = new window.WalletConnectProvider.default({
+          rpc: { [AVAX_CHAIN_ID]: AVAX_RPC_URL },
+          chainId: AVAX_CHAIN_ID,
+        });
+        await wcProvider.enable();
 
-        walletInstance = await web3Modal.connect();
-        provider = new window.ethers.BrowserProvider(walletInstance);
+        provider = new window.ethers.BrowserProvider(wcProvider);
         signer = await provider.getSigner();
 
         // Get network info
@@ -176,13 +164,13 @@
 
     async function disconnectWallet() {
       try {
-        if (walletInstance && walletInstance.disconnect) {
-          await walletInstance.disconnect();
+        if (wcProvider && wcProvider.disconnect) {
+          await wcProvider.disconnect();
         }
       } catch (err) {}
+      wcProvider = null;
       provider = null;
       signer = null;
-      walletInstance = null;
       infoTable.style.display = "none";
       disconnectBtn.style.display = "none";
       connectBtn.style.display = "";
@@ -197,8 +185,6 @@
 
     connectBtn.onclick = connectWallet;
     disconnectBtn.onclick = disconnectWallet;
-
-    // Fetch price on load for info
     fetchAvaxPrice();
   </script>
 </body>
