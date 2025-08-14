@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AVAX Wallet Balance</title>
+  <title>AVAX Wallet DApp</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Inter font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -26,18 +26,19 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-width: 340px;
+      min-width: 360px;
       min-height: 60vh;
       animation: fadeIn 0.8s cubic-bezier(.5,1.5,.5,1);
     }
     .card {
-      background: rgba(30,41,59,0.93);
-      border-radius: 24px;
-      box-shadow: 0 6px 32px #6366f155;
-      padding: 40px 32px;
-      min-width: 320px;
+      background: rgba(30,41,59,0.96);
+      border-radius: 28px;
+      box-shadow: 0 6px 40px #6366f155;
+      padding: 40px 28px;
+      min-width: 340px;
+      max-width: 400px;
       text-align: center;
-      backdrop-filter: blur(2px);
+      backdrop-filter: blur(3px);
       animation: scaleIn 0.7s cubic-bezier(.5,1.5,.5,1);
     }
     .card h1 {
@@ -46,7 +47,7 @@
       margin-bottom: 16px;
       letter-spacing: 1px;
     }
-    .btn, .disconnect-btn {
+    .btn, .disconnect-btn, .send-btn {
       background: linear-gradient(90deg,#6366f1 0%,#60a5fa 100%);
       color: #fff;
       font-weight: 700;
@@ -60,7 +61,7 @@
       margin-bottom: 10px;
       box-shadow: 0 2px 8px #6366f133;
     }
-    .btn:hover, .disconnect-btn:hover {
+    .btn:hover, .disconnect-btn:hover, .send-btn:hover {
       background: linear-gradient(90deg,#60a5fa 0%,#6366f1 100%);
     }
     .wallet-choice {
@@ -89,6 +90,32 @@
       padding: 3px 7px;
       margin: 4px 0;
       display: inline-block;
+    }
+    .token-list {
+      list-style: none;
+      padding: 0;
+      margin: 12px 0 8px 0;
+      font-size:1.08em;
+    }
+    .token-list li {
+      background: rgba(99,102,241,0.07);
+      border-radius: 8px;
+      margin: 7px 0;
+      padding: 7px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 500;
+    }
+    .token-symbol {
+      color: #6366f1;
+      font-weight: 700;
+      margin-right: 6px;
+    }
+    .token-balance {
+      color: #fff;
+      font-weight: 700;
+      margin-left: 6px;
     }
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -129,8 +156,58 @@
       font-size: 0.98em;
       opacity: 0.8;
     }
+    .send-form {
+      margin: 0 auto;
+      margin-bottom: 12px;
+      margin-top:6px;
+      padding: 12px 0;
+      background: rgba(99,102,241,0.04);
+      border-radius: 10px;
+      max-width: 320px;
+      animation: fadeInUp 0.7s cubic-bezier(.5,1.5,.5,1);
+    }
+    .send-form input {
+      width: 85%;
+      margin: 8px auto;
+      padding: 10px 12px;
+      border-radius: 7px;
+      border: none;
+      outline: none;
+      font-size: 1em;
+      margin-bottom: 4px;
+      font-family: 'Inter', sans-serif;
+      background: rgba(99,102,241,0.09);
+      color: #3b82f6;
+      transition: background 0.2s;
+    }
+    .send-form input:focus {
+      background: rgba(99,102,241,0.18);
+    }
+    .send-form label {
+      font-weight: 600;
+      color: #6366f1;
+      font-size: 0.96em;
+      display:block;
+      margin-bottom:4px;
+      text-align:left;
+      margin-left:8%;
+    }
+    .status-message {
+      margin: 8px auto;
+      color: #a5b4fc;
+      font-size: 0.96em;
+      text-align: center;
+      min-height: 24px;
+    }
+    .status-message.error {
+      color: #f87171;
+    }
+    .status-message.success {
+      color: #34d399;
+    }
     @media (max-width: 450px) {
-      .card { padding: 24px 6px; min-width: 90vw; }
+      .card { padding: 24px 6px; min-width: 97vw; max-width: 97vw;}
+      .send-form {max-width:93vw;}
     }
   </style>
 </head>
@@ -138,7 +215,7 @@
   <div class="container">
     <div class="card" id="card">
       <img src="https://cryptologos.cc/logos/avalanche-avax-logo.png?v=029" class="logo" alt="AVAX Logo"/>
-      <h1>AVAX Wallet Balance</h1>
+      <h1>AVAX Wallet DApp</h1>
       <div id="main">
         <button class="btn" id="connectBtn">Connect Wallet</button>
       </div>
@@ -155,13 +232,33 @@
     // WalletConnect Project ID
     const WALLETCONNECT_PROJECT_ID = '149ddeec1dea68dd9f14f2b11411147a';
 
+    // ERC20 Token List (address, symbol, decimals)
+    // Add more tokens as needed (address, symbol, decimals)
+    const TOKEN_LIST = [
+      {address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", symbol: "WAVAX", decimals: 18},
+      {address: "0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", symbol: "DAI", decimals: 18},
+      {address: "0xA7D7079b0FEAD91F3e65f86E8915Cb59c1a4C664", symbol: "USDC", decimals: 6},
+      {address: "0x9702230A8Ea53601f5cD2dc00fDbc13d4df4A8c7", symbol: "USDT", decimals: 6},
+      {address: "0x60781CafE4e24bE97EAF3D10bA7cE2Ea7eF4aA34", symbol: "PNG", decimals: 18}
+      // Add more tokens here!
+    ];
+
+    // ERC20 ABI for balanceOf and transfer
+    const ERC20_ABI = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function symbol() view returns (string)",
+      "function decimals() view returns (uint8)"
+    ];
+
     // UI Elements
     const mainDiv = document.getElementById('main');
     const connectBtn = document.getElementById('connectBtn');
-    let provider, ethersProvider, signer, address, wcProvider;
+    let provider, ethersProvider, signer, address, wcProvider, currentWalletType;
 
     // Wallet choice popup
-    connectBtn.onclick = () => {
+    connectBtn.onclick = showWalletChoice;
+
+    function showWalletChoice() {
       mainDiv.innerHTML = `
         <div class="wallet-choice">
           <button class="btn" id="injectedBtn">MetaMask / Injected</button>
@@ -170,18 +267,19 @@
       `;
       document.getElementById('injectedBtn').onclick = injectedConnect;
       document.getElementById('wcBtn').onclick = walletConnectConnect;
-    };
+    }
 
     // Injected wallet connect (MetaMask, TrustWallet extension, etc)
     async function injectedConnect() {
       if (!window.ethereum) {
         mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">No injected wallet found.<br>Install MetaMask or TrustWallet extension.</div>
         <button class="btn" id="connectBtn">Back</button>`;
-        document.getElementById('connectBtn').onclick = connectBtn.onclick;
+        document.getElementById('connectBtn').onclick = showWalletChoice;
         return;
       }
       try {
         provider = window.ethereum;
+        currentWalletType = 'Injected';
         // Switch to Avalanche chain if needed
         if (provider.networkVersion != AVAX_CHAIN_ID) {
           try {
@@ -190,7 +288,6 @@
               params: [{ chainId: '0xa86a' }]
             });
           } catch (e) {
-            // If not added, try to add AVAX chain
             await provider.request({
               method: 'wallet_addEthereumChain',
               params: [{
@@ -206,15 +303,15 @@
         ethersProvider = new ethers.BrowserProvider(provider);
         signer = await ethersProvider.getSigner();
         address = await signer.getAddress();
-        showWalletUI('Injected');
-        fetchBalance();
-        provider.on('accountsChanged', () => { fetchBalance(); showWalletUI('Injected'); });
-        provider.on('chainChanged', () => { fetchBalance(); showWalletUI('Injected'); });
+        showWalletUI();
+        fetchBalances();
+        provider.on('accountsChanged', () => { fetchBalances(); showWalletUI(); });
+        provider.on('chainChanged', () => { fetchBalances(); showWalletUI(); });
         provider.on('disconnect', () => { resetUI(); });
       } catch (err) {
         mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">${err.message || 'Wallet connection failed.'}</div>
         <button class="btn" id="connectBtn">Back</button>`;
-        document.getElementById('connectBtn').onclick = connectBtn.onclick;
+        document.getElementById('connectBtn').onclick = showWalletChoice;
       }
     }
 
@@ -228,41 +325,51 @@
         });
         await wcProvider.enable();
         provider = wcProvider;
+        currentWalletType = 'WalletConnect';
         ethersProvider = new ethers.BrowserProvider(provider);
         signer = await ethersProvider.getSigner();
         address = await signer.getAddress();
-        showWalletUI('WalletConnect');
-        fetchBalance();
-        wcProvider.on('accountsChanged', () => { fetchBalance(); showWalletUI('WalletConnect'); });
-        wcProvider.on('chainChanged', () => { fetchBalance(); showWalletUI('WalletConnect'); });
+        showWalletUI();
+        fetchBalances();
+        wcProvider.on('accountsChanged', () => { fetchBalances(); showWalletUI(); });
+        wcProvider.on('chainChanged', () => { fetchBalances(); showWalletUI(); });
         wcProvider.on('disconnect', () => { resetUI(); });
       } catch (err) {
         mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">${err.message || 'WalletConnect failed.'}</div>
         <button class="btn" id="connectBtn">Back</button>`;
-        document.getElementById('connectBtn').onclick = connectBtn.onclick;
+        document.getElementById('connectBtn').onclick = showWalletChoice;
       }
     }
 
-    function showWalletUI(type) {
+    function showWalletUI() {
       mainDiv.innerHTML = `
         <div class="info">
           <strong>Address:</strong>
           <div class="address">${shortAddr(address)}</div>
           <strong>Wallet:</strong>
-          <span style="color:#a5b4fc;">${type}</span><br>
+          <span style="color:#a5b4fc;">${currentWalletType}</span><br>
           <strong>Network:</strong>
           <span style="color:#a5b4fc;">Avalanche (C-Chain)</span><br>
-          <strong>Balance:</strong>
-          <div id="balanceDisplay"><div class="loader"></div></div>
+          <strong>Balances:</strong>
+          <ul class="token-list" id="tokenList"><li><div class="loader"></div></li></ul>
         </div>
+        <form class="send-form" id="sendForm">
+          <label for="toAddr">Recipient Address</label>
+          <input type="text" id="toAddr" required placeholder="0x...">
+          <label for="sendAmount">Amount (AVAX)</label>
+          <input type="number" id="sendAmount" min="0" step="any" required placeholder="e.g. 0.1">
+          <button class="send-btn" type="submit">Send AVAX</button>
+          <div class="status-message" id="statusMsg"></div>
+        </form>
         <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
       `;
       document.getElementById('disconnectBtn').onclick = disconnectWallet;
+      document.getElementById('sendForm').onsubmit = sendAvaxTx;
     }
 
     function resetUI() {
       mainDiv.innerHTML = `<button class="btn" id="connectBtn">Connect Wallet</button>`;
-      document.getElementById('connectBtn').onclick = connectBtn.onclick;
+      document.getElementById('connectBtn').onclick = showWalletChoice;
       if (wcProvider && wcProvider.disconnect) wcProvider.disconnect();
       provider = null; ethersProvider = null; signer = null; address = null; wcProvider = null;
     }
@@ -275,15 +382,81 @@
       return addr ? (addr.slice(0,6) + '...' + addr.slice(-4)) : '';
     }
 
-    async function fetchBalance() {
+    async function fetchBalances() {
+      // AVAX balance
       try {
-        const balWei = await ethersProvider.getBalance(address);
-        const balance = ethers.formatEther(balWei);
-        document.getElementById('balanceDisplay').innerHTML = `<span style="font-size:1.33em;color:#fff;">
-            ${Number(balance).toLocaleString(undefined,{maximumFractionDigits:6})} <span style="color:#6366f1;font-weight:700;">AVAX</span>
-          </span>`;
+        const avaxWei = await ethersProvider.getBalance(address);
+        displayTokenList({AVAX: ethers.formatEther(avaxWei)});
       } catch (err) {
-        document.getElementById('balanceDisplay').innerHTML = `<span style="color:#f87171">Error fetching balance</span>`;
+        displayTokenList({AVAX: 'Error'});
+      }
+      // ERC20 tokens
+      for (let t of TOKEN_LIST) {
+        try {
+          const contract = new ethers.Contract(t.address, ERC20_ABI, ethersProvider);
+          let balance = await contract.balanceOf(address);
+          let value = ethers.formatUnits(balance, t.decimals);
+          updateTokenBalance(t.symbol, value);
+        } catch (err) {
+          updateTokenBalance(t.symbol, 'Error');
+        }
+      }
+    }
+
+    function displayTokenList(balances) {
+      const tokenList = document.getElementById('tokenList');
+      tokenList.innerHTML = '';
+      if (balances.AVAX) {
+        tokenList.innerHTML += `<li><span class="token-symbol">AVAX</span><span class="token-balance">${Number(balances.AVAX).toLocaleString(undefined,{maximumFractionDigits:6})}</span></li>`;
+      } else {
+        tokenList.innerHTML += `<li><span class="token-symbol">AVAX</span><span class="token-balance">Loading...</span></li>`;
+      }
+      for (let t of TOKEN_LIST) {
+        tokenList.innerHTML += `<li id="token-${t.symbol}"><span class="token-symbol">${t.symbol}</span><span class="token-balance"><div class="loader" style="width:18px;height:18px;border-width:2px;"></div></span></li>`;
+      }
+    }
+
+    function updateTokenBalance(symbol, value) {
+      const el = document.getElementById(`token-${symbol}`);
+      if (el) {
+        el.innerHTML = `<span class="token-symbol">${symbol}</span><span class="token-balance">${value === 'Error' ? '<span style="color:#f87171">Error</span>' : Number(value).toLocaleString(undefined,{maximumFractionDigits:6})}</span>`;
+      }
+    }
+
+    async function sendAvaxTx(e) {
+      e.preventDefault();
+      const toAddr = document.getElementById('toAddr').value.trim();
+      const amount = document.getElementById('sendAmount').value.trim();
+      const statusMsg = document.getElementById('statusMsg');
+      statusMsg.textContent = '';
+      statusMsg.className = 'status-message';
+      // Validate
+      if (!toAddr || !amount || Number(amount)<=0) {
+        statusMsg.textContent = 'Enter a valid address and amount';
+        statusMsg.classList.add('error');
+        return;
+      }
+      if (!/^0x[a-fA-F0-9]{40}$/.test(toAddr)) {
+        statusMsg.textContent = 'Invalid recipient address';
+        statusMsg.classList.add('error');
+        return;
+      }
+      // Send
+      try {
+        statusMsg.textContent = 'Confirm the transaction in your wallet...';
+        statusMsg.classList.remove('error','success');
+        const tx = await signer.sendTransaction({
+          to: toAddr,
+          value: ethers.parseEther(amount)
+        });
+        statusMsg.textContent = 'Broadcasting...';
+        await tx.wait();
+        statusMsg.textContent = `Sent! Tx: ${tx.hash.slice(0,10)}...`;
+        statusMsg.classList.add('success');
+        fetchBalances();
+      } catch (err) {
+        statusMsg.textContent = err.message ? err.message : 'Transaction failed';
+        statusMsg.classList.add('error');
       }
     }
   </script>
