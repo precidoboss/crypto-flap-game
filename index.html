@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <title>AVAX Wallet Balance</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Inter font for clean UI -->
+  <!-- Inter font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
   <!-- ethers.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
-  <!-- Web3Modal v2 CDN -->
-  <script src="https://unpkg.com/@walletconnect/web3modal@2.10.6/dist/browser.umd.js"></script>
+  <!-- WalletConnect v2 Provider CDN -->
+  <script src="https://unpkg.com/@walletconnect/web3-provider@2.9.0/dist/umd/index.min.js"></script>
   <style>
     body {
       min-height: 100vh;
@@ -62,6 +62,16 @@
     }
     .btn:hover, .disconnect-btn:hover {
       background: linear-gradient(90deg,#60a5fa 0%,#6366f1 100%);
+    }
+    .wallet-choice {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 12px;
+      margin-top: 20px;
+      animation: fadeInUp 0.7s cubic-bezier(.5,1.5,.5,1);
     }
     .info {
       margin-bottom: 18px;
@@ -134,7 +144,7 @@
       </div>
     </div>
     <div class="footer">
-      Powered by WalletConnect, ethers.js, AVAX C-Chain
+      Powered by MetaMask, WalletConnect, ethers.js, AVAX C-Chain
     </div>
   </div>
   <script>
@@ -148,53 +158,100 @@
     // UI Elements
     const mainDiv = document.getElementById('main');
     const connectBtn = document.getElementById('connectBtn');
-    let w3m, provider, ethersProvider, signer, address;
+    let provider, ethersProvider, signer, address, wcProvider;
 
-    // Setup Web3Modal (v2 HTML/JS UI)
-    window.onload = () => {
-      w3m = new window.Web3Modal({
-        projectId: WALLETCONNECT_PROJECT_ID,
-        standaloneChains: [`eip155:${AVAX_CHAIN_ID}`],
-        walletConnectVersion: 2,
-        themeMode: 'dark',
-        themeVariables: {
-          '--w3m-font-family': 'Inter, sans-serif',
-          '--w3m-accent-color': '#6366f1',
-          '--w3m-background-color': '#1e293b'
-        }
-      });
+    // Wallet choice popup
+    connectBtn.onclick = () => {
+      mainDiv.innerHTML = `
+        <div class="wallet-choice">
+          <button class="btn" id="injectedBtn">MetaMask / Injected</button>
+          <button class="btn" id="wcBtn">WalletConnect QR</button>
+        </div>
+      `;
+      document.getElementById('injectedBtn').onclick = injectedConnect;
+      document.getElementById('wcBtn').onclick = walletConnectConnect;
     };
 
-    connectBtn.onclick = async () => {
+    // Injected wallet connect (MetaMask, TrustWallet extension, etc)
+    async function injectedConnect() {
+      if (!window.ethereum) {
+        mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">No injected wallet found.<br>Install MetaMask or TrustWallet extension.</div>
+        <button class="btn" id="connectBtn">Back</button>`;
+        document.getElementById('connectBtn').onclick = connectBtn.onclick;
+        return;
+      }
       try {
-        // Open Web3Modal and connect
-        const instance = await w3m.connect();
-        provider = new ethers.BrowserProvider(instance);
-        signer = await provider.getSigner();
+        provider = window.ethereum;
+        // Switch to Avalanche chain if needed
+        if (provider.networkVersion != AVAX_CHAIN_ID) {
+          try {
+            await provider.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0xa86a' }]
+            });
+          } catch (e) {
+            // If not added, try to add AVAX chain
+            await provider.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0xa86a',
+                chainName: 'Avalanche C-Chain',
+                nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
+                rpcUrls: [AVAX_RPC],
+                blockExplorerUrls: ['https://snowtrace.io']
+              }]
+            });
+          }
+        }
+        ethersProvider = new ethers.BrowserProvider(provider);
+        signer = await ethersProvider.getSigner();
         address = await signer.getAddress();
-
-        showWalletUI();
+        showWalletUI('Injected');
         fetchBalance();
-
-        // Listen for disconnect, chain/account changes
-        instance.on("accountsChanged", () => { fetchBalance(); showWalletUI(); });
-        instance.on("chainChanged", () => { fetchBalance(); showWalletUI(); });
-        instance.on("disconnect", () => { resetUI(); });
+        provider.on('accountsChanged', () => { fetchBalance(); showWalletUI('Injected'); });
+        provider.on('chainChanged', () => { fetchBalance(); showWalletUI('Injected'); });
+        provider.on('disconnect', () => { resetUI(); });
       } catch (err) {
         mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">${err.message || 'Wallet connection failed.'}</div>
-        <button class="btn" id="connectBtn">Try Again</button>`;
+        <button class="btn" id="connectBtn">Back</button>`;
         document.getElementById('connectBtn').onclick = connectBtn.onclick;
       }
-    };
+    }
 
-    function showWalletUI() {
+    // WalletConnect QR
+    async function walletConnectConnect() {
+      try {
+        wcProvider = new window.WalletConnectProvider.default({
+          projectId: WALLETCONNECT_PROJECT_ID,
+          chains: [AVAX_CHAIN_ID],
+          rpcMap: { [AVAX_CHAIN_ID]: AVAX_RPC },
+        });
+        await wcProvider.enable();
+        provider = wcProvider;
+        ethersProvider = new ethers.BrowserProvider(provider);
+        signer = await ethersProvider.getSigner();
+        address = await signer.getAddress();
+        showWalletUI('WalletConnect');
+        fetchBalance();
+        wcProvider.on('accountsChanged', () => { fetchBalance(); showWalletUI('WalletConnect'); });
+        wcProvider.on('chainChanged', () => { fetchBalance(); showWalletUI('WalletConnect'); });
+        wcProvider.on('disconnect', () => { resetUI(); });
+      } catch (err) {
+        mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">${err.message || 'WalletConnect failed.'}</div>
+        <button class="btn" id="connectBtn">Back</button>`;
+        document.getElementById('connectBtn').onclick = connectBtn.onclick;
+      }
+    }
+
+    function showWalletUI(type) {
       mainDiv.innerHTML = `
         <div class="info">
           <strong>Address:</strong>
           <div class="address">${shortAddr(address)}</div>
+          <strong>Wallet:</strong>
+          <span style="color:#a5b4fc;">${type}</span><br>
           <strong>Network:</strong>
-          <span style="color:#a5b4fc;">Avalanche (C-Chain)</span>
-          <br>
+          <span style="color:#a5b4fc;">Avalanche (C-Chain)</span><br>
           <strong>Balance:</strong>
           <div id="balanceDisplay"><div class="loader"></div></div>
         </div>
@@ -206,10 +263,11 @@
     function resetUI() {
       mainDiv.innerHTML = `<button class="btn" id="connectBtn">Connect Wallet</button>`;
       document.getElementById('connectBtn').onclick = connectBtn.onclick;
+      if (wcProvider && wcProvider.disconnect) wcProvider.disconnect();
+      provider = null; ethersProvider = null; signer = null; address = null; wcProvider = null;
     }
 
     function disconnectWallet() {
-      if (provider && provider.provider && provider.provider.disconnect) provider.provider.disconnect();
       resetUI();
     }
 
@@ -219,7 +277,7 @@
 
     async function fetchBalance() {
       try {
-        const balWei = await provider.getBalance(address);
+        const balWei = await ethersProvider.getBalance(address);
         const balance = ethers.formatEther(balWei);
         document.getElementById('balanceDisplay').innerHTML = `<span style="font-size:1.33em;color:#fff;">
             ${Number(balance).toLocaleString(undefined,{maximumFractionDigits:6})} <span style="color:#6366f1;font-weight:700;">AVAX</span>
