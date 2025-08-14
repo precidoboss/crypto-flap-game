@@ -2,20 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AVAX Wallet DApp</title>
+  <title>AVAX Tap to Earn Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Inter font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-  <!-- ethers.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
-  <!-- WalletConnect v2 Provider CDN -->
   <script src="https://unpkg.com/@walletconnect/web3-provider@2.9.0/dist/umd/index.min.js"></script>
   <style>
     body {
       min-height: 100vh;
       margin: 0;
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg,#1e293b 0%,#1e293b 40%,#6366f1 100%);
+      background: linear-gradient(135deg,#1e293b 0%,#6366f1 100%);
       color: #fff;
       display: flex;
       align-items: center;
@@ -25,26 +22,27 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-width: 360px;
+      min-width: 340px;
       min-height: 60vh;
       animation: fadeIn 0.8s cubic-bezier(.5,1.5,.5,1);
+      width: 100vw;
+      max-width: 100vw;
     }
     .card {
       background: rgba(30,41,59,0.96);
-      border-radius: 28px;
+      border-radius: 24px;
       box-shadow: 0 6px 40px #6366f155;
-      padding: 40px 28px;
-      min-width: 340px;
-      max-width: 400px;
+      padding: 36px 24px;
+      min-width: 320px;
+      max-width: 380px;
       text-align: center;
       backdrop-filter: blur(3px);
       animation: scaleIn 0.7s cubic-bezier(.5,1.5,.5,1);
     }
-    .card h1 {
-      font-size: 2rem;
+    h1 {
+      font-size: 1.8rem;
       font-weight: 700;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
       letter-spacing: 1px;
     }
     .btn, .disconnect-btn, .send-btn {
@@ -71,12 +69,13 @@
       justify-content: center;
       align-items: center;
       margin-bottom: 12px;
-      margin-top: 20px;
+      margin-top: 18px;
       animation: fadeInUp 0.7s cubic-bezier(.5,1.5,.5,1);
     }
     .info {
       margin-bottom: 18px;
       animation: fadeInUp 0.7s cubic-bezier(.5,1.5,.5,1);
+      font-size:1.05em;
     }
     .info strong {
       color: #60a5fa;
@@ -90,32 +89,6 @@
       padding: 3px 7px;
       margin: 4px 0;
       display: inline-block;
-    }
-    .token-list {
-      list-style: none;
-      padding: 0;
-      margin: 12px 0 8px 0;
-      font-size:1.08em;
-    }
-    .token-list li {
-      background: rgba(99,102,241,0.07);
-      border-radius: 8px;
-      margin: 7px 0;
-      padding: 7px 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-weight: 500;
-    }
-    .token-symbol {
-      color: #6366f1;
-      font-weight: 700;
-      margin-right: 6px;
-    }
-    .token-balance {
-      color: #fff;
-      font-weight: 700;
-      margin-left: 6px;
     }
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -142,55 +115,41 @@
     @keyframes spin {
       to { transform: rotate(360deg);}
     }
-    .logo {
-      width: 54px;
-      margin-bottom: 20px;
-      filter: drop-shadow(0 2px 12px #6366f1cc);
-      border-radius: 50%;
-      background: #fff;
-      padding: 6px;
-    }
-    .footer {
-      margin-top: 24px;
-      color: #a5b4fc;
-      font-size: 0.98em;
-      opacity: 0.8;
-    }
-    .send-form {
-      margin: 0 auto;
-      margin-bottom: 12px;
-      margin-top:6px;
-      padding: 12px 0;
-      background: rgba(99,102,241,0.04);
-      border-radius: 10px;
-      max-width: 320px;
+    .game {
+      margin: 22px 0 18px 0;
       animation: fadeInUp 0.7s cubic-bezier(.5,1.5,.5,1);
     }
-    .send-form input {
-      width: 85%;
-      margin: 8px auto;
-      padding: 10px 12px;
-      border-radius: 7px;
-      border: none;
-      outline: none;
-      font-size: 1em;
-      margin-bottom: 4px;
-      font-family: 'Inter', sans-serif;
-      background: rgba(99,102,241,0.09);
-      color: #3b82f6;
-      transition: background 0.2s;
+    .circle {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #6366f1 80%, #1e293b 100%);
+      box-shadow: 0 0 20px #6366f1cc, 0 0 2px #6366f1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      cursor: pointer;
+      font-size: 2.2rem;
+      color: #fff;
+      font-weight: 700;
+      user-select: none;
+      transition: box-shadow 0.15s;
+      border: 4px solid #60a5fa55;
     }
-    .send-form input:focus {
-      background: rgba(99,102,241,0.18);
+    .circle:active {
+      box-shadow: 0 0 30px #60a5fa, 0 0 6px #6366f1;
+      background: radial-gradient(circle at 40% 40%, #6366f1 60%, #60a5fa 100%);
     }
-    .send-form label {
+    .timer, .score {
+      font-size: 1.3rem;
       font-weight: 600;
-      color: #6366f1;
-      font-size: 0.96em;
-      display:block;
-      margin-bottom:4px;
-      text-align:left;
-      margin-left:8%;
+      margin: 10px;
+      color: #60a5fa;
+    }
+    .score {
+      color: #34d399;
+      font-size: 1.4rem;
     }
     .status-message {
       margin: 8px auto;
@@ -205,57 +164,43 @@
     .status-message.success {
       color: #34d399;
     }
+    .footer {
+      margin-top: 24px;
+      color: #a5b4fc;
+      font-size: 0.98em;
+      opacity: 0.8;
+      text-align:center;
+    }
     @media (max-width: 450px) {
-      .card { padding: 24px 6px; min-width: 97vw; max-width: 97vw;}
-      .send-form {max-width:93vw;}
+      .card { padding: 18px 2vw; min-width: 97vw; max-width: 97vw;}
+      .circle {width:80px;height:80px;font-size:1.6rem;}
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="card" id="card">
-      <img src="https://cryptologos.cc/logos/avalanche-avax-logo.png?v=029" class="logo" alt="AVAX Logo"/>
-      <h1>AVAX Wallet DApp</h1>
+      <h1>AVAX Tap to Earn</h1>
       <div id="main">
         <button class="btn" id="connectBtn">Connect Wallet</button>
       </div>
     </div>
     <div class="footer">
-      Powered by MetaMask, WalletConnect, ethers.js, AVAX C-Chain
+      Powered by AVAX, MetaMask, WalletConnect, ethers.js<br>
+      Deposit to unlock game: <span style="font-family:monospace;">0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310</span>
     </div>
   </div>
   <script>
-    // Avalanche C-Chain params
     const AVAX_CHAIN_ID = 43114;
     const AVAX_RPC = 'https://api.avax.network/ext/bc/C/rpc';
-
-    // WalletConnect Project ID
     const WALLETCONNECT_PROJECT_ID = '149ddeec1dea68dd9f14f2b11411147a';
+    const DEPOSIT_ADDR = "0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310";
 
-    // ERC20 Token List (address, symbol, decimals)
-    // Add more tokens as needed (address, symbol, decimals)
-    const TOKEN_LIST = [
-      {address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", symbol: "WAVAX", decimals: 18},
-      {address: "0xd586E7F844cEa2F87f50152665BCbc2C279D8d70", symbol: "DAI", decimals: 18},
-      {address: "0xA7D7079b0FEAD91F3e65f86E8915Cb59c1a4C664", symbol: "USDC", decimals: 6},
-      {address: "0x9702230A8Ea53601f5cD2dc00fDbc13d4df4A8c7", symbol: "USDT", decimals: 6},
-      {address: "0x60781CafE4e24bE97EAF3D10bA7cE2Ea7eF4aA34", symbol: "PNG", decimals: 18}
-      // Add more tokens here!
-    ];
-
-    // ERC20 ABI for balanceOf and transfer
-    const ERC20_ABI = [
-      "function balanceOf(address owner) view returns (uint256)",
-      "function symbol() view returns (string)",
-      "function decimals() view returns (uint8)"
-    ];
-
-    // UI Elements
     const mainDiv = document.getElementById('main');
     const connectBtn = document.getElementById('connectBtn');
     let provider, ethersProvider, signer, address, wcProvider, currentWalletType;
+    let lastDepositTx = null, depositConfirmed = false;
 
-    // Wallet choice popup
     connectBtn.onclick = showWalletChoice;
 
     function showWalletChoice() {
@@ -269,7 +214,6 @@
       document.getElementById('wcBtn').onclick = walletConnectConnect;
     }
 
-    // Injected wallet connect (MetaMask, TrustWallet extension, etc)
     async function injectedConnect() {
       if (!window.ethereum) {
         mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">No injected wallet found.<br>Install MetaMask or TrustWallet extension.</div>
@@ -280,7 +224,6 @@
       try {
         provider = window.ethereum;
         currentWalletType = 'Injected';
-        // Switch to Avalanche chain if needed
         if (provider.networkVersion != AVAX_CHAIN_ID) {
           try {
             await provider.request({
@@ -304,9 +247,8 @@
         signer = await ethersProvider.getSigner();
         address = await signer.getAddress();
         showWalletUI();
-        fetchBalances();
-        provider.on('accountsChanged', () => { fetchBalances(); showWalletUI(); });
-        provider.on('chainChanged', () => { fetchBalances(); showWalletUI(); });
+        provider.on('accountsChanged', () => { resetUI(); });
+        provider.on('chainChanged', () => { resetUI(); });
         provider.on('disconnect', () => { resetUI(); });
       } catch (err) {
         mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">${err.message || 'Wallet connection failed.'}</div>
@@ -315,7 +257,6 @@
       }
     }
 
-    // WalletConnect QR
     async function walletConnectConnect() {
       try {
         wcProvider = new window.WalletConnectProvider.default({
@@ -330,9 +271,8 @@
         signer = await ethersProvider.getSigner();
         address = await signer.getAddress();
         showWalletUI();
-        fetchBalances();
-        wcProvider.on('accountsChanged', () => { fetchBalances(); showWalletUI(); });
-        wcProvider.on('chainChanged', () => { fetchBalances(); showWalletUI(); });
+        wcProvider.on('accountsChanged', () => { resetUI(); });
+        wcProvider.on('chainChanged', () => { resetUI(); });
         wcProvider.on('disconnect', () => { resetUI(); });
       } catch (err) {
         mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">${err.message || 'WalletConnect failed.'}</div>
@@ -350,21 +290,19 @@
           <span style="color:#a5b4fc;">${currentWalletType}</span><br>
           <strong>Network:</strong>
           <span style="color:#a5b4fc;">Avalanche (C-Chain)</span><br>
-          <strong>Balances:</strong>
-          <ul class="token-list" id="tokenList"><li><div class="loader"></div></li></ul>
+          <strong>Deposit to unlock game:</strong>
+          <span class="address" style="color:#34d399;">${DEPOSIT_ADDR}</span>
         </div>
         <form class="send-form" id="sendForm">
-          <label for="toAddr">Recipient Address</label>
-          <input type="text" id="toAddr" required placeholder="0x...">
           <label for="sendAmount">Amount (AVAX)</label>
-          <input type="number" id="sendAmount" min="0" step="any" required placeholder="e.g. 0.1">
-          <button class="send-btn" type="submit">Send AVAX</button>
+          <input type="number" id="sendAmount" min="0" step="any" required placeholder="e.g. 0.01">
+          <button class="send-btn" type="submit">Send AVAX & Unlock</button>
           <div class="status-message" id="statusMsg"></div>
         </form>
         <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
       `;
       document.getElementById('disconnectBtn').onclick = disconnectWallet;
-      document.getElementById('sendForm').onsubmit = sendAvaxTx;
+      document.getElementById('sendForm').onsubmit = sendDepositTx;
     }
 
     function resetUI() {
@@ -372,6 +310,7 @@
       document.getElementById('connectBtn').onclick = showWalletChoice;
       if (wcProvider && wcProvider.disconnect) wcProvider.disconnect();
       provider = null; ethersProvider = null; signer = null; address = null; wcProvider = null;
+      lastDepositTx = null; depositConfirmed = false;
     }
 
     function disconnectWallet() {
@@ -382,82 +321,83 @@
       return addr ? (addr.slice(0,6) + '...' + addr.slice(-4)) : '';
     }
 
-    async function fetchBalances() {
-      // AVAX balance
-      try {
-        const avaxWei = await ethersProvider.getBalance(address);
-        displayTokenList({AVAX: ethers.formatEther(avaxWei)});
-      } catch (err) {
-        displayTokenList({AVAX: 'Error'});
-      }
-      // ERC20 tokens
-      for (let t of TOKEN_LIST) {
-        try {
-          const contract = new ethers.Contract(t.address, ERC20_ABI, ethersProvider);
-          let balance = await contract.balanceOf(address);
-          let value = ethers.formatUnits(balance, t.decimals);
-          updateTokenBalance(t.symbol, value);
-        } catch (err) {
-          updateTokenBalance(t.symbol, 'Error');
-        }
-      }
-    }
-
-    function displayTokenList(balances) {
-      const tokenList = document.getElementById('tokenList');
-      tokenList.innerHTML = '';
-      if (balances.AVAX) {
-        tokenList.innerHTML += `<li><span class="token-symbol">AVAX</span><span class="token-balance">${Number(balances.AVAX).toLocaleString(undefined,{maximumFractionDigits:6})}</span></li>`;
-      } else {
-        tokenList.innerHTML += `<li><span class="token-symbol">AVAX</span><span class="token-balance">Loading...</span></li>`;
-      }
-      for (let t of TOKEN_LIST) {
-        tokenList.innerHTML += `<li id="token-${t.symbol}"><span class="token-symbol">${t.symbol}</span><span class="token-balance"><div class="loader" style="width:18px;height:18px;border-width:2px;"></div></span></li>`;
-      }
-    }
-
-    function updateTokenBalance(symbol, value) {
-      const el = document.getElementById(`token-${symbol}`);
-      if (el) {
-        el.innerHTML = `<span class="token-symbol">${symbol}</span><span class="token-balance">${value === 'Error' ? '<span style="color:#f87171">Error</span>' : Number(value).toLocaleString(undefined,{maximumFractionDigits:6})}</span>`;
-      }
-    }
-
-    async function sendAvaxTx(e) {
+    async function sendDepositTx(e) {
       e.preventDefault();
-      const toAddr = document.getElementById('toAddr').value.trim();
       const amount = document.getElementById('sendAmount').value.trim();
       const statusMsg = document.getElementById('statusMsg');
       statusMsg.textContent = '';
       statusMsg.className = 'status-message';
-      // Validate
-      if (!toAddr || !amount || Number(amount)<=0) {
-        statusMsg.textContent = 'Enter a valid address and amount';
+      if (!amount || Number(amount)<=0) {
+        statusMsg.textContent = 'Enter a valid amount';
         statusMsg.classList.add('error');
         return;
       }
-      if (!/^0x[a-fA-F0-9]{40}$/.test(toAddr)) {
-        statusMsg.textContent = 'Invalid recipient address';
-        statusMsg.classList.add('error');
-        return;
-      }
-      // Send
       try {
         statusMsg.textContent = 'Confirm the transaction in your wallet...';
         statusMsg.classList.remove('error','success');
         const tx = await signer.sendTransaction({
-          to: toAddr,
+          to: DEPOSIT_ADDR,
           value: ethers.parseEther(amount)
         });
+        lastDepositTx = tx.hash;
         statusMsg.textContent = 'Broadcasting...';
         await tx.wait();
-        statusMsg.textContent = `Sent! Tx: ${tx.hash.slice(0,10)}...`;
+        statusMsg.textContent = `Deposit received! Unlocking game...`;
         statusMsg.classList.add('success');
-        fetchBalances();
+        depositConfirmed = true;
+        setTimeout(startGame, 1200);
       } catch (err) {
         statusMsg.textContent = err.message ? err.message : 'Transaction failed';
         statusMsg.classList.add('error');
       }
+    }
+
+    // GAME LOGIC
+    function startGame() {
+      let timeLeft = 10, score = 0, running = true;
+      mainDiv.innerHTML = `
+        <div class="game">
+          <div class="timer" id="timer">Time: 10s</div>
+          <div class="circle" id="tapCircle">Tap!</div>
+          <div class="score" id="score">Score: 0</div>
+        </div>
+        <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
+      `;
+      document.getElementById('disconnectBtn').onclick = disconnectWallet;
+      const timerEl = document.getElementById('timer');
+      const scoreEl = document.getElementById('score');
+      const tapCircle = document.getElementById('tapCircle');
+      tapCircle.onclick = () => {
+        if (!running) return;
+        score++;
+        scoreEl.textContent = `Score: ${score}`;
+        tapCircle.style.transform = "scale(0.96)";
+        setTimeout(()=>{tapCircle.style.transform="";},100);
+      };
+      let interval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = `Time: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          running = false;
+          clearInterval(interval);
+          endGame(score);
+        }
+      }, 1000);
+    }
+
+    function endGame(score) {
+      mainDiv.innerHTML = `
+        <div class="game">
+          <div class="timer">Game Over!</div>
+          <div class="score" style="font-size:2.1rem;">Your Score: ${score}<br>
+            <span style="font-size:1.1rem;color:#a5b4fc;">(Points for airdrop eligibility)</span>
+          </div>
+        </div>
+        <button class="btn" id="playAgainBtn">Play Again</button>
+        <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
+      `;
+      document.getElementById('disconnectBtn').onclick = disconnectWallet;
+      document.getElementById('playAgainBtn').onclick = startGame;
     }
   </script>
 </body>
