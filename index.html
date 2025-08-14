@@ -6,9 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Inter font for clean UI -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-  <!-- Web3Modal and Ethers.js CDN -->
-  <script src="https://unpkg.com/@walletconnect/web3modal@2.10.6/dist/index.umd.js"></script>
+  <!-- ethers.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
+  <!-- Web3Modal v2 CDN -->
+  <script src="https://unpkg.com/@walletconnect/web3modal@2.10.6/dist/browser.umd.js"></script>
   <style>
     body {
       min-height: 100vh;
@@ -147,52 +148,38 @@
     // UI Elements
     const mainDiv = document.getElementById('main');
     const connectBtn = document.getElementById('connectBtn');
-    let provider, signer, address, balance;
+    let w3m, provider, ethersProvider, signer, address;
 
-    // Set up Web3Modal
-    const modal = new window.Web3Modal({
-      projectId: WALLETCONNECT_PROJECT_ID,
-      themeMode: 'dark',
-      themeVariables: {
-        '--w3m-font-family': 'Inter, sans-serif',
-        '--w3m-accent-color': '#6366f1',
-        '--w3m-background-color': '#1e293b'
-      },
-      chains: [
-        {
-          chainId: AVAX_CHAIN_ID,
-          name: 'Avalanche C-Chain',
-          currency: 'AVAX',
-          explorerUrl: 'https://snowtrace.io',
-          rpcUrl: AVAX_RPC,
+    // Setup Web3Modal (v2 HTML/JS UI)
+    window.onload = () => {
+      w3m = new window.Web3Modal({
+        projectId: WALLETCONNECT_PROJECT_ID,
+        standaloneChains: [`eip155:${AVAX_CHAIN_ID}`],
+        walletConnectVersion: 2,
+        themeMode: 'dark',
+        themeVariables: {
+          '--w3m-font-family': 'Inter, sans-serif',
+          '--w3m-accent-color': '#6366f1',
+          '--w3m-background-color': '#1e293b'
         }
-      ]
-    });
+      });
+    };
 
-    // Connect wallet
     connectBtn.onclick = async () => {
       try {
-        // Open modal and get provider
-        provider = await modal.openModal();
-        // Ethers.js provider
-        const ethersProvider = new ethers.BrowserProvider(provider);
-        signer = await ethersProvider.getSigner();
+        // Open Web3Modal and connect
+        const instance = await w3m.connect();
+        provider = new ethers.BrowserProvider(instance);
+        signer = await provider.getSigner();
         address = await signer.getAddress();
 
-        // Switch to AVAX chain if needed
-        const network = await ethersProvider.getNetwork();
-        if (network.chainId !== AVAX_CHAIN_ID) {
-          // Try to switch
-          await provider.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0xa86a' }]
-          });
-        }
         showWalletUI();
         fetchBalance();
-        provider.on('accountsChanged', () => { fetchBalance(); showWalletUI(); });
-        provider.on('chainChanged', () => { fetchBalance(); showWalletUI(); });
-        provider.on('disconnect', () => { resetUI(); });
+
+        // Listen for disconnect, chain/account changes
+        instance.on("accountsChanged", () => { fetchBalance(); showWalletUI(); });
+        instance.on("chainChanged", () => { fetchBalance(); showWalletUI(); });
+        instance.on("disconnect", () => { resetUI(); });
       } catch (err) {
         mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">${err.message || 'Wallet connection failed.'}</div>
         <button class="btn" id="connectBtn">Try Again</button>`;
@@ -222,7 +209,7 @@
     }
 
     function disconnectWallet() {
-      if (provider && provider.disconnect) provider.disconnect();
+      if (provider && provider.provider && provider.provider.disconnect) provider.provider.disconnect();
       resetUI();
     }
 
@@ -232,9 +219,8 @@
 
     async function fetchBalance() {
       try {
-        const ethersProvider = new ethers.BrowserProvider(provider);
-        const balWei = await ethersProvider.getBalance(address);
-        balance = ethers.formatEther(balWei);
+        const balWei = await provider.getBalance(address);
+        const balance = ethers.formatEther(balWei);
         document.getElementById('balanceDisplay').innerHTML = `<span style="font-size:1.33em;color:#fff;">
             ${Number(balance).toLocaleString(undefined,{maximumFractionDigits:6})} <span style="color:#6366f1;font-weight:700;">AVAX</span>
           </span>`;
