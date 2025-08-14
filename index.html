@@ -2,268 +2,654 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Universal AVAX Balance Checker</title>
+  <title>AVAX Wallet Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Ethers.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
   <!-- WalletConnect v1 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <!-- QRCode CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <!-- Font Awesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', Arial, sans-serif; background: #f6faff; margin: 0;}
-    .container { background: #fff; max-width: 420px; margin: 40px auto; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 2rem 1.5rem; text-align: center; }
-    .logo { width: 64px; margin-bottom: 18px; }
-    button {
-      background: #e84142;
+    :root {
+      --bg-light: #f3f8ff;
+      --bg-dark: #16161a;
+      --card-light: #fff;
+      --card-dark: #232336;
+      --accent: #e84142;
+      --blue: #2d7dd2;
+      --glass: rgba(255,255,255,0.8);
+      --glass-dark: rgba(34,34,51,0.95);
+      --border: #e3e8ee;
+      --border-dark: #33334a;
+      --text-light: #222;
+      --text-dark: #ddd;
+      --shadow: 0 4px 32px #0002;
+      --radius: 16px;
+      --transition: 0.25s;
+    }
+    body {
+      margin: 0;
+      font-family: 'Inter', Arial, sans-serif;
+      background: var(--bg-light);
+      color: var(--text-light);
+      transition: background var(--transition), color var(--transition);
+    }
+    body.dark {
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+    .card {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      margin: 38px auto;
+      padding: 2rem 1.5rem 2.5rem 1.5rem;
+      max-width: 430px;
+      border: 1px solid var(--border);
+      text-align: center;
+      transition: background var(--transition), border var(--transition), color var(--transition);
+    }
+    body.dark .card {
+      background: var(--glass-dark);
+      border: 1px solid var(--border-dark);
+    }
+    .logo {
+      width: 65px; margin-bottom: 14px; border-radius: 50%; box-shadow: 0 0 16px #e8414220;
+      transition: box-shadow var(--transition);
+    }
+    h1 { font-size: 1.7em; margin-bottom: 0.4em;}
+    .network-warning {
+      background: #ffd2d2;
+      color: #b30000;
+      border-radius: 8px;
+      padding: 0.6em 1em;
+      margin-bottom: 18px;
+      display: none;
+      font-size: 0.96em;
+    }
+    body.dark .network-warning { background: #362525; color: #ffa4a4;}
+    .btn {
+      background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 8px;
       padding: 0.7em 1.4em;
       font-size: 1.07em;
       cursor: pointer;
-      margin: 1em 0.3em;
-      transition: background 0.2s;
+      margin: 0.7em 0.2em;
+      box-shadow: 0 2px 8px #e8414220;
+      transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+      font-family: inherit;
+      outline: none;
+      position: relative;
     }
-    button:disabled { background: #e8414260; cursor: not-allowed; }
-    .info-table { width: 100%; margin: 16px 0 0 0; border-collapse: collapse; }
-    .info-table td { padding: 7px 0; font-size: 1em; }
-    .info-table .label { color: #888; text-align: right; padding-right: 12px; width: 45%; }
-    .info-table .value { text-align: left; font-weight: 500; word-break: break-all;}
-    .fiat { font-size: 1.05em; color: #e84142; font-weight: 600; }
-    .price { font-size: 0.98em; color: #2d7dd2; }
-    .network { font-size: 0.98em; color: #2d7dd2; margin-bottom: 2px;}
-    .help { font-size: 0.93em; color: #666; margin: 18px 0 0 0; }
-    .links { margin-top: 20px; font-size: 0.92em; }
-    .links a { color: #e84142; text-decoration: none; margin: 0 3px;}
-    .loading { color: #2d7dd2; margin: 10px 0;}
-    .error { color: #e84142; margin: 10px 0;}
-    @media (max-width: 480px) {
-      .container { padding: 1.1rem 0.3rem; }
-      .logo { width: 48px; }
+    .btn:disabled { background: #e8414260; cursor: not-allowed;}
+    .btn-outline {
+      background: none;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      box-shadow: none;
+    }
+    .btn-group { margin: 1.3em 0 0.4em 0;}
+    .btn-sm { font-size: 0.95em; padding: 0.45em 0.8em;}
+    .flex { display: flex; gap: 10px; justify-content: center; align-items: center; }
+    .portfolio { font-size: 1.3em; font-weight: 600; color: var(--accent); margin: 15px 0 0 0;}
+    .info-table { width: 100%; margin: 16px 0 0 0; border-collapse: collapse;}
+    .info-table td { padding: 7px 0; font-size: 1em;}
+    .info-table .label { color: #888;}
+    body.dark .info-table .label { color: #bbb;}
+    .info-table .value { font-weight: 500; word-break: break-all;}
+    .price { font-size: 0.98em; color: var(--blue);}
+    body.dark .price { color: #99cfff;}
+    .fiat { font-size: 1.05em; color: var(--accent); font-weight: 600;}
+    .address-row i { cursor:pointer; color:var(--blue);}
+    .qr-code { margin: 18px auto 8px auto;}
+    .token-list { margin: 0.7em 0 0.5em 0;}
+    .token-list .token {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #f6faff;
+      border-radius: 10px;
+      margin: 0.13em 0;
+      padding: 7px 12px;
+      font-size: 1em;
+      border: 1px solid #e3e8ee;
+      transition: background var(--transition), border var(--transition);
+    }
+    body.dark .token-list .token { background: #232336; border: 1px solid #33334a;}
+    .token img { width: 24px; border-radius: 50%; margin-right: 8px; vertical-align: middle;}
+    .token .price { font-size: 0.97em;}
+    .token .token-actions { display: flex; gap: 6px;}
+    .token .token-actions i { cursor:pointer; color:var(--accent);}
+    .token .token-actions i:hover { color:var(--blue);}
+    .nft-list { display: flex; flex-wrap: wrap; gap: 9px; justify-content:center; margin: 0.6em 0;}
+    .nft { background: #fff; border-radius: 7px; padding: 3px 4px 6px 4px; box-shadow: 0 2px 12px #0001; min-width:88px; max-width:110px;}
+    .nft img { width: 80px; height: 80px; object-fit:cover; border-radius: 7px; margin-bottom:3px;}
+    .nft .title { font-size: 0.95em; font-weight:500; margin-bottom:2px;}
+    .loading, .error { margin: 7px 0;}
+    .loading { color: var(--blue);}
+    .error { color: var(--accent);}
+    .currency-picker, .theme-toggle { margin: 0 0 0 8px;}
+    .theme-toggle { cursor: pointer; font-size: 1.2em;}
+    .address-book { margin: 1em 0 0 0;}
+    .address-book label { color: #888; font-size:0.98em;}
+    .address-book input, .address-book select {
+      padding: 0.27em 0.6em;
+      border-radius: 7px;
+      border: 1px solid #ccc;
+      margin: 0 0.4em 0.5em 0;
+      font-size: 1em;
+      background: #f6faff;
+      transition: border var(--transition);
+    }
+    body.dark .address-book input, body.dark .address-book select { background: #232336; color: #ddd; border: 1px solid #33334a;}
+    .address-book .saved { display: flex; align-items: center; gap: 6px; margin: 0.15em 0;}
+    .address-book .saved label { margin: 0; color: #357;}
+    .address-book .saved .del { color: #e84142; cursor: pointer;}
+    .security-tips { background: #e3e8ee; border-radius: 8px; padding: 0.8em 1em; font-size: 0.96em; margin: 1.2em 0 0 0;}
+    body.dark .security-tips { background: #232336; color: #bbb;}
+    .section-title { font-weight:600; font-size:1.08em; margin: 1.2em 0 0.4em 0; color:var(--blue);}
+    body.dark .section-title { color: #99cfff;}
+    .links { margin-top: 20px; font-size: 0.92em;}
+    .links a { color: var(--accent); text-decoration: none; margin: 0 3px;}
+    .links a:hover { text-decoration: underline;}
+    @media (max-width: 500px) {
+      .card { padding: 1.2rem 0.2rem;}
+      .logo { width: 44px;}
+      .token img { width: 20px;}
+      .nft img { width:65px; height:65px;}
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="card">
     <img src="https://cryptologos.cc/logos/avalanche-avax-logo.png?v=029" alt="AVAX logo" class="logo">
-    <h2>Universal AVAX Balance Checker</h2>
-    <div class="network" id="networkDiv"></div>
-    <button id="connectMetaMaskBtn">Connect with Browser Wallet</button>
-    <button id="connectWCBtn">Connect with WalletConnect</button>
-    <button id="disconnectBtn" style="display:none;">Disconnect</button>
-
-    <div class="loading" id="loadingDiv"></div>
-    <div class="error" id="errorDiv"></div>
+    <h1>AVAX Wallet Dashboard</h1>
+    <div class="flex" style="justify-content: end;">
+      <select class="currency-picker" id="currencyPicker">
+        <option value="usd" selected>USD</option>
+        <option value="eur">EUR</option>
+        <option value="gbp">GBP</option>
+      </select>
+      <span class="theme-toggle" id="themeToggle" title="Toggle theme"><i class="fa-solid fa-moon"></i></span>
+    </div>
+    <div class="network-warning" id="networkWarning"></div>
+    <div class="btn-group">
+      <button class="btn" id="connectMetaMaskBtn"><i class="fa-brands fa-chrome"></i> Browser Wallet</button>
+      <button class="btn" id="connectWCBtn"><i class="fa-solid fa-qrcode"></i> WalletConnect</button>
+      <button class="btn btn-outline" id="disconnectBtn" style="display:none;"><i class="fa-solid fa-right-from-bracket"></i> Disconnect</button>
+    </div>
+    <div class="portfolio" id="portfolioValue"></div>
     <table class="info-table" id="infoTable" style="display:none;">
-      <tr>
+      <tr class="address-row">
         <td class="label">Address:</td>
-        <td class="value" id="addressCell"></td>
+        <td class="value" id="addressCell">
+          <span id="addressTxt"></span>
+          <i class="fa-regular fa-copy" id="copyAddrBtn" title="Copy address"></i>
+        </td>
       </tr>
       <tr>
-        <td class="label">AVAX Balance:</td>
-        <td class="value" id="balanceCell"></td>
+        <td class="label">Network:</td>
+        <td class="value" id="networkCell"></td>
       </tr>
       <tr>
-        <td class="label">AVAX Price:</td>
-        <td class="value price" id="priceCell"></td>
-      </tr>
-      <tr>
-        <td class="label">Fiat Value:</td>
-        <td class="value fiat" id="fiatCell"></td>
+        <td class="label">QR Code:</td>
+        <td class="value"><canvas id="qrCode" class="qr-code"></canvas></td>
       </tr>
     </table>
-    <div class="help">
-      <b>How it works:</b> Connect with any browser wallet (MetaMask, Rabby, Coinbase, etc.) or use WalletConnect for mobile wallets.<br>
-      The dApp will show your AVAX address, balance, and estimated fiat value.<br>
-      <b>Note:</b> No wallet data is stored. Always verify dApp URLs before connecting!
+    <div class="loading" id="loadingDiv"></div>
+    <div class="error" id="errorDiv"></div>
+
+    <div id="tokenSection" style="display:none;">
+      <div class="section-title">Tokens</div>
+      <div class="token-list" id="tokenList"></div>
+    </div>
+
+    <div id="nftSection" style="display:none;">
+      <div class="section-title">NFTs</div>
+      <div class="nft-list" id="nftList"></div>
+    </div>
+
+    <div id="txSection" style="display:none;">
+      <div class="section-title">Recent Transactions</div>
+      <div id="txList"></div>
+    </div>
+
+    <div class="address-book" id="addressBook">
+      <label for="saveAddrInput">Address Book:</label>
+      <input id="saveAddrInput" type="text" placeholder="Paste address">
+      <input id="saveLabelInput" type="text" placeholder="Label">
+      <button class="btn btn-sm" id="saveAddrBtn"><i class="fa-solid fa-bookmark"></i> Save</button>
+      <div id="savedAddresses"></div>
+    </div>
+
+    <div class="security-tips">
+      <b>Security Tips:</b> Never share your private key. Check URLs carefully before connecting. If unsure, disconnect immediately. Keep software updated and beware of phishing!
     </div>
     <div class="links">
-      <a href="https://walletconnect.com/" target="_blank">What is WalletConnect?</a> |
+      <a href="https://walletconnect.com/" target="_blank">WalletConnect</a> |
       <a href="https://www.coingecko.com/en/coins/avalanche" target="_blank">AVAX Price</a> |
-      <a href="https://github.com/precidoboss/yo" target="_blank">View Source</a>
+      <a href="https://snowtrace.io/" target="_blank">Explorer</a> |
+      <a href="https://github.com/precidoboss/yo" target="_blank">Source</a>
     </div>
   </div>
   <script>
+    // =========================
+    // Settings & Constants
+    // =========================
     const AVAX_CHAIN_ID = 43114;
     const AVAX_RPC_URL = "https://api.avax.network/ext/bc/C/rpc";
-
+    const COVALENT_KEY = "ckey_demo"; // demo key, get your own for production
+    const SNOWTRACE_KEY = "CXTB4IUT31N836G93ZI8YQBEWBQEGGH5QS"; // demo key, get your own
+    const ERC20_TOKENS = [
+      { address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", symbol: "WAVAX", name: "Wrapped AVAX", icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/assets/0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7/logo.png", decimals: 18 },
+      { address: "0xde3A24028580884448a5397872046a019649b084", symbol: "USDT.e", name: "Tether USD", icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/assets/0xde3A24028580884448a5397872046a019649b084/logo.png", decimals: 6 },
+      { address: "0xa7D7079b0FEAD91F3e65f86E8915Cb59c1a4C664", symbol: "USDC.e", name: "USD Coin", icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/assets/0xa7D7079b0FEAD91F3e65f86E8915Cb59c1a4C664/logo.png", decimals: 6 },
+      { address: "0x6e84A6216eA6dACC71eD5EbbFDaC0fcF7f6A2b2c", symbol: "JOE", name: "Trader Joe", icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/assets/0x6e84A6216eA6dACC71eD5EbbFDaC0fcF7f6A2b2c/logo.png", decimals: 18 }
+      // Add more tokens as needed
+    ];
+    const FIAT_SYMBOLS = { usd: "$", eur: "€", gbp: "£" };
+    // =========================
+    // DOM Elements
+    // =========================
     const connectMetaMaskBtn = document.getElementById('connectMetaMaskBtn');
     const connectWCBtn = document.getElementById('connectWCBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
     const addressCell = document.getElementById('addressCell');
-    const balanceCell = document.getElementById('balanceCell');
-    const fiatCell = document.getElementById('fiatCell');
-    const priceCell = document.getElementById('priceCell');
-    const networkDiv = document.getElementById('networkDiv');
+    const addressTxt = document.getElementById('addressTxt');
+    const copyAddrBtn = document.getElementById('copyAddrBtn');
+    const networkCell = document.getElementById('networkCell');
     const infoTable = document.getElementById('infoTable');
     const loadingDiv = document.getElementById('loadingDiv');
     const errorDiv = document.getElementById('errorDiv');
-
-    let provider, signer, wcProvider;
-    let avaxPrice = null;
-
+    const portfolioValue = document.getElementById('portfolioValue');
+    const tokenSection = document.getElementById('tokenSection');
+    const tokenList = document.getElementById('tokenList');
+    const nftSection = document.getElementById('nftSection');
+    const nftList = document.getElementById('nftList');
+    const txSection = document.getElementById('txSection');
+    const txList = document.getElementById('txList');
+    const networkWarning = document.getElementById('networkWarning');
+    const currencyPicker = document.getElementById('currencyPicker');
+    const themeToggle = document.getElementById('themeToggle');
+    const qrCodeCanvas = document.getElementById('qrCode');
+    const addressBook = document.getElementById('addressBook');
+    const saveAddrInput = document.getElementById('saveAddrInput');
+    const saveLabelInput = document.getElementById('saveLabelInput');
+    const saveAddrBtn = document.getElementById('saveAddrBtn');
+    const savedAddresses = document.getElementById('savedAddresses');
+    // =========================
+    // State variables
+    // =========================
+    let provider, signer, wcProvider, userAddress, network, fiatCurrency = "usd";
+    let avaxPrice = null, tokenPrices = {}, tokenBalances = [], nfts = [], transactions = [];
+    let addressBookData = [];
+    // =========================
+    // Utility Functions
+    // =========================
+    function setLoading(msg) { loadingDiv.textContent = msg || ""; }
+    function setError(msg) { errorDiv.textContent = msg || ""; }
+    function clearUI() {
+      infoTable.style.display = "none";
+      tokenSection.style.display = "none";
+      nftSection.style.display = "none";
+      txSection.style.display = "none";
+      portfolioValue.textContent = "";
+      networkWarning.style.display = "none";
+      setLoading(""); setError("");
+    }
+    function toShortAddr(addr) { return addr.slice(0, 6) + "..." + addr.slice(-4);}
+    function formatAmount(amt, decimals=4) { return Number(amt).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:decimals});}
+    function getFiatSymbol() { return FIAT_SYMBOLS[fiatCurrency] || "$"; }
+    function getTokenIcon(t) { return t.icon || "https://cryptologos.cc/logos/avalanche-avax-logo.png?v=029"; }
+    function saveAddressBook() { localStorage.setItem("avax_addressbook", JSON.stringify(addressBookData)); }
+    function loadAddressBook() {
+      let data = localStorage.getItem("avax_addressbook");
+      addressBookData = data ? JSON.parse(data) : [];
+      renderAddressBook();
+    }
+    function renderAddressBook() {
+      savedAddresses.innerHTML = "";
+      addressBookData.forEach((entry, idx) => {
+        let el = document.createElement("div");
+        el.className = "saved";
+        el.innerHTML = `<label title="${entry.address}">${entry.label || toShortAddr(entry.address)}: ${toShortAddr(entry.address)}</label> <span class="del" data-idx="${idx}"><i class="fa-solid fa-trash"></i></span>`;
+        savedAddresses.appendChild(el);
+      });
+      Array.from(document.querySelectorAll(".del")).forEach(icon => {
+        icon.onclick = () => {
+          addressBookData.splice(Number(icon.dataset.idx), 1);
+          saveAddressBook(); renderAddressBook();
+        };
+      });
+    }
+    saveAddrBtn.onclick = () => {
+      let addr = saveAddrInput.value.trim();
+      let label = saveLabelInput.value.trim();
+      if(addr && /^0x[a-fA-F0-9]{40}$/.test(addr)) {
+        addressBookData.push({address: addr, label});
+        saveAddressBook(); renderAddressBook();
+        saveAddrInput.value = ""; saveLabelInput.value = "";
+      } else {
+        alert("Invalid address");
+      }
+    };
+    loadAddressBook();
+    // Theme
+    function setTheme(dark) {
+      document.body.classList.toggle('dark', dark);
+      themeToggle.innerHTML = dark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+      localStorage.setItem("avax_theme", dark ? "dark" : "light");
+    }
+    themeToggle.onclick = () => setTheme(!document.body.classList.contains('dark'));
+    if(localStorage.getItem("avax_theme")==="dark") setTheme(true);
+    // Fiat currency picker
+    currencyPicker.onchange = () => { fiatCurrency = currencyPicker.value; refreshFiatValues(); };
+    // =========================
+    // Core Functions
+    // =========================
     async function fetchAvaxPrice() {
       try {
-        loadingDiv.textContent = "Fetching AVAX price...";
-        const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd");
-        const data = await r.json();
-        avaxPrice = data["avalanche-2"].usd;
-        priceCell.textContent = `$${avaxPrice} USD`;
-      } catch (err) {
-        priceCell.textContent = "Unavailable";
-        avaxPrice = null;
-      } finally {
-        loadingDiv.textContent = "";
+        setLoading("Fetching AVAX price...");
+        let url = `https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=${fiatCurrency}`;
+        let r = await fetch(url); let data = await r.json();
+        avaxPrice = data["avalanche-2"][fiatCurrency];
+      } finally { setLoading(""); }
+    }
+    async function fetchTokenPrices() {
+      try {
+        let ids = ["wrapped-avax", "tether", "usd-coin", "joe"];
+        let url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=${fiatCurrency}`;
+        let r = await fetch(url); let data = await r.json();
+        tokenPrices = {
+          "WAVAX": data["wrapped-avax"][fiatCurrency],
+          "USDT.e": data["tether"][fiatCurrency],
+          "USDC.e": data["usd-coin"][fiatCurrency],
+          "JOE": data["joe"][fiatCurrency]
+        };
+      } catch { tokenPrices = {}; }
+    }
+    async function fetchTokenBalances(addr) {
+      tokenBalances = [];
+      for(let t of ERC20_TOKENS) {
+        try {
+          let abi = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
+          let contract = new window.ethers.Contract(t.address, abi, provider);
+          let rawBal = await contract.balanceOf(addr);
+          let decimals = t.decimals;
+          let bal = Number(window.ethers.formatUnits(rawBal, decimals));
+          tokenBalances.push({...t, balance: bal, price: tokenPrices[t.symbol]});
+        } catch { tokenBalances.push({...t, balance: 0, price: tokenPrices[t.symbol]}); }
       }
     }
-
+    async function fetchNFTs(addr) {
+      // Use Covalent API
+      try {
+        setLoading("Fetching NFTs...");
+        let url = `https://api.covalenthq.com/v1/43114/address/${addr}/balances_nft/?key=${COVALENT_KEY}`;
+        let r = await fetch(url); let data = await r.json();
+        nfts = [];
+        if(data.data && data.data.items) {
+          for(let item of data.data.items) {
+            if(item.type === "nft" && item.nft_data) {
+              for(let nft of item.nft_data) {
+                nfts.push({
+                  title: nft.external_data && nft.external_data.name ? nft.external_data.name : item.contract_name,
+                  img: nft.external_data && nft.external_data.image ? nft.external_data.image : "",
+                  token_id: nft.token_id
+                });
+              }
+            }
+          }
+        }
+      } catch { nfts = []; }
+      finally { setLoading(""); }
+    }
+    async function fetchTxHistory(addr) {
+      // Use Snowtrace API
+      try {
+        setLoading("Fetching transactions...");
+        let url = `https://api.snowtrace.io/api?module=account&action=txlist&address=${addr}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${SNOWTRACE_KEY}`;
+        let r = await fetch(url); let data = await r.json();
+        transactions = data.result || [];
+      } catch { transactions = []; }
+      finally { setLoading(""); }
+    }
+    function refreshFiatValues() {
+      // Portfolio Value
+      let total = 0;
+      if(avaxPrice && window.avaxBalance) total += avaxPrice * window.avaxBalance;
+      tokenBalances.forEach(t => { if(t.price) total += t.price * t.balance; });
+      portfolioValue.textContent = total ? `Portfolio: ${getFiatSymbol()}${formatAmount(total,2)}` : "";
+      // Token prices
+      renderTokens();
+    }
+    function renderTokens() {
+      tokenSection.style.display = "block";
+      tokenList.innerHTML = "";
+      // AVAX
+      let avaxFiat = avaxPrice ? avaxPrice * window.avaxBalance : null;
+      let avaxRow = document.createElement("div");
+      avaxRow.className = "token";
+      avaxRow.innerHTML = `
+        <div><img src="https://cryptologos.cc/logos/avalanche-avax-logo.png?v=029" alt="AVAX"> AVAX</div>
+        <div>${formatAmount(window.avaxBalance,4)} AVAX <span class="price">${avaxFiat ? getFiatSymbol()+formatAmount(avaxFiat,2) : ""}</span></div>
+        <div class="token-actions">
+          <i class="fa-solid fa-wallet" title="Add AVAX to MetaMask" onclick="addTokenToMetaMask('AVAX')"></i>
+        </div>
+      `;
+      tokenList.appendChild(avaxRow);
+      // ERC20 tokens
+      for(let t of tokenBalances) {
+        let fiat = t.price ? t.price * t.balance : null;
+        let row = document.createElement("div");
+        row.className = "token";
+        row.innerHTML = `
+          <div><img src="${getTokenIcon(t)}" alt="${t.symbol}"> ${t.symbol}</div>
+          <div>${formatAmount(t.balance,4)} <span class="price">${fiat ? getFiatSymbol()+formatAmount(fiat,2) : ""}</span></div>
+          <div class="token-actions">
+            <i class="fa-solid fa-wallet" title="Add ${t.symbol} to MetaMask" onclick="addTokenToMetaMask('${t.symbol}')"></i>
+          </div>
+        `;
+        tokenList.appendChild(row);
+      }
+    }
+    function renderNFTs() {
+      nftSection.style.display = nfts.length ? "block" : "none";
+      nftList.innerHTML = "";
+      for(let n of nfts) {
+        let el = document.createElement("div");
+        el.className = "nft";
+        el.innerHTML = `<img src="${n.img || "https://cryptologos.cc/logos/avalanche-avax-logo.png?v=029"}" alt="NFT"><div class="title">${n.title || "NFT #" + n.token_id}</div>`;
+        nftList.appendChild(el);
+      }
+    }
+    function renderTxs() {
+      txSection.style.display = transactions.length ? "block" : "none";
+      txList.innerHTML = "";
+      for(let tx of transactions) {
+        let date = new Date(tx.timeStamp*1000).toLocaleString();
+        let direction = tx.from.toLowerCase() === userAddress.toLowerCase() ? "Out" : "In";
+        let value = window.ethers.formatEther(tx.value);
+        let hash = tx.hash;
+        let addr = direction === "In" ? tx.from : tx.to;
+        let shortAddr = toShortAddr(addr);
+        let explorer = `https://snowtrace.io/tx/${hash}`;
+        let el = document.createElement("div");
+        el.style = "font-size:0.97em; margin-bottom:6px;";
+        el.innerHTML = `<a href="${explorer}" target="_blank" style="color:var(--blue); text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i></a> ${direction} ${formatAmount(value,3)} AVAX <span style="color:#888;">(${shortAddr})</span> <span style="color:#aaa;">${date}</span>`;
+        txList.appendChild(el);
+      }
+    }
+    function showNetworkWarning(network) {
+      if(network.chainId !== AVAX_CHAIN_ID) {
+        networkWarning.style.display = "";
+        networkWarning.textContent = "You are NOT connected to Avalanche C-Chain. Please switch network!";
+      } else {
+        networkWarning.style.display = "none";
+      }
+    }
+    copyAddrBtn.onclick = () => {
+      navigator.clipboard.writeText(userAddress);
+      copyAddrBtn.style.color = "var(--accent)";
+      setTimeout(() => copyAddrBtn.style.color = "var(--blue)", 700);
+    };
+    function addTokenToMetaMask(symbol) {
+      let t = ERC20_TOKENS.find(x=>x.symbol===symbol);
+      if(symbol==="AVAX") {
+        window.ethereum && window.ethereum.request({
+          method: 'wallet_watchAsset',
+          params: {
+            type: 'ERC20',
+            options: {
+              address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", // WAVAX
+              symbol: "WAVAX",
+              decimals: 18,
+              image: "https://cryptologos.cc/logos/avalanche-avax-logo.png?v=029"
+            }
+          }
+        });
+      } else if(t && window.ethereum) {
+        window.ethereum.request({
+          method: 'wallet_watchAsset',
+          params: {
+            type: 'ERC20',
+            options: {
+              address: t.address,
+              symbol: t.symbol,
+              decimals: t.decimals,
+              image: getTokenIcon(t)
+            }
+          }
+        });
+      }
+    }
+    // =========================
+    // Wallet Connection Functions
+    // =========================
     async function connectMetaMask() {
+      clearUI();
       connectMetaMaskBtn.disabled = true;
       connectWCBtn.disabled = true;
-      loadingDiv.textContent = "Connecting to browser wallet...";
-      errorDiv.textContent = "";
-
+      setLoading("Connecting to browser wallet...");
+      setError("");
       try {
-        if (window.ethereum) {
+        if(window.ethereum) {
           provider = new window.ethers.BrowserProvider(window.ethereum);
           await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-          // Switch to Avalanche C-Chain if needed
-          const network = await provider.getNetwork();
-          if (network.chainId !== AVAX_CHAIN_ID) {
+          network = await provider.getNetwork();
+          showNetworkWarning(network);
+          if(network.chainId !== AVAX_CHAIN_ID) {
             try {
               await window.ethereum.request({
                 method: 'wallet_switchEthereumChain',
                 params: [{ chainId: '0xa86a' }]
               });
-            } catch (switchError) {
-              // If not added, try to add Avalanche
-              if (switchError.code === 4902) {
-                await window.ethereum.request({
-                  method: 'wallet_addEthereumChain',
-                  params: [{
-                    chainId: '0xa86a',
-                    rpcUrls: [AVAX_RPC_URL],
-                    chainName: 'Avalanche C-Chain',
-                    nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
-                    blockExplorerUrls: ['https://snowtrace.io/']
-                  }]
-                });
-              } else {
-                throw switchError;
-              }
-            }
+              network = await provider.getNetwork();
+              showNetworkWarning(network);
+            } catch(e) {}
           }
-
           signer = await provider.getSigner();
-          const network2 = await provider.getNetwork();
-          networkDiv.textContent = `Network: ${network2.name || "Avalanche"} (${network2.chainId})`;
-
-          const userAddress = await signer.getAddress();
-          addressCell.textContent = userAddress;
-
-          loadingDiv.textContent = "Fetching balance...";
-          const bal = await provider.getBalance(userAddress);
-          const avaxBal = window.ethers.formatEther(bal);
-          balanceCell.textContent = `${avaxBal} AVAX`;
-
-          await fetchAvaxPrice();
-          if (avaxPrice) {
-            fiatCell.textContent = `$${(avaxBal * avaxPrice).toFixed(2)} USD`;
-          } else {
-            fiatCell.textContent = "Unavailable";
-          }
-
+          userAddress = await signer.getAddress();
+          networkCell.textContent = `${network.name || "Avalanche"} (${network.chainId})`;
+          addressTxt.textContent = toShortAddr(userAddress);
           infoTable.style.display = "";
+          window.QRCode.toCanvas(qrCodeCanvas, userAddress, {width:100});
+          // AVAX balance
+          setLoading("Fetching AVAX balance...");
+          let bal = await provider.getBalance(userAddress);
+          window.avaxBalance = Number(window.ethers.formatEther(bal));
+          // Prices
+          await fetchAvaxPrice(); await fetchTokenPrices();
+          // ERC-20s
+          await fetchTokenBalances(userAddress);
+          // NFTs
+          await fetchNFTs(userAddress);
+          // TXs
+          await fetchTxHistory(userAddress);
+          // Render
+          refreshFiatValues();
+          renderNFTs(); renderTxs();
           disconnectBtn.style.display = "";
           connectMetaMaskBtn.style.display = "none";
           connectWCBtn.style.display = "none";
-          loadingDiv.textContent = "";
         } else {
           throw new Error("No browser wallet found (MetaMask, Rabby, etc.)");
         }
       } catch (err) {
-        errorDiv.textContent = `Failed to connect wallet: ${err.message || err}`;
+        setError("Failed to connect wallet: " + (err.message || err));
         connectMetaMaskBtn.disabled = false;
         connectWCBtn.disabled = false;
-        loadingDiv.textContent = "";
-      }
+        setLoading("");
+      } finally { setLoading(""); }
     }
-
     async function connectWalletConnect() {
+      clearUI();
       connectMetaMaskBtn.disabled = true;
       connectWCBtn.disabled = true;
-      loadingDiv.textContent = "Initializing WalletConnect...";
-      errorDiv.textContent = "";
-
+      setLoading("Initializing WalletConnect...");
+      setError("");
       try {
         wcProvider = new window.WalletConnectProvider.default({
           rpc: { [AVAX_CHAIN_ID]: AVAX_RPC_URL },
           chainId: AVAX_CHAIN_ID,
         });
         await wcProvider.enable();
-
         provider = new window.ethers.BrowserProvider(wcProvider);
         signer = await provider.getSigner();
-
-        const network = await provider.getNetwork();
-        networkDiv.textContent = `Network: ${network.name || "Avalanche"} (${network.chainId})`;
-
-        const userAddress = await signer.getAddress();
-        addressCell.textContent = userAddress;
-
-        loadingDiv.textContent = "Fetching balance...";
-        const bal = await provider.getBalance(userAddress);
-        const avaxBal = window.ethers.formatEther(bal);
-        balanceCell.textContent = `${avaxBal} AVAX`;
-
-        await fetchAvaxPrice();
-        if (avaxPrice) {
-          fiatCell.textContent = `$${(avaxBal * avaxPrice).toFixed(2)} USD`;
-        } else {
-          fiatCell.textContent = "Unavailable";
-        }
-
+        network = await provider.getNetwork();
+        showNetworkWarning(network);
+        userAddress = await signer.getAddress();
+        networkCell.textContent = `${network.name || "Avalanche"} (${network.chainId})`;
+        addressTxt.textContent = toShortAddr(userAddress);
         infoTable.style.display = "";
+        window.QRCode.toCanvas(qrCodeCanvas, userAddress, {width:100});
+        // AVAX balance
+        setLoading("Fetching AVAX balance...");
+        let bal = await provider.getBalance(userAddress);
+        window.avaxBalance = Number(window.ethers.formatEther(bal));
+        // Prices
+        await fetchAvaxPrice(); await fetchTokenPrices();
+        // ERC-20s
+        await fetchTokenBalances(userAddress);
+        // NFTs
+        await fetchNFTs(userAddress);
+        // TXs
+        await fetchTxHistory(userAddress);
+        // Render
+        refreshFiatValues();
+        renderNFTs(); renderTxs();
         disconnectBtn.style.display = "";
         connectMetaMaskBtn.style.display = "none";
         connectWCBtn.style.display = "none";
-        loadingDiv.textContent = "";
       } catch (err) {
-        errorDiv.textContent = `Failed to connect wallet: ${err.message || err}`;
+        setError("Failed to connect wallet: " + (err.message || err));
         connectMetaMaskBtn.disabled = false;
         connectWCBtn.disabled = false;
-        loadingDiv.textContent = "";
-      }
+        setLoading("");
+      } finally { setLoading(""); }
     }
-
     async function disconnectWallet() {
       try {
-        if (wcProvider && wcProvider.disconnect) {
-          await wcProvider.disconnect();
-        }
+        if(wcProvider && wcProvider.disconnect) await wcProvider.disconnect();
       } catch (err) {}
-      provider = null;
-      signer = null;
-      wcProvider = null;
-      infoTable.style.display = "none";
+      provider = null; signer = null; wcProvider = null; userAddress = null; network = null;
+      clearUI();
       disconnectBtn.style.display = "none";
       connectMetaMaskBtn.style.display = "";
       connectMetaMaskBtn.disabled = false;
       connectWCBtn.style.display = "";
       connectWCBtn.disabled = false;
-      networkDiv.textContent = "";
-      errorDiv.textContent = "";
-      addressCell.textContent = "";
-      balanceCell.textContent = "";
-      fiatCell.textContent = "";
-      priceCell.textContent = "";
+      portfolioValue.textContent = "";
     }
-
     connectMetaMaskBtn.onclick = connectMetaMask;
     connectWCBtn.onclick = connectWalletConnect;
     disconnectBtn.onclick = disconnectWallet;
-
-    fetchAvaxPrice();
+    // ========== Demo (show price on load) ===========
+    fetchAvaxPrice().then(refreshFiatValues);
   </script>
 </body>
 </html>
