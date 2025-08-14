@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>AVAX Wallet Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Ethers.js CDN -->
+  <!-- Ethers.js v6 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
   <!-- WalletConnect v1 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
@@ -237,9 +237,7 @@
     </div>
   </div>
   <script>
-    // =========================
     // Settings & Constants
-    // =========================
     const AVAX_CHAIN_ID = 43114;
     const AVAX_RPC_URL = "https://api.avax.network/ext/bc/C/rpc";
     const COVALENT_KEY = "ckey_demo"; // demo key, get your own for production
@@ -249,12 +247,10 @@
       { address: "0xde3A24028580884448a5397872046a019649b084", symbol: "USDT.e", name: "Tether USD", icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/assets/0xde3A24028580884448a5397872046a019649b084/logo.png", decimals: 6 },
       { address: "0xa7D7079b0FEAD91F3e65f86E8915Cb59c1a4C664", symbol: "USDC.e", name: "USD Coin", icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/assets/0xa7D7079b0FEAD91F3e65f86E8915Cb59c1a4C664/logo.png", decimals: 6 },
       { address: "0x6e84A6216eA6dACC71eD5EbbFDaC0fcF7f6A2b2c", symbol: "JOE", name: "Trader Joe", icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/assets/0x6e84A6216eA6dACC71eD5EbbFDaC0fcF7f6A2b2c/logo.png", decimals: 18 }
-      // Add more tokens as needed
     ];
     const FIAT_SYMBOLS = { usd: "$", eur: "€", gbp: "£" };
-    // =========================
+
     // DOM Elements
-    // =========================
     const connectMetaMaskBtn = document.getElementById('connectMetaMaskBtn');
     const connectWCBtn = document.getElementById('connectWCBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
@@ -281,15 +277,13 @@
     const saveLabelInput = document.getElementById('saveLabelInput');
     const saveAddrBtn = document.getElementById('saveAddrBtn');
     const savedAddresses = document.getElementById('savedAddresses');
-    // =========================
+
     // State variables
-    // =========================
     let provider, signer, wcProvider, userAddress, network, fiatCurrency = "usd";
     let avaxPrice = null, tokenPrices = {}, tokenBalances = [], nfts = [], transactions = [];
     let addressBookData = [];
-    // =========================
+
     // Utility Functions
-    // =========================
     function setLoading(msg) { loadingDiv.textContent = msg || ""; }
     function setError(msg) { errorDiv.textContent = msg || ""; }
     function clearUI() {
@@ -301,8 +295,8 @@
       networkWarning.style.display = "none";
       setLoading(""); setError("");
     }
-    function toShortAddr(addr) { return addr.slice(0, 6) + "..." + addr.slice(-4);}
-    function formatAmount(amt, decimals=4) { return Number(amt).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:decimals});}
+    function toShortAddr(addr) { return addr ? addr.slice(0, 6) + "..." + addr.slice(-4) : ""; }
+    function formatAmount(amt, decimals=4) { return Number(amt).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:decimals}); }
     function getFiatSymbol() { return FIAT_SYMBOLS[fiatCurrency] || "$"; }
     function getTokenIcon(t) { return t.icon || "https://cryptologos.cc/logos/avalanche-avax-logo.png?v=029"; }
     function saveAddressBook() { localStorage.setItem("avax_addressbook", JSON.stringify(addressBookData)); }
@@ -338,6 +332,7 @@
       }
     };
     loadAddressBook();
+
     // Theme
     function setTheme(dark) {
       document.body.classList.toggle('dark', dark);
@@ -346,11 +341,11 @@
     }
     themeToggle.onclick = () => setTheme(!document.body.classList.contains('dark'));
     if(localStorage.getItem("avax_theme")==="dark") setTheme(true);
+
     // Fiat currency picker
     currencyPicker.onchange = () => { fiatCurrency = currencyPicker.value; refreshFiatValues(); };
-    // =========================
+
     // Core Functions
-    // =========================
     async function fetchAvaxPrice() {
       try {
         setLoading("Fetching AVAX price...");
@@ -377,10 +372,10 @@
       for(let t of ERC20_TOKENS) {
         try {
           let abi = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
-          let contract = new window.ethers.Contract(t.address, abi, provider);
+          let contract = new ethers.Contract(t.address, abi, provider);
           let rawBal = await contract.balanceOf(addr);
           let decimals = t.decimals;
-          let bal = Number(window.ethers.formatUnits(rawBal, decimals));
+          let bal = Number(ethers.formatUnits(rawBal, decimals));
           tokenBalances.push({...t, balance: bal, price: tokenPrices[t.symbol]});
         } catch { tokenBalances.push({...t, balance: 0, price: tokenPrices[t.symbol]}); }
       }
@@ -473,7 +468,7 @@
       for(let tx of transactions) {
         let date = new Date(tx.timeStamp*1000).toLocaleString();
         let direction = tx.from.toLowerCase() === userAddress.toLowerCase() ? "Out" : "In";
-        let value = window.ethers.formatEther(tx.value);
+        let value = ethers.formatEther(tx.value);
         let hash = tx.hash;
         let addr = direction === "In" ? tx.from : tx.to;
         let shortAddr = toShortAddr(addr);
@@ -527,9 +522,8 @@
         });
       }
     }
-    // =========================
+
     // Wallet Connection Functions
-    // =========================
     async function connectMetaMask() {
       clearUI();
       connectMetaMaskBtn.disabled = true;
@@ -538,20 +532,10 @@
       setError("");
       try {
         if(window.ethereum) {
-          provider = new window.ethers.BrowserProvider(window.ethereum);
+          provider = new ethers.BrowserProvider(window.ethereum);
           await window.ethereum.request({ method: 'eth_requestAccounts' });
           network = await provider.getNetwork();
           showNetworkWarning(network);
-          if(network.chainId !== AVAX_CHAIN_ID) {
-            try {
-              await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0xa86a' }]
-              });
-              network = await provider.getNetwork();
-              showNetworkWarning(network);
-            } catch(e) {}
-          }
           signer = await provider.getSigner();
           userAddress = await signer.getAddress();
           networkCell.textContent = `${network.name || "Avalanche"} (${network.chainId})`;
@@ -561,7 +545,7 @@
           // AVAX balance
           setLoading("Fetching AVAX balance...");
           let bal = await provider.getBalance(userAddress);
-          window.avaxBalance = Number(window.ethers.formatEther(bal));
+          window.avaxBalance = Number(ethers.formatEther(bal));
           // Prices
           await fetchAvaxPrice(); await fetchTokenPrices();
           // ERC-20s
@@ -598,7 +582,7 @@
           chainId: AVAX_CHAIN_ID,
         });
         await wcProvider.enable();
-        provider = new window.ethers.BrowserProvider(wcProvider);
+        provider = new ethers.BrowserProvider(wcProvider);
         signer = await provider.getSigner();
         network = await provider.getNetwork();
         showNetworkWarning(network);
@@ -610,7 +594,7 @@
         // AVAX balance
         setLoading("Fetching AVAX balance...");
         let bal = await provider.getBalance(userAddress);
-        window.avaxBalance = Number(window.ethers.formatEther(bal));
+        window.avaxBalance = Number(ethers.formatEther(bal));
         // Prices
         await fetchAvaxPrice(); await fetchTokenPrices();
         // ERC-20s
@@ -648,7 +632,8 @@
     connectMetaMaskBtn.onclick = connectMetaMask;
     connectWCBtn.onclick = connectWalletConnect;
     disconnectBtn.onclick = disconnectWallet;
-    // ========== Demo (show price on load) ===========
+
+    // Show AVAX price on load
     fetchAvaxPrice().then(refreshFiatValues);
   </script>
 </body>
