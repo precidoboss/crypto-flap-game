@@ -1,484 +1,349 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>AVAX Raffle Tickets</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@2.9.0/dist/umd/index.min.js"></script>
-  <style>
-    body {
-      min-height: 100vh;
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg,#1e293b 0%,#6366f1 100%);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-width: 340px;
-      min-height: 60vh;
-      animation: fadeIn 0.8s cubic-bezier(.5,1.5,.5,1);
-      width: 100vw;
-      max-width: 100vw;
-    }
-    .card {
-      background: rgba(30,41,59,0.96);
-      border-radius: 24px;
-      box-shadow: 0 6px 40px #6366f155;
-      padding: 36px 24px;
-      min-width: 320px;
-      max-width: 400px;
-      text-align: center;
-      backdrop-filter: blur(2px);
-      animation: scaleIn 0.7s cubic-bezier(.5,1.5,.5,1);
-    }
-    h1 {
-      font-size: 1.7rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: 1px;
-    }
-    .btn, .disconnect-btn, .send-btn {
-      background: linear-gradient(90deg,#6366f1 0%,#60a5fa 100%);
-      color: #fff;
-      font-weight: 700;
-      border: none;
-      border-radius: 12px;
-      padding: 14px 32px;
-      font-size: 1.1rem;
-      cursor: pointer;
-      transition: background 0.2s;
-      margin-top: 18px;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 8px #6366f133;
-    }
-    .btn:hover, .disconnect-btn:hover, .send-btn:hover {
-      background: linear-gradient(90deg,#60a5fa 0%,#6366f1 100%);
-    }
-    .wallet-choice {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 12px;
-      margin-top: 18px;
-      animation: fadeInUp 0.7s cubic-bezier(.5,1.5,.5,1);
-    }
-    .info {
-      margin-bottom: 18px;
-      animation: fadeInUp 0.7s cubic-bezier(.5,1.5,.5,1);
-      font-size:1.05em;
-    }
-    .info strong {
-      color: #60a5fa;
-    }
-    .address {
-      font-size: 0.93em;
-      word-break: break-all;
-      color: #e0e7ff;
-      background: rgba(99,102,241,0.08);
-      border-radius: 6px;
-      padding: 3px 7px;
-      margin: 4px 0;
-      display: inline-block;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-    @keyframes scaleIn {
-      from { transform: scale(0.85); opacity: 0; }
-      to   { transform: scale(1); opacity: 1; }
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px);}
-      to   { opacity: 1; transform: translateY(0);}
-    }
-    .loader {
-      display: inline-block;
-      width: 32px;
-      height: 32px;
-      border: 3px solid #6366f1;
-      border-radius: 50%;
-      border-top-color: #60a5fa;
-      animation: spin 1s linear infinite;
-      margin: 16px auto;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg);}
-    }
-    .metrics {
-      background: rgba(99,102,241,0.09);
-      border-radius: 12px;
-      padding: 12px 10px;
-      margin: 18px auto 10px auto;
-      font-size:1.03em;
-    }
-    .metrics span {
-      display: block;
-      margin: 4px 0;
-    }
-    .progress-bar-bg {
-      width: 100%;
-      height: 24px;
-      background: #1e293b;
-      border-radius: 12px;
-      margin: 6px auto 16px auto;
-      box-shadow: 0 2px 7px #6366f133;
-      overflow: hidden;
-      position: relative;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg,#6366f1 0%,#34d399 100%);
-      border-radius: 12px;
-      width: 0%;
-      transition: width 0.6s cubic-bezier(.5,1.5,.5,1);
-      position: absolute;
-      left: 0;
-      top: 0;
-    }
-    .progress-label {
-      position: absolute;
-      width: 100%;
-      text-align: center;
-      font-weight: 700;
-      color: #fff;
-      font-size: 1.05em;
-      line-height: 24px;
-      left: 0; top: 0;
-      z-index:2;
-      pointer-events:none;
-    }
-    .send-form {
-      margin: 0 auto;
-      margin-bottom: 12px;
-      margin-top:6px;
-      padding: 12px 0;
-      background: rgba(99,102,241,0.04);
-      border-radius: 10px;
-      max-width: 320px;
-      animation: fadeInUp 0.7s cubic-bezier(.5,1.5,.5,1);
-    }
-    .send-form input[type="number"] {
-      width: 53px;
-      text-align: center;
-      font-size: 1.13em;
-      font-weight:700;
-      margin: 0 6px;
-      padding: 10px 12px;
-      border-radius: 7px;
-      border: none;
-      outline: none;
-      font-family: 'Inter', sans-serif;
-      background: rgba(99,102,241,0.09);
-      color: #3b82f6;
-      transition: background 0.2s;
-    }
-    .send-form input:focus {
-      background: rgba(99,102,241,0.18);
-    }
-    .send-form label {
-      font-weight: 600;
-      color: #6366f1;
-      font-size: 0.96em;
-      display:block;
-      margin-bottom:4px;
-      text-align:left;
-      margin-left:8%;
-    }
-    .status-message {
-      margin: 8px auto;
-      color: #a5b4fc;
-      font-size: 0.96em;
-      text-align: center;
-      min-height: 24px;
-    }
-    .status-message.error {
-      color: #f87171;
-    }
-    .status-message.success {
-      color: #34d399;
-    }
-    .history {
-      margin-top: 12px;
-      background: rgba(30,41,59,0.13);
-      border-radius:10px;
-      padding:8px 6px;
-      font-size:0.98em;
-      max-height: 120px;
-      overflow-y: auto;
-    }
-    .history h3 {
-      font-size: 1.07em;
-      font-weight: 600;
-      margin: 0 0 6px 0;
-      color: #6366f1;
-    }
-    .history-list {
-      padding:0;margin:0;list-style:none;
-    }
-    .history-list li {
-      margin:5px 0;
-      color:#a5b4fc;
-      font-family: monospace;
-      font-size: 0.97em;
-    }
-    .history-list li .amount {
-      color:#34d399;
-      font-weight:700;
-      margin-right:2px;
-    }
-    .history-list li .txhash {
-      color:#6366f1;
-      margin-left:5px;
-      text-decoration: underline;
-      cursor: pointer;
-    }
-    .balance {
-      color: #34d399;
-      font-weight:700;
-      font-size:1.1em;
-      margin-bottom:10px;
-    }
-    .ticket-price-info {
-      font-size:0.95em;
-      opacity:0.9;
-      margin-bottom:7px;
-    }
-    @media (max-width: 450px) {
-      .card { padding: 18px 2vw; min-width: 97vw; max-width: 97vw;}
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="card" id="card">
-      <h1>AVAX Raffle Tickets</h1>
-      <div id="main">
-        <button class="btn" id="connectBtn">Connect Wallet</button>
-      </div>
-    </div>
-    <div class="footer">
-      1 ticket = <b>0.00001 AVAX</b><br>
-      Deposit to: <span style="font-family:monospace;">0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310</span>
-    </div>
-  </div>
-  <script>
-    const AVAX_CHAIN_ID = 43114;
-    const AVAX_RPC = 'https://api.avax.network/ext/bc/C/rpc';
-    const WALLETCONNECT_PROJECT_ID = '149ddeec1dea68dd9f14f2b11411147a';
-    const DEPOSIT_ADDR = "0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310";
-    const TICKET_PRICE = 0.00001;
-    const GOAL_TICKETS = 1000; // For progress bar (optional)
-    let provider, ethersProvider, signer, address, wcProvider, currentWalletType;
-    let balance = 0, ticketCount = 0, txHistory = [];
-
-    const mainDiv = document.getElementById('main');
-    const connectBtn = document.getElementById('connectBtn');
-
-    connectBtn.onclick = showWalletChoice;
-
-    function showWalletChoice() {
-      mainDiv.innerHTML = `
-        <div class="wallet-choice">
-          <button class="btn" id="injectedBtn">MetaMask / Injected</button>
-          <button class="btn" id="wcBtn">WalletConnect QR</button>
-        </div>
-      `;
-      document.getElementById('injectedBtn').onclick = injectedConnect;
-      document.getElementById('wcBtn').onclick = walletConnectConnect;
-    }
-
-    async function injectedConnect() {
-      if (!window.ethereum) {
-        mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">No injected wallet found.<br>Install MetaMask or TrustWallet extension.</div>
-        <button class="btn" id="connectBtn">Back</button>`;
-        document.getElementById('connectBtn').onclick = showWalletChoice;
-        return;
-      }
-      try {
-        provider = window.ethereum;
-        currentWalletType = 'Injected';
-        if (provider.networkVersion != AVAX_CHAIN_ID) {
-          try {
-            await provider.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0xa86a' }]
-            });
-          } catch (e) {
-            await provider.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: '0xa86a',
-                chainName: 'Avalanche C-Chain',
-                nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
-                rpcUrls: [AVAX_RPC],
-                blockExplorerUrls: ['https://snowtrace.io']
-              }]
-            });
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avalanche Raffle</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0d17;
         }
-        ethersProvider = new ethers.BrowserProvider(provider);
-        signer = await ethersProvider.getSigner();
-        address = await signer.getAddress();
-        await fetchBalance();
-        showRaffle();
-        provider.on('accountsChanged', () => { resetUI(); });
-        provider.on('chainChanged', () => { resetUI(); });
-        provider.on('disconnect', () => { resetUI(); });
-      } catch (err) {
-        mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">${err.message || 'Wallet connection failed.'}</div>
-        <button class="btn" id="connectBtn">Back</button>`;
-        document.getElementById('connectBtn').onclick = showWalletChoice;
-      }
-    }
+        .gradient-bg {
+            background-image: linear-gradient(to bottom right, #1a202c, #2d3748);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
 
-    async function walletConnectConnect() {
-      try {
-        wcProvider = new window.WalletConnectProvider.default({
-          projectId: WALLETCONNECT_PROJECT_ID,
-          chains: [AVAX_CHAIN_ID],
-          rpcMap: { [AVAX_CHAIN_ID]: AVAX_RPC },
+    <!-- Main Raffle Container -->
+    <div class="glass-card max-w-4xl w-full rounded-2xl shadow-2xl p-8 text-white flex flex-col md:flex-row gap-8">
+
+        <!-- Left Side: Raffle Details and Metrics -->
+        <div class="flex-1 space-y-6">
+            <div class="flex items-center space-x-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zM5 8a1 1 0 011-1h.25a1 1 0 011 1v4a1 1 0 01-1 1H6a1 1 0 01-1-1V8zM8.5 8a1 1 0 011-1h.25a1 1 0 011 1v4a1 1 0 01-1 1H9.5a1 1 0 01-1-1V8zM12 8a1 1 0 011-1h.25a1 1 0 011 1v4a1 1 0 01-1 1H13a1 1 0 01-1-1V8z" clip-rule="evenodd" />
+                </svg>
+                <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Avalanche Raffle</h1>
+            </div>
+            
+            <p class="text-gray-300 text-lg">
+                Buy tickets for your chance to win! Each ticket costs **0.00001 AVAX**. The more you buy, the higher your chances.
+            </p>
+
+            <!-- Metrics -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
+                    <p class="text-sm text-gray-400">Total Tickets Sold</p>
+                    <p id="totalTickets" class="text-3xl font-semibold">0</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
+                    <p class="text-sm text-gray-400">Your Tickets</p>
+                    <p id="yourTickets" class="text-3xl font-semibold">0</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl shadow-lg col-span-1 sm:col-span-2">
+                    <p class="text-sm text-gray-400">Time Remaining</p>
+                    <p id="countdown" class="text-3xl font-semibold">00:00:00</p>
+                </div>
+            </div>
+
+            <!-- Last Winner -->
+            <div class="bg-gray-800 p-4 rounded-xl shadow-lg hidden">
+                <p class="text-sm text-gray-400">Last Raffle Winner</p>
+                <p id="lastWinner" class="text-xl font-bold text-green-400 truncate">No winner yet</p>
+                <p id="winningTicket" class="text-sm text-gray-400">Winning Ticket: #0</p>
+            </div>
+        </div>
+
+        <!-- Right Side: Wallet and Buy Tickets Section -->
+        <div class="flex-1 space-y-6">
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Wallet & Tickets</h2>
+                
+                <!-- Connect Wallet Button -->
+                <button id="connectWalletBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-200">
+                    Connect Wallet
+                </button>
+                
+                <!-- Connected State UI -->
+                <div id="connectedState" class="hidden space-y-4">
+                    <div class="bg-gray-700 p-3 rounded-xl flex items-center justify-between">
+                        <span class="text-sm text-gray-300">Connected:</span>
+                        <span id="walletAddress" class="font-mono text-xs md:text-sm truncate"></span>
+                        <button id="disconnectBtn" class="ml-2 text-red-400 hover:text-red-600 font-bold">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h14a1 1 0 001-1V4a1 1 0 00-1-1H3zm0 2a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V5zm1 6a1 1 0 00-1 1v4a1 1 0 001 1h12a1 1 0 001-1v-4a1 1 0 00-1-1H4z" clip-rule="evenodd" />
+                                <path fill-rule="evenodd" d="M10 13a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="ticketsInput" class="block text-sm font-medium text-gray-300">Number of Tickets</label>
+                        <input type="number" id="ticketsInput" min="1" value="1" class="w-full bg-gray-700 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="avaxAmount" class="block text-sm font-medium text-gray-300">AVAX Amount (0.00001 per ticket)</label>
+                        <input type="text" id="avaxAmount" readonly class="w-full bg-gray-700 text-white rounded-lg p-3 cursor-not-allowed">
+                    </div>
+                    
+                    <button id="buyTicketsBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-200">
+                        Buy Tickets
+                    </button>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Your History</h2>
+                <div id="historyList" class="space-y-2 text-sm text-gray-300">
+                    <!-- History items will be inserted here -->
+                    <p class="text-gray-500">Your transactions will appear here.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Custom Modal for Messages -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-900 p-6 rounded-xl shadow-2xl text-white max-w-sm w-full space-y-4 border border-gray-700">
+            <h3 id="modalTitle" class="text-xl font-bold text-center"></h3>
+            <p id="modalMessage" class="text-center text-gray-300"></p>
+            <button id="closeModalBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition duration-200">OK</button>
+        </div>
+    </div>
+    
+    <!-- Ethers.js -->
+    <script src="https://cdn.ethers.io/lib/ethers-6.7.0.min.js"></script>
+    <script>
+        // Import necessary libraries. ethers is already loaded via CDN.
+        const { ethers } = window;
+
+        // --- GLOBAL VARIABLES ---
+        let provider, signer;
+        let walletAddress = null;
+        const AVAX_CHAIN_ID = 43114;
+        const AVAX_RPC = 'https://api.avax.network/ext/bc/C/rpc';
+        const RAFFLE_CONTRACT_ADDRESS = '0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310';
+        const TICKET_PRICE_AVAX = 0.00001; // Cost of a single ticket in AVAX
+
+        // --- DOM ELEMENTS ---
+        const connectWalletBtn = document.getElementById('connectWalletBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const connectedStateDiv = document.getElementById('connectedState');
+        const walletAddressSpan = document.getElementById('walletAddress');
+        const ticketsInput = document.getElementById('ticketsInput');
+        const avaxAmountInput = document.getElementById('avaxAmount');
+        const buyTicketsBtn = document.getElementById('buyTicketsBtn');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        
+        // Mock data for new features (in a real app, this would be from a smart contract)
+        let totalTickets = 1542;
+        let userTickets = 0;
+        let raffleEndTime = new Date().getTime() + (3 * 24 * 60 * 60 * 1000); // 3 days from now
+        let history = [];
+
+        // --- CUSTOM MODAL FUNCTIONS (Replaces alert()) ---
+        const showModal = (title, message) => {
+            modalTitle.innerText = title;
+            modalMessage.innerText = message;
+            modal.classList.remove('hidden');
+        };
+
+        const hideModal = () => {
+            modal.classList.add('hidden');
+        };
+
+        closeModalBtn.addEventListener('click', hideModal);
+
+        // --- CORE LOGIC: WALLET CONNECTION ---
+        const updateUI = (address) => {
+            if (address) {
+                walletAddress = address;
+                walletAddressSpan.innerText = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+                connectWalletBtn.classList.add('hidden');
+                connectedStateDiv.classList.remove('hidden');
+            } else {
+                walletAddress = null;
+                connectWalletBtn.classList.remove('hidden');
+                connectedStateDiv.classList.add('hidden');
+            }
+        };
+
+        // The user's provided wallet connect code, adapted to use a modal
+        async function injectedConnect() {
+            if (!window.ethereum) {
+                showModal("Wallet Not Found", "No injected wallet found. Please install MetaMask or TrustWallet extension.");
+                return;
+            }
+            try {
+                const ethProvider = window.ethereum;
+                // Switch to Avalanche chain if needed
+                if (ethProvider.networkVersion != AVAX_CHAIN_ID) {
+                    try {
+                        await ethProvider.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0xa86a' }] // '0xa86a' is the hex for 43114
+                        });
+                    } catch (e) {
+                        // This error code means the chain is not in the wallet, so add it
+                        if (e.code === 4902) {
+                             await ethProvider.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0xa86a',
+                                    chainName: 'Avalanche C-Chain',
+                                    nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
+                                    rpcUrls: [AVAX_RPC],
+                                    blockExplorerUrls: ['https://snowtrace.io']
+                                }]
+                            });
+                        } else {
+                             showModal("Switch Failed", "Failed to switch networks. Please do so manually.");
+                             return;
+                        }
+                    }
+                }
+                
+                // Request account access
+                await ethProvider.request({ method: 'eth_requestAccounts' });
+
+                // ethers.js provider
+                provider = new ethers.BrowserProvider(ethProvider);
+                signer = await provider.getSigner();
+                const address = await signer.getAddress();
+                
+                console.log("Connected address:", address);
+                updateUI(address);
+                
+            } catch (err) {
+                showModal("Connection Failed", "Wallet connection failed: " + (err.message || err));
+            }
+        }
+        
+        // Disconnect function (not a true disconnect, just clears the UI)
+        disconnectBtn.addEventListener('click', () => {
+            updateUI(null);
         });
-        await wcProvider.enable();
-        provider = wcProvider;
-        currentWalletType = 'WalletConnect';
-        ethersProvider = new ethers.BrowserProvider(provider);
-        signer = await ethersProvider.getSigner();
-        address = await signer.getAddress();
-        await fetchBalance();
-        showRaffle();
-        wcProvider.on('accountsChanged', () => { resetUI(); });
-        wcProvider.on('chainChanged', () => { resetUI(); });
-        wcProvider.on('disconnect', () => { resetUI(); });
-      } catch (err) {
-        mainDiv.innerHTML = `<div style="color:#f87171;margin:18px 0;">${err.message || 'WalletConnect failed.'}</div>
-        <button class="btn" id="connectBtn">Back</button>`;
-        document.getElementById('connectBtn').onclick = showWalletChoice;
-      }
-    }
 
-    async function fetchBalance() {
-      try {
-        const bal = await ethersProvider.getBalance(address);
-        balance = Number(ethers.formatEther(bal));
-      } catch (err) {
-        balance = 0;
-      }
-    }
+        connectWalletBtn.addEventListener('click', injectedConnect);
 
-    function showRaffle() {
-      const percent = Math.min((ticketCount / GOAL_TICKETS) * 100, 100).toFixed(2);
-      mainDiv.innerHTML = `
-        <div class="info">
-          <strong>Address:</strong>
-          <div class="address">${shortAddr(address)}</div>
-          <strong>Wallet:</strong>
-          <span style="color:#a5b4fc;">${currentWalletType}</span><br>
-          <strong>Network:</strong>
-          <span style="color:#a5b4fc;">Avalanche (C-Chain)</span><br>
-        </div>
-        <div class="balance">Your AVAX: ${balance.toLocaleString(undefined,{maximumFractionDigits:5})}</div>
-        <div class="metrics">
-          <span><b>Your Tickets:</b> <span style="color:#34d399;font-weight:700;">${ticketCount}</span></span>
-          <span><b>Last Tx:</b> <span style="color:#6366f1;font-weight:700;">${txHistory.length ? txHistory[txHistory.length-1].txhash.slice(0,8)+'...' : 'None'}</span></span>
-        </div>
-        <div class="progress-bar-bg">
-          <div class="progress-label">${percent}%</div>
-          <div class="progress-bar-fill" style="width:${percent}%"></div>
-        </div>
-        <form class="send-form" id="sendForm">
-          <div class="ticket-price-info">1 ticket = 0.00001 AVAX</div>
-          <label for="ticketAmount">How many tickets?</label>
-          <input type="number" id="ticketAmount" min="1" max="1000" value="1" required>
-          <button class="send-btn" type="submit">Buy Tickets</button>
-          <div class="status-message" id="statusMsg"></div>
-        </form>
-        <div class="history" id="historyDiv">
-          <h3>Transaction History</h3>
-          <ul class="history-list" id="historyList">${renderHistory()}</ul>
-        </div>
-        <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
-      `;
-      document.getElementById('disconnectBtn').onclick = disconnectWallet;
-      document.getElementById('sendForm').onsubmit = buyTickets;
-      Array.from(document.getElementsByClassName('txhash')).forEach(el => {
-        el.onclick = () => window.open(`https://snowtrace.io/tx/${el.dataset.txhash}`, '_blank');
-      });
-    }
+        // --- CORE LOGIC: BUY TICKETS ---
+        async function buyTickets() {
+            if (!signer) {
+                showModal("Wallet Not Connected", "Please connect your wallet first.");
+                return;
+            }
 
-    function renderHistory() {
-      if (!txHistory.length) return `<li>No purchases yet.</li>`;
-      return txHistory.map(c =>
-        `<li><span class="amount">${c.tickets} tickets</span>
-        <span class="txhash" data-txhash="${c.txhash}">${c.txhash.slice(0,8)}...</span></li>`
-      ).join('');
-    }
+            const numTickets = parseInt(ticketsInput.value);
+            if (isNaN(numTickets) || numTickets < 1) {
+                showModal("Invalid Input", "Please enter a valid number of tickets (1 or more).");
+                return;
+            }
 
-    function resetUI() {
-      mainDiv.innerHTML = `<button class="btn" id="connectBtn">Connect Wallet</button>`;
-      document.getElementById('connectBtn').onclick = showWalletChoice;
-      if (wcProvider && wcProvider.disconnect) wcProvider.disconnect();
-      provider = null; ethersProvider = null; signer = null; address = null; wcProvider = null;
-      ticketCount = 0;
-      txHistory = [];
-      balance = 0;
-    }
+            const totalAVAX = numTickets * TICKET_PRICE_AVAX;
+            const value = ethers.parseEther(totalAVAX.toFixed(18));
 
-    function disconnectWallet() {
-      resetUI();
-    }
+            try {
+                showModal("Transaction Pending", `Sending ${totalAVAX.toFixed(18)} AVAX for ${numTickets} tickets... Please confirm in your wallet.`);
+                
+                // Create the transaction object
+                const tx = {
+                    to: RAFFLE_CONTRACT_ADDRESS,
+                    value: value,
+                    // Gas and other fields can be added for more control
+                };
+                
+                // Send the transaction and wait for the hash
+                const txResponse = await signer.sendTransaction(tx);
+                
+                console.log('Transaction hash:', txResponse.hash);
+                
+                // Wait for the transaction to be mined
+                const receipt = await txResponse.wait();
+                
+                if (receipt.status === 1) {
+                    showModal("Success!", `Transaction confirmed! You bought ${numTickets} tickets. Tx Hash: ${receipt.hash}`);
+                    // Update mock metrics
+                    totalTickets += numTickets;
+                    userTickets += numTickets;
+                    updateMetrics();
+                    addTransactionToHistory(receipt.hash, numTickets);
+                } else {
+                    showModal("Transaction Failed", `The transaction failed. Tx Hash: ${receipt.hash}`);
+                }
 
-    function shortAddr(addr) {
-      return addr ? (addr.slice(0,6) + '...' + addr.slice(-4)) : '';
-    }
+            } catch (error) {
+                console.error("Transaction error:", error);
+                showModal("Transaction Error", "Could not complete the transaction. " + (error.message || error));
+            }
+        }
 
-    async function buyTickets(e) {
-      e.preventDefault();
-      const tickets = Number(document.getElementById('ticketAmount').value);
-      const statusMsg = document.getElementById('statusMsg');
-      statusMsg.textContent = '';
-      statusMsg.className = 'status-message';
-      if (isNaN(tickets) || tickets < 1 || tickets > 1000) {
-        statusMsg.textContent = 'Enter a valid ticket amount (1-1000)';
-        statusMsg.classList.add('error');
-        return;
-      }
-      const totalCost = tickets * TICKET_PRICE;
-      if (totalCost > balance) {
-        statusMsg.textContent = 'Not enough AVAX in your wallet';
-        statusMsg.classList.add('error');
-        return;
-      }
-      try {
-        statusMsg.textContent = `Confirm ${totalCost} AVAX in your wallet...`;
-        statusMsg.classList.remove('error','success');
-        const tx = await signer.sendTransaction({
-          to: DEPOSIT_ADDR,
-          value: ethers.parseEther(totalCost.toString())
+        buyTicketsBtn.addEventListener('click', buyTickets);
+
+        // --- FEATURE LOGIC: DYNAMIC UI UPDATES ---
+        ticketsInput.addEventListener('input', (e) => {
+            const numTickets = parseInt(e.target.value);
+            if (numTickets > 0) {
+                const totalAVAX = numTickets * TICKET_PRICE_AVAX;
+                avaxAmountInput.value = `${totalAVAX.toFixed(5)} AVAX`;
+            } else {
+                avaxAmountInput.value = '0.00000 AVAX';
+            }
         });
-        statusMsg.textContent = 'Broadcasting...';
-        await tx.wait();
-        statusMsg.textContent = `Tickets bought!`;
-        statusMsg.classList.add('success');
-        ticketCount += tickets;
-        txHistory.push({ tickets, txhash: tx.hash });
-        await fetchBalance();
-        showRaffle();
-      } catch (err) {
-        statusMsg.textContent = err.message ? err.message : 'Transaction failed';
-        statusMsg.classList.add('error');
-      }
-    }
-  </script>
+
+        const updateMetrics = () => {
+            document.getElementById('totalTickets').innerText = totalTickets.toLocaleString();
+            document.getElementById('yourTickets').innerText = userTickets.toLocaleString();
+        };
+
+        const updateCountdown = () => {
+            const now = new Date().getTime();
+            const distance = raffleEndTime - now;
+            
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            document.getElementById('countdown').innerText = `${days.toString().padStart(2, '0')}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                document.getElementById('countdown').innerText = "Raffle Ended!";
+            }
+        };
+
+        const addTransactionToHistory = (txHash, numTickets) => {
+            const historyList = document.getElementById('historyList');
+            const newHistoryItem = document.createElement('p');
+            newHistoryItem.classList.add('font-mono', 'text-xs', 'bg-gray-700', 'p-2', 'rounded-lg', 'truncate', 'break-all');
+            newHistoryItem.innerHTML = `Bought <span class="font-bold text-blue-300">${numTickets}</span> tickets - Tx: <a href="https://snowtrace.io/tx/${txHash}" target="_blank" class="text-blue-400 hover:text-blue-200">${txHash.substring(0, 10)}...${txHash.substring(txHash.length - 10)}</a>`;
+            historyList.prepend(newHistoryItem);
+        };
+
+        // --- INITIALIZATION ---
+        // Run initial UI updates and countdown
+        updateUI(walletAddress);
+        updateMetrics();
+        const countdownInterval = setInterval(updateCountdown, 1000);
+
+        // Set initial amount based on default tickets value
+        ticketsInput.dispatchEvent(new Event('input'));
+
+    </script>
 </body>
 </html>
