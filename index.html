@@ -124,10 +124,10 @@
     </div>
     
     <!-- Ethers.js -->
-    <script src="https://cdn.ethers.io/lib/ethers-6.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
     <script>
-        // Import necessary libraries. ethers is already loaded via CDN.
-        const { ethers } = window;
+        // The Ethers.js library is now available as a global object 'ethers'
+        // const { ethers } = window; // This line is no longer necessary with the new CDN
 
         // --- GLOBAL VARIABLES ---
         let provider, signer;
@@ -221,7 +221,7 @@
                 // Request account access
                 await ethProvider.request({ method: 'eth_requestAccounts' });
 
-                // ethers.js provider
+                // ethers.js provider (This is the fixed line)
                 provider = new ethers.BrowserProvider(ethProvider);
                 signer = await provider.getSigner();
                 const address = await signer.getAddress();
