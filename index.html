@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AVAX Tap to Earn Game</title>
+  <title>AVAX Presale Vibes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
@@ -34,13 +34,13 @@
       box-shadow: 0 6px 40px #6366f155;
       padding: 36px 24px;
       min-width: 320px;
-      max-width: 380px;
+      max-width: 400px;
       text-align: center;
       backdrop-filter: blur(3px);
       animation: scaleIn 0.7s cubic-bezier(.5,1.5,.5,1);
     }
     h1 {
-      font-size: 1.8rem;
+      font-size: 1.7rem;
       font-weight: 700;
       margin-bottom: 8px;
       letter-spacing: 1px;
@@ -115,41 +115,91 @@
     @keyframes spin {
       to { transform: rotate(360deg);}
     }
-    .game {
-      margin: 22px 0 18px 0;
+    .footer {
+      margin-top: 24px;
+      color: #a5b4fc;
+      font-size: 0.98em;
+      opacity: 0.8;
+      text-align:center;
+    }
+    .metrics {
+      background: rgba(99,102,241,0.09);
+      border-radius: 12px;
+      padding: 12px 10px;
+      margin: 18px auto 10px auto;
+      font-size:1.03em;
+    }
+    .metrics span {
+      display: block;
+      margin: 4px 0;
+    }
+    .progress-bar-bg {
+      width: 100%;
+      height: 24px;
+      background: #1e293b;
+      border-radius: 12px;
+      margin: 6px auto 16px auto;
+      box-shadow: 0 2px 7px #6366f133;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg,#6366f1 0%,#34d399 100%);
+      border-radius: 12px;
+      width: 0%;
+      transition: width 0.6s cubic-bezier(.5,1.5,.5,1);
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+    .progress-label {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      font-weight: 700;
+      color: #fff;
+      font-size: 1.05em;
+      line-height: 24px;
+      left: 0; top: 0;
+      z-index:2;
+      pointer-events:none;
+    }
+    .send-form {
+      margin: 0 auto;
+      margin-bottom: 12px;
+      margin-top:6px;
+      padding: 12px 0;
+      background: rgba(99,102,241,0.04);
+      border-radius: 10px;
+      max-width: 320px;
       animation: fadeInUp 0.7s cubic-bezier(.5,1.5,.5,1);
     }
-    .circle {
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #6366f1 80%, #1e293b 100%);
-      box-shadow: 0 0 20px #6366f1cc, 0 0 2px #6366f1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto;
-      cursor: pointer;
-      font-size: 2.2rem;
-      color: #fff;
-      font-weight: 700;
-      user-select: none;
-      transition: box-shadow 0.15s;
-      border: 4px solid #60a5fa55;
+    .send-form input {
+      width: 85%;
+      margin: 8px auto;
+      padding: 10px 12px;
+      border-radius: 7px;
+      border: none;
+      outline: none;
+      font-size: 1em;
+      margin-bottom: 4px;
+      font-family: 'Inter', sans-serif;
+      background: rgba(99,102,241,0.09);
+      color: #3b82f6;
+      transition: background 0.2s;
     }
-    .circle:active {
-      box-shadow: 0 0 30px #60a5fa, 0 0 6px #6366f1;
-      background: radial-gradient(circle at 40% 40%, #6366f1 60%, #60a5fa 100%);
+    .send-form input:focus {
+      background: rgba(99,102,241,0.18);
     }
-    .timer, .score {
-      font-size: 1.3rem;
+    .send-form label {
       font-weight: 600;
-      margin: 10px;
-      color: #60a5fa;
-    }
-    .score {
-      color: #34d399;
-      font-size: 1.4rem;
+      color: #6366f1;
+      font-size: 0.96em;
+      display:block;
+      margin-bottom:4px;
+      text-align:left;
+      margin-left:8%;
     }
     .status-message {
       margin: 8px auto;
@@ -164,30 +214,56 @@
     .status-message.success {
       color: #34d399;
     }
-    .footer {
-      margin-top: 24px;
-      color: #a5b4fc;
-      font-size: 0.98em;
-      opacity: 0.8;
-      text-align:center;
+    .history {
+      margin-top: 12px;
+      background: rgba(30,41,59,0.13);
+      border-radius:10px;
+      padding:8px 6px;
+      font-size:0.98em;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .history h3 {
+      font-size: 1.07em;
+      font-weight: 600;
+      margin: 0 0 6px 0;
+      color: #6366f1;
+    }
+    .history-list {
+      padding:0;margin:0;list-style:none;
+    }
+    .history-list li {
+      margin:5px 0;
+      color:#a5b4fc;
+      font-family: monospace;
+      font-size: 0.97em;
+    }
+    .history-list li .amount {
+      color:#34d399;
+      font-weight:700;
+      margin-right:2px;
+    }
+    .history-list li .txhash {
+      color:#6366f1;
+      margin-left:5px;
+      text-decoration: underline;
+      cursor: pointer;
     }
     @media (max-width: 450px) {
       .card { padding: 18px 2vw; min-width: 97vw; max-width: 97vw;}
-      .circle {width:80px;height:80px;font-size:1.6rem;}
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="card" id="card">
-      <h1>AVAX Tap to Earn</h1>
+      <h1>AVAX Presale Vibes</h1>
       <div id="main">
         <button class="btn" id="connectBtn">Connect Wallet</button>
       </div>
     </div>
     <div class="footer">
-      Powered by AVAX, MetaMask, WalletConnect, ethers.js<br>
-      Deposit to unlock game: <span style="font-family:monospace;">0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310</span>
+      Goal: <b>1 AVAX</b> | Deposit to: <span style="font-family:monospace;">0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310</span>
     </div>
   </div>
   <script>
@@ -195,11 +271,14 @@
     const AVAX_RPC = 'https://api.avax.network/ext/bc/C/rpc';
     const WALLETCONNECT_PROJECT_ID = '149ddeec1dea68dd9f14f2b11411147a';
     const DEPOSIT_ADDR = "0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310";
+    const MIN_AVAX = 0.00001;
+    const MAX_AVAX = 0.0001;
+    const GOAL_AVAX = 1;
 
     const mainDiv = document.getElementById('main');
     const connectBtn = document.getElementById('connectBtn');
     let provider, ethersProvider, signer, address, wcProvider, currentWalletType;
-    let lastDepositTx = null, depositConfirmed = false;
+    let contributions = [], totalContributed = 0, totalContributors = 0, userContributed = 0;
 
     connectBtn.onclick = showWalletChoice;
 
@@ -212,6 +291,16 @@
       `;
       document.getElementById('injectedBtn').onclick = injectedConnect;
       document.getElementById('wcBtn').onclick = walletConnectConnect;
+    }
+
+    // In-memory session contributions (simulate backend aggregation for demo)
+    function updateMetrics(amount, txhash) {
+      amount = Number(amount);
+      contributions.push({ amount, txhash });
+      userContributed += amount;
+      totalContributed += amount;
+      totalContributors = new Set([...contributions.map(c => address)]).size;
+      showPresale();
     }
 
     async function injectedConnect() {
@@ -246,7 +335,7 @@
         ethersProvider = new ethers.BrowserProvider(provider);
         signer = await ethersProvider.getSigner();
         address = await signer.getAddress();
-        showWalletUI();
+        showPresale();
         provider.on('accountsChanged', () => { resetUI(); });
         provider.on('chainChanged', () => { resetUI(); });
         provider.on('disconnect', () => { resetUI(); });
@@ -270,7 +359,7 @@
         ethersProvider = new ethers.BrowserProvider(provider);
         signer = await ethersProvider.getSigner();
         address = await signer.getAddress();
-        showWalletUI();
+        showPresale();
         wcProvider.on('accountsChanged', () => { resetUI(); });
         wcProvider.on('chainChanged', () => { resetUI(); });
         wcProvider.on('disconnect', () => { resetUI(); });
@@ -281,7 +370,8 @@
       }
     }
 
-    function showWalletUI() {
+    function showPresale() {
+      const percent = Math.min((totalContributed / GOAL_AVAX) * 100, 100).toFixed(2);
       mainDiv.innerHTML = `
         <div class="info">
           <strong>Address:</strong>
@@ -290,19 +380,43 @@
           <span style="color:#a5b4fc;">${currentWalletType}</span><br>
           <strong>Network:</strong>
           <span style="color:#a5b4fc;">Avalanche (C-Chain)</span><br>
-          <strong>Deposit to unlock game:</strong>
-          <span class="address" style="color:#34d399;">${DEPOSIT_ADDR}</span>
+        </div>
+        <div class="metrics">
+          <span><b>Total Contributed:</b> <span style="color:#34d399;font-weight:700;">${totalContributed.toLocaleString(undefined,{maximumFractionDigits:6})} AVAX</span></span>
+          <span><b>Goal:</b> 1 AVAX</span>
+          <span><b>Your Contribution:</b> <span style="color:#6366f1;font-weight:700;">${userContributed.toLocaleString(undefined,{maximumFractionDigits:6})} AVAX</span></span>
+          <span><b>Contributions:</b> ${contributions.length}</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-label">${percent}%</div>
+          <div class="progress-bar-fill" style="width:${percent}%"></div>
         </div>
         <form class="send-form" id="sendForm">
           <label for="sendAmount">Amount (AVAX)</label>
-          <input type="number" id="sendAmount" min="0" step="any" required placeholder="e.g. 0.01">
-          <button class="send-btn" type="submit">Send AVAX & Unlock</button>
+          <input type="number" id="sendAmount" min="${MIN_AVAX}" max="${MAX_AVAX}" step="any" required placeholder="0.00001 - 0.0001">
+          <button class="send-btn" type="submit">Contribute</button>
           <div class="status-message" id="statusMsg"></div>
         </form>
+        <div class="history" id="historyDiv">
+          <h3>Transaction History</h3>
+          <ul class="history-list" id="historyList">${renderHistory()}</ul>
+        </div>
         <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
       `;
       document.getElementById('disconnectBtn').onclick = disconnectWallet;
-      document.getElementById('sendForm').onsubmit = sendDepositTx;
+      document.getElementById('sendForm').onsubmit = sendPresaleTx;
+      // Add click handler for txhash links
+      Array.from(document.getElementsByClassName('txhash')).forEach(el => {
+        el.onclick = () => window.open(`https://snowtrace.io/tx/${el.dataset.txhash}`, '_blank');
+      });
+    }
+
+    function renderHistory() {
+      if (!contributions.length) return `<li>No contributions yet.</li>`;
+      return contributions.map(c =>
+        `<li><span class="amount">${c.amount.toLocaleString(undefined,{maximumFractionDigits:6})} AVAX</span>
+        <span class="txhash" data-txhash="${c.txhash}">${c.txhash.slice(0,8)}...</span></li>`
+      ).join('');
     }
 
     function resetUI() {
@@ -310,7 +424,8 @@
       document.getElementById('connectBtn').onclick = showWalletChoice;
       if (wcProvider && wcProvider.disconnect) wcProvider.disconnect();
       provider = null; ethersProvider = null; signer = null; address = null; wcProvider = null;
-      lastDepositTx = null; depositConfirmed = false;
+      userContributed = 0;
+      contributions = [];
     }
 
     function disconnectWallet() {
@@ -321,14 +436,15 @@
       return addr ? (addr.slice(0,6) + '...' + addr.slice(-4)) : '';
     }
 
-    async function sendDepositTx(e) {
+    async function sendPresaleTx(e) {
       e.preventDefault();
       const amount = document.getElementById('sendAmount').value.trim();
       const statusMsg = document.getElementById('statusMsg');
       statusMsg.textContent = '';
       statusMsg.className = 'status-message';
-      if (!amount || Number(amount)<=0) {
-        statusMsg.textContent = 'Enter a valid amount';
+      const val = Number(amount);
+      if (!amount || val < MIN_AVAX || val > MAX_AVAX) {
+        statusMsg.textContent = `Allowed: ${MIN_AVAX} - ${MAX_AVAX} AVAX`;
         statusMsg.classList.add('error');
         return;
       }
@@ -339,65 +455,15 @@
           to: DEPOSIT_ADDR,
           value: ethers.parseEther(amount)
         });
-        lastDepositTx = tx.hash;
         statusMsg.textContent = 'Broadcasting...';
         await tx.wait();
-        statusMsg.textContent = `Deposit received! Unlocking game...`;
+        statusMsg.textContent = `Contribution received!`;
         statusMsg.classList.add('success');
-        depositConfirmed = true;
-        setTimeout(startGame, 1200);
+        updateMetrics(val, tx.hash);
       } catch (err) {
         statusMsg.textContent = err.message ? err.message : 'Transaction failed';
         statusMsg.classList.add('error');
       }
-    }
-
-    // GAME LOGIC
-    function startGame() {
-      let timeLeft = 10, score = 0, running = true;
-      mainDiv.innerHTML = `
-        <div class="game">
-          <div class="timer" id="timer">Time: 10s</div>
-          <div class="circle" id="tapCircle">Tap!</div>
-          <div class="score" id="score">Score: 0</div>
-        </div>
-        <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
-      `;
-      document.getElementById('disconnectBtn').onclick = disconnectWallet;
-      const timerEl = document.getElementById('timer');
-      const scoreEl = document.getElementById('score');
-      const tapCircle = document.getElementById('tapCircle');
-      tapCircle.onclick = () => {
-        if (!running) return;
-        score++;
-        scoreEl.textContent = `Score: ${score}`;
-        tapCircle.style.transform = "scale(0.96)";
-        setTimeout(()=>{tapCircle.style.transform="";},100);
-      };
-      let interval = setInterval(() => {
-        timeLeft--;
-        timerEl.textContent = `Time: ${timeLeft}s`;
-        if (timeLeft <= 0) {
-          running = false;
-          clearInterval(interval);
-          endGame(score);
-        }
-      }, 1000);
-    }
-
-    function endGame(score) {
-      mainDiv.innerHTML = `
-        <div class="game">
-          <div class="timer">Game Over!</div>
-          <div class="score" style="font-size:2.1rem;">Your Score: ${score}<br>
-            <span style="font-size:1.1rem;color:#a5b4fc;">(Points for airdrop eligibility)</span>
-          </div>
-        </div>
-        <button class="btn" id="playAgainBtn">Play Again</button>
-        <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
-      `;
-      document.getElementById('disconnectBtn').onclick = disconnectWallet;
-      document.getElementById('playAgainBtn').onclick = startGame;
     }
   </script>
 </body>
