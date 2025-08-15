@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AVAX Presale Vibes</title>
+  <title>AVAX Raffle Tickets</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
@@ -36,7 +36,7 @@
       min-width: 320px;
       max-width: 400px;
       text-align: center;
-      backdrop-filter: blur(3px);
+      backdrop-filter: blur(2px);
       animation: scaleIn 0.7s cubic-bezier(.5,1.5,.5,1);
     }
     h1 {
@@ -115,13 +115,6 @@
     @keyframes spin {
       to { transform: rotate(360deg);}
     }
-    .footer {
-      margin-top: 24px;
-      color: #a5b4fc;
-      font-size: 0.98em;
-      opacity: 0.8;
-      text-align:center;
-    }
     .metrics {
       background: rgba(99,102,241,0.09);
       border-radius: 12px;
@@ -175,15 +168,16 @@
       max-width: 320px;
       animation: fadeInUp 0.7s cubic-bezier(.5,1.5,.5,1);
     }
-    .send-form input {
-      width: 85%;
-      margin: 8px auto;
+    .send-form input[type="number"] {
+      width: 53px;
+      text-align: center;
+      font-size: 1.13em;
+      font-weight:700;
+      margin: 0 6px;
       padding: 10px 12px;
       border-radius: 7px;
       border: none;
       outline: none;
-      font-size: 1em;
-      margin-bottom: 4px;
       font-family: 'Inter', sans-serif;
       background: rgba(99,102,241,0.09);
       color: #3b82f6;
@@ -249,6 +243,17 @@
       text-decoration: underline;
       cursor: pointer;
     }
+    .balance {
+      color: #34d399;
+      font-weight:700;
+      font-size:1.1em;
+      margin-bottom:10px;
+    }
+    .ticket-price-info {
+      font-size:0.95em;
+      opacity:0.9;
+      margin-bottom:7px;
+    }
     @media (max-width: 450px) {
       .card { padding: 18px 2vw; min-width: 97vw; max-width: 97vw;}
     }
@@ -257,13 +262,14 @@
 <body>
   <div class="container">
     <div class="card" id="card">
-      <h1>AVAX Presale Vibes</h1>
+      <h1>AVAX Raffle Tickets</h1>
       <div id="main">
         <button class="btn" id="connectBtn">Connect Wallet</button>
       </div>
     </div>
     <div class="footer">
-      Goal: <b>1 AVAX</b> | Deposit to: <span style="font-family:monospace;">0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310</span>
+      1 ticket = <b>0.00001 AVAX</b><br>
+      Deposit to: <span style="font-family:monospace;">0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310</span>
     </div>
   </div>
   <script>
@@ -271,14 +277,13 @@
     const AVAX_RPC = 'https://api.avax.network/ext/bc/C/rpc';
     const WALLETCONNECT_PROJECT_ID = '149ddeec1dea68dd9f14f2b11411147a';
     const DEPOSIT_ADDR = "0xED0e6b41B09168fFB9c5f562C0AB47FB37D84310";
-    const MIN_AVAX = 0.00001;
-    const MAX_AVAX = 0.0001;
-    const GOAL_AVAX = 1;
+    const TICKET_PRICE = 0.00001;
+    const GOAL_TICKETS = 1000; // For progress bar (optional)
+    let provider, ethersProvider, signer, address, wcProvider, currentWalletType;
+    let balance = 0, ticketCount = 0, txHistory = [];
 
     const mainDiv = document.getElementById('main');
     const connectBtn = document.getElementById('connectBtn');
-    let provider, ethersProvider, signer, address, wcProvider, currentWalletType;
-    let contributions = [], totalContributed = 0, totalContributors = 0, userContributed = 0;
 
     connectBtn.onclick = showWalletChoice;
 
@@ -291,16 +296,6 @@
       `;
       document.getElementById('injectedBtn').onclick = injectedConnect;
       document.getElementById('wcBtn').onclick = walletConnectConnect;
-    }
-
-    // In-memory session contributions (simulate backend aggregation for demo)
-    function updateMetrics(amount, txhash) {
-      amount = Number(amount);
-      contributions.push({ amount, txhash });
-      userContributed += amount;
-      totalContributed += amount;
-      totalContributors = new Set([...contributions.map(c => address)]).size;
-      showPresale();
     }
 
     async function injectedConnect() {
@@ -335,7 +330,8 @@
         ethersProvider = new ethers.BrowserProvider(provider);
         signer = await ethersProvider.getSigner();
         address = await signer.getAddress();
-        showPresale();
+        await fetchBalance();
+        showRaffle();
         provider.on('accountsChanged', () => { resetUI(); });
         provider.on('chainChanged', () => { resetUI(); });
         provider.on('disconnect', () => { resetUI(); });
@@ -359,7 +355,8 @@
         ethersProvider = new ethers.BrowserProvider(provider);
         signer = await ethersProvider.getSigner();
         address = await signer.getAddress();
-        showPresale();
+        await fetchBalance();
+        showRaffle();
         wcProvider.on('accountsChanged', () => { resetUI(); });
         wcProvider.on('chainChanged', () => { resetUI(); });
         wcProvider.on('disconnect', () => { resetUI(); });
@@ -370,8 +367,17 @@
       }
     }
 
-    function showPresale() {
-      const percent = Math.min((totalContributed / GOAL_AVAX) * 100, 100).toFixed(2);
+    async function fetchBalance() {
+      try {
+        const bal = await ethersProvider.getBalance(address);
+        balance = Number(ethers.formatEther(bal));
+      } catch (err) {
+        balance = 0;
+      }
+    }
+
+    function showRaffle() {
+      const percent = Math.min((ticketCount / GOAL_TICKETS) * 100, 100).toFixed(2);
       mainDiv.innerHTML = `
         <div class="info">
           <strong>Address:</strong>
@@ -381,20 +387,20 @@
           <strong>Network:</strong>
           <span style="color:#a5b4fc;">Avalanche (C-Chain)</span><br>
         </div>
+        <div class="balance">Your AVAX: ${balance.toLocaleString(undefined,{maximumFractionDigits:5})}</div>
         <div class="metrics">
-          <span><b>Total Contributed:</b> <span style="color:#34d399;font-weight:700;">${totalContributed.toLocaleString(undefined,{maximumFractionDigits:6})} AVAX</span></span>
-          <span><b>Goal:</b> 1 AVAX</span>
-          <span><b>Your Contribution:</b> <span style="color:#6366f1;font-weight:700;">${userContributed.toLocaleString(undefined,{maximumFractionDigits:6})} AVAX</span></span>
-          <span><b>Contributions:</b> ${contributions.length}</span>
+          <span><b>Your Tickets:</b> <span style="color:#34d399;font-weight:700;">${ticketCount}</span></span>
+          <span><b>Last Tx:</b> <span style="color:#6366f1;font-weight:700;">${txHistory.length ? txHistory[txHistory.length-1].txhash.slice(0,8)+'...' : 'None'}</span></span>
         </div>
         <div class="progress-bar-bg">
           <div class="progress-label">${percent}%</div>
           <div class="progress-bar-fill" style="width:${percent}%"></div>
         </div>
         <form class="send-form" id="sendForm">
-          <label for="sendAmount">Amount (AVAX)</label>
-          <input type="number" id="sendAmount" min="${MIN_AVAX}" max="${MAX_AVAX}" step="any" required placeholder="0.00001 - 0.0001">
-          <button class="send-btn" type="submit">Contribute</button>
+          <div class="ticket-price-info">1 ticket = 0.00001 AVAX</div>
+          <label for="ticketAmount">How many tickets?</label>
+          <input type="number" id="ticketAmount" min="1" max="1000" value="1" required>
+          <button class="send-btn" type="submit">Buy Tickets</button>
           <div class="status-message" id="statusMsg"></div>
         </form>
         <div class="history" id="historyDiv">
@@ -404,17 +410,16 @@
         <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
       `;
       document.getElementById('disconnectBtn').onclick = disconnectWallet;
-      document.getElementById('sendForm').onsubmit = sendPresaleTx;
-      // Add click handler for txhash links
+      document.getElementById('sendForm').onsubmit = buyTickets;
       Array.from(document.getElementsByClassName('txhash')).forEach(el => {
         el.onclick = () => window.open(`https://snowtrace.io/tx/${el.dataset.txhash}`, '_blank');
       });
     }
 
     function renderHistory() {
-      if (!contributions.length) return `<li>No contributions yet.</li>`;
-      return contributions.map(c =>
-        `<li><span class="amount">${c.amount.toLocaleString(undefined,{maximumFractionDigits:6})} AVAX</span>
+      if (!txHistory.length) return `<li>No purchases yet.</li>`;
+      return txHistory.map(c =>
+        `<li><span class="amount">${c.tickets} tickets</span>
         <span class="txhash" data-txhash="${c.txhash}">${c.txhash.slice(0,8)}...</span></li>`
       ).join('');
     }
@@ -424,8 +429,9 @@
       document.getElementById('connectBtn').onclick = showWalletChoice;
       if (wcProvider && wcProvider.disconnect) wcProvider.disconnect();
       provider = null; ethersProvider = null; signer = null; address = null; wcProvider = null;
-      userContributed = 0;
-      contributions = [];
+      ticketCount = 0;
+      txHistory = [];
+      balance = 0;
     }
 
     function disconnectWallet() {
@@ -436,30 +442,38 @@
       return addr ? (addr.slice(0,6) + '...' + addr.slice(-4)) : '';
     }
 
-    async function sendPresaleTx(e) {
+    async function buyTickets(e) {
       e.preventDefault();
-      const amount = document.getElementById('sendAmount').value.trim();
+      const tickets = Number(document.getElementById('ticketAmount').value);
       const statusMsg = document.getElementById('statusMsg');
       statusMsg.textContent = '';
       statusMsg.className = 'status-message';
-      const val = Number(amount);
-      if (!amount || val < MIN_AVAX || val > MAX_AVAX) {
-        statusMsg.textContent = `Allowed: ${MIN_AVAX} - ${MAX_AVAX} AVAX`;
+      if (isNaN(tickets) || tickets < 1 || tickets > 1000) {
+        statusMsg.textContent = 'Enter a valid ticket amount (1-1000)';
+        statusMsg.classList.add('error');
+        return;
+      }
+      const totalCost = tickets * TICKET_PRICE;
+      if (totalCost > balance) {
+        statusMsg.textContent = 'Not enough AVAX in your wallet';
         statusMsg.classList.add('error');
         return;
       }
       try {
-        statusMsg.textContent = 'Confirm the transaction in your wallet...';
+        statusMsg.textContent = `Confirm ${totalCost} AVAX in your wallet...`;
         statusMsg.classList.remove('error','success');
         const tx = await signer.sendTransaction({
           to: DEPOSIT_ADDR,
-          value: ethers.parseEther(amount)
+          value: ethers.parseEther(totalCost.toString())
         });
         statusMsg.textContent = 'Broadcasting...';
         await tx.wait();
-        statusMsg.textContent = `Contribution received!`;
+        statusMsg.textContent = `Tickets bought!`;
         statusMsg.classList.add('success');
-        updateMetrics(val, tx.hash);
+        ticketCount += tickets;
+        txHistory.push({ tickets, txhash: tx.hash });
+        await fetchBalance();
+        showRaffle();
       } catch (err) {
         statusMsg.textContent = err.message ? err.message : 'Transaction failed';
         statusMsg.classList.add('error');
