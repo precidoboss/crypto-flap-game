@@ -389,16 +389,32 @@
         }
 
         async function handleChallenge(id, wager) {
+            if (!signer) return showToast("CONNECT UPLINK FIRST");
             if (!(await checkNetwork())) return;
+            
             const move = prompt("1-Solar, 2-Oxygen, 3-Dust");
-            if (!move) return;
+            if (!move || move < 1 || move > 3) return showToast("INVALID MOVE");
+            
             try {
                 showToast("INTERCEPTING...");
-                const tx = await contract.challengeGame(id, move, { value: ethers.parseEther(wager) });
+                
+                // Fetch actual wager from contract to ensure exact match
+                const gameData = await contract.games(id);
+                const actualWager = gameData.wager;
+                
+                const tx = await contract.challengeGame(id, move, { value: actualWager });
+                showToast("WAITING FOR CONFIRMATION...");
                 await tx.wait();
-                await _supabase.from('games').update({ status: 1, challenger: userAddress.toLowerCase() }).eq('game_id', id);
+                
+                // Update Supabase with challenger info
+                await _supabase.from('games').update({ 
+                    status: 1, 
+                    challenger: userAddress.toLowerCase(),
+                    challenger_move: parseInt(move)
+                }).eq('game_id', id);
+                
                 refreshLobby();
-                showToast("SIGNAL INTERCEPTED");
+                showToast("SIGNAL INTERCEPTED - AWAITING HOST REVEAL");
             } catch (err) { 
                 console.error(err);
                 showToast("INTERCEPTION FAILED"); 
@@ -406,16 +422,22 @@
         }
 
         async function handleResolve(id, hash) {
+            if (!signer) return showToast("CONNECT UPLINK FIRST");
             if (!(await checkNetwork())) return;
+            
             const secret = JSON.parse(localStorage.getItem('martian_gambits') || '{}')[hash];
             if (!secret) return showToast("LOCAL SECRET MISSING");
+            
             try {
                 showToast("BROADCASTING REVEAL...");
                 const tx = await contract.resolveGame(id, secret.move, secret.salt);
+                showToast("WAITING FOR CONFIRMATION...");
                 await tx.wait();
+                
                 await _supabase.from('games').update({ status: 2 }).eq('game_id', id);
                 refreshLobby();
-                showToast("VICTORY SECURED");
+                updateBalance();
+                showToast("COMBAT RESOLVED");
             } catch (err) { 
                 console.error(err);
                 showToast("RESOLVE FAILED"); 
@@ -423,12 +445,18 @@
         }
 
         async function handleRefund(id) {
+            if (!signer) return showToast("CONNECT UPLINK FIRST");
             if (!(await checkNetwork())) return;
+            
             try {
+                showToast("RETRACTING SIGNAL...");
                 const tx = await contract.refundUnchallenged(id);
+                showToast("WAITING FOR CONFIRMATION...");
                 await tx.wait();
+                
                 await _supabase.from('games').update({ status: 3 }).eq('game_id', id);
                 refreshLobby();
+                updateBalance();
                 showToast("FUNDS RETRACTED");
             } catch (err) { 
                 console.error(err);
@@ -437,12 +465,14 @@
         }
 
         function getStatusText(s) { return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s]; }
+        
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.innerText = msg;
             t.classList.remove('translate-y-32');
             setTimeout(() => t.classList.add('translate-y-32'), 4000);
         }
+        
         window.onload = init;
     </script>
 </body>
