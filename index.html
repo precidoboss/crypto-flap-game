@@ -171,9 +171,10 @@
         const RPC_URL = "https://martian-rpc1.amichain.org/";
         const CONTRACT_ADDR = "0x0b912a321801B2f6062b4BdC3d9763e643584074";
         
-        // PASTE YOUR CONFIG HERE
+        // Corrected Supabase Configuration
         const SB_URL = "https://tvckbtgggsuwxtlgilcl.supabase.co"; 
-        const SB_KEY = "YOUR_ANONeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y2tidGdnZ3N1d3h0bGdpbGNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NjQ2NDUsImV4cCI6MjA4NjI0MDY0NX0.odE8QE1i---_iOEygzkqPyVcj84IMObUIhdDtkwt5eg_KEY"; 
+        // Removed the "YOUR_ANON" prefix which was causing 401 errors
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y2tidGdnZ3N1d3h0bGdpbGNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NjQ2NDUsImV4cCI6MjA4NjI0MDY0NX0.odE8QE1i---_iOEygzkqPyVcj84IMObUIhdDtkwt5eg_KEY"; 
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
         const ABI = [
@@ -268,7 +269,12 @@
                 const { data: games, error } = await _supabase.from('games')
                     .select('*').order('game_id', { ascending: false }).limit(30);
 
-                if (error) throw error;
+                if (error) {
+                    console.error("Supabase Fetch Error:", error);
+                    lobby.innerHTML = `<div class="text-center py-20 text-red-500 uppercase">Indexing Error: ${error.message}</div>`;
+                    return;
+                }
+
                 lobby.innerHTML = games.length ? "" : '<div class="text-center py-20 opacity-30 uppercase italic">No signals detected...</div>';
 
                 games.forEach(game => {
@@ -293,7 +299,10 @@
                         <div class="flex gap-2">${getActionButtons(game, isHost, isChallenger)}</div>`;
                     lobby.appendChild(div);
                 });
-            } catch (err) { console.error(err); }
+            } catch (err) { 
+                console.error("Lobby Refresh Catch:", err);
+                lobby.innerHTML = '<div class="text-center py-20 text-red-500 uppercase">System Error: Check Terminal</div>';
+            }
         }
 
         function getActionButtons(game, isHost, isChallenger) {
