@@ -92,7 +92,6 @@
 <body class="min-h-screen p-4">
     <div class="scanline"></div>
 
-    <!-- HUD Top Bar -->
     <nav class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 py-4 border-b border-orange-900/30">
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 mars-border-glow flex items-center justify-center bg-black">
@@ -117,8 +116,6 @@
     </nav>
 
     <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <!-- Tactical Selection -->
         <aside class="lg:col-span-4 space-y-6">
             <div class="mars-glass p-6">
                 <h2 class="orbitron text-sm text-orange-500 mb-6 flex items-center gap-2">
@@ -146,54 +143,25 @@
                         <label class="text-[10px] text-orange-800 uppercase mb-2 block">Energy Stake ($EROL)</label>
                         <input id="wager-amount" type="number" step="0.1" value="1.0" class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron">
                     </div>
-                    
                     <button id="create-btn" onclick="handleCreateGame()" class="btn-mars w-full py-4 text-lg">Deploy Signal</button>
-                </div>
-            </div>
-
-            <div class="mars-glass p-4 border-l-4 border-orange-500">
-                <h3 class="text-orange-500 text-xs font-bold mb-3 uppercase tracking-tighter">Strategic Matrix</h3>
-                <div class="space-y-2 text-[11px] text-gray-500">
-                    <div class="flex justify-between border-b border-white/5 pb-1">
-                        <span>Solar Flare</span>
-                        <span class="text-orange-300">>> Oxygen Siphon</span>
-                    </div>
-                    <div class="flex justify-between border-b border-white/5 pb-1">
-                        <span>Oxygen Siphon</span>
-                        <span class="text-orange-300">>> Dust Storm</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>Dust Storm</span>
-                        <span class="text-orange-300">>> Solar Flare</span>
-                    </div>
                 </div>
             </div>
         </aside>
 
-        <!-- Combat Lobby -->
         <section class="lg:col-span-8">
             <div class="mars-glass p-6 min-h-[500px] relative overflow-hidden">
                 <div class="flex justify-between items-center mb-8 border-b border-orange-900/20 pb-4">
                     <h2 class="orbitron text-lg text-white tracking-widest flex items-center gap-3">
                         LOBBY_FREQUENCIES
-                        <span class="text-[10px] bg-orange-900/30 px-2 py-1 text-orange-500">LIVE SCAN</span>
+                        <span class="text-[10px] bg-orange-900/30 px-2 py-1 text-orange-500">FAST INDEX</span>
                     </h2>
                     <button onclick="refreshLobby()" class="text-[10px] text-orange-500 hover:text-white border border-orange-500/30 px-3 py-1 uppercase transition">Sync Data</button>
                 </div>
-                
-                <div id="lobby-list" class="space-y-4">
-                    <!-- Dynamic Content -->
-                </div>
-
-                <!-- Background Decoration -->
-                <div class="absolute bottom-0 right-0 opacity-5 pointer-events-none">
-                    <span class="orbitron text-9xl font-bold text-orange-500">MARS</span>
-                </div>
+                <div id="lobby-list" class="space-y-4"></div>
             </div>
         </section>
     </main>
 
-    <!-- Notification Toast -->
     <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 mars-glass border-orange-500 px-8 py-4 text-orange-500 orbitron text-sm transform translate-y-32 transition-all duration-300 z-[200]">
         SYSTEM MESSAGE
     </div>
@@ -202,15 +170,20 @@
         const CHAIN_ID = "0x7EB"; 
         const RPC_URL = "https://martian-rpc1.amichain.org/";
         const CONTRACT_ADDR = "0x0b912a321801B2f6062b4BdC3d9763e643584074";
+        
+        // PASTE YOUR CONFIG HERE
+        const SB_URL = "https://tvckbtgggsuwxtlgilcl.supabase.co"; 
+        const SB_KEY = "YOUR_ANONeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y2tidGdnZ3N1d3h0bGdpbGNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NjQ2NDUsImV4cCI6MjA4NjI0MDY0NX0.odE8QE1i---_iOEygzkqPyVcj84IMObUIhdDtkwt5eg_KEY"; 
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
         const ABI = [
             "function createGame(bytes32 _hash) external payable",
             "function challengeGame(uint256 _gameId, uint8 _move) external payable",
             "function resolveGame(uint256 _gameId, uint8 _move, string calldata _salt) external",
-            "function forceForfeit(uint256 _gameId) external",
             "function refundUnchallenged(uint256 _gameId) external",
             "function gameCounter() public view returns (uint256)",
             "function games(uint256) public view returns (address host, address challenger, bytes32 commitHash, uint8 hostMove, uint8 challengerMove, uint256 wager, uint256 timestamp, uint8 status)",
+            "event GameCreated(uint256 indexed gameId, address indexed host, uint256 wager, bytes32 commitHash)"
         ];
 
         let provider, signer, contract, userAddress;
@@ -221,45 +194,26 @@
                 provider = new ethers.BrowserProvider(window.ethereum);
                 document.getElementById('connect-btn').addEventListener('click', connectWallet);
                 refreshLobby();
-            } else {
-                showToast("CRITICAL: NO INJECTED PROVIDER FOUND");
+                
+                // Real-time subscription
+                _supabase.channel('game_updates')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'games' }, () => refreshLobby())
+                    .subscribe();
             }
         }
 
         async function connectWallet() {
             try {
-                try {
-                    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID }] });
-                } catch (err) {
-                    if (err.code === 4902) {
-                        await window.ethereum.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [{
-                                chainId: CHAIN_ID,
-                                chainName: 'Martian Chain',
-                                nativeCurrency: { name: 'EROL', symbol: 'EROL', decimals: 18 },
-                                rpcUrls: [RPC_URL],
-                                blockExplorerUrls: ['https://explorer.martianchain.com/']
-                            }],
-                        });
-                    }
-                }
-
                 const accounts = await provider.send("eth_requestAccounts", []);
                 userAddress = accounts[0];
                 signer = await provider.getSigner();
                 contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
-
                 document.getElementById('connect-btn').classList.add('hidden');
                 document.getElementById('account-info').classList.remove('hidden');
                 document.getElementById('user-address').innerText = userAddress.toLowerCase();
-                
                 updateBalance();
                 refreshLobby();
-                showToast("UPLINK ESTABLISHED");
-            } catch (err) {
-                showToast("UPLINK FAILED");
-            }
+            } catch (err) { showToast("UPLINK FAILED"); }
         }
 
         async function updateBalance() {
@@ -280,174 +234,117 @@
             
             const wager = document.getElementById('wager-amount').value;
             const salt = ethers.hexlify(ethers.randomBytes(16));
-            
-            const hash = ethers.solidityPackedKeccak256(
-                ["uint8", "string", "address"],
-                [selectedMoveIdx, salt, userAddress]
-            );
+            const hash = ethers.solidityPackedKeccak256(["uint8", "string", "address"], [selectedMoveIdx, salt, userAddress]);
 
             try {
                 showToast("ENCRYPTING SIGNAL...");
                 const tx = await contract.createGame(hash, { value: ethers.parseEther(wager) });
                 
                 const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
-                secrets[tx.hash] = { move: selectedMoveIdx, salt: salt };
+                secrets[hash] = { move: selectedMoveIdx, salt: salt };
                 localStorage.setItem('martian_gambits', JSON.stringify(secrets));
 
-                await tx.wait();
-                showToast("SIGNAL DEPLOYED TO L1");
-                updateBalance();
+                const receipt = await tx.wait();
+                const event = receipt.logs.find(log => log.topics[0] === ethers.id("GameCreated(uint256,address,uint256,bytes32)"));
+                const gameId = Number(ethers.toQuantity(event.topics[1]));
+
+                // INDEX TO SUPABASE
+                await _supabase.from('games').insert([{
+                    game_id: gameId,
+                    host: userAddress.toLowerCase(),
+                    wager: wager,
+                    status: 0,
+                    commit_hash: hash
+                }]);
+
+                showToast("SIGNAL DEPLOYED");
                 refreshLobby();
-            } catch (err) {
-                showToast("DEPLOYMENT ABORTED");
-            }
+            } catch (err) { showToast("DEPLOYMENT ABORTED"); }
         }
 
-        // Helper for sequential fetching to avoid RPC Rate Limits
-        const delay = (ms) => new Promise(res => setTimeout(res, ms));
-
         async function refreshLobby() {
-            if (!contract) return;
             const lobby = document.getElementById('lobby-list');
-            lobby.innerHTML = '<div class="text-center py-20 animate-pulse text-orange-900 uppercase tracking-widest">Sequencing Orbital Scans...</div>';
-
             try {
-                const counterBig = await contract.gameCounter();
-                const counter = Number(counterBig);
-                const games = [];
-                const maxItems = 10; // Reduced for stability
-                const start = counter > maxItems ? counter - (maxItems - 1) : 1;
+                const { data: games, error } = await _supabase.from('games')
+                    .select('*').order('game_id', { ascending: false }).limit(30);
 
-                // Sequential loop with small delays to satisfy public RPC nodes
-                for (let i = counter; i >= start; i--) {
-                    try {
-                        const gameData = await contract.games(i);
-                        games.push({ ...gameData, id: i });
-                        // Tiny delay between requests to keep the node happy
-                        await delay(50); 
-                    } catch (e) {
-                        console.warn(`Skipping ID ${i} due to signal noise.`);
-                    }
-                }
+                if (error) throw error;
+                lobby.innerHTML = games.length ? "" : '<div class="text-center py-20 opacity-30 uppercase italic">No signals detected...</div>';
 
-                if (games.length === 0) {
-                    lobby.innerHTML = '<div class="text-center py-20 text-orange-900/50 uppercase italic tracking-tighter">No signals detected in this sector.</div>';
-                    return;
-                }
-
-                lobby.innerHTML = "";
                 games.forEach(game => {
                     const status = Number(game.status);
-                    const isHost = userAddress && game.host.toLowerCase() === userAddress.toLowerCase();
-                    const isChallenger = userAddress && game.challenger.toLowerCase() === userAddress.toLowerCase();
-                    
-                    // Filter out resolved games that don't involve the user to keep the lobby clean
+                    const isHost = userAddress && game.host === userAddress.toLowerCase();
+                    const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
                     if (status > 1 && !isHost && !isChallenger) return;
 
                     const div = document.createElement('div');
                     div.className = "p-4 bg-black/40 border-l-2 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:bg-black/60 " + (status == 0 ? "border-orange-500" : "border-gray-800");
-                    
                     div.innerHTML = `
-                        <div class="flex-1 w-full md:w-auto">
-                            <div class="flex items-center gap-3 mb-1">
-                                <span class="text-[9px] px-2 py-0.5 border ${status == 0 ? 'border-orange-500 text-orange-500' : 'border-gray-700 text-gray-600'} uppercase tracking-widest">${getStatusText(status)}</span>
-                                <span class="text-[9px] text-orange-900/40">SIG_ID: ${game.id}</span>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-[9px] px-2 py-0.5 border ${status == 0 ? 'border-orange-500 text-orange-500' : 'border-gray-700 text-gray-500'} uppercase">${getStatusText(status)}</span>
+                                <span class="text-[9px] text-orange-900/40">ID: ${game.game_id}</span>
                             </div>
-                            <div class="orbitron text-white text-sm flex items-center gap-2">
-                                <span class="text-orange-500">${ethers.formatEther(game.wager)} $EROL</span> 
-                                <span class="text-orange-900 text-[10px]">//</span> 
-                                <span class="text-xs text-gray-500 truncate max-w-[120px]">${game.host}</span>
+                            <div class="orbitron text-white text-sm">
+                                <span class="text-orange-500">${game.wager} $EROL</span> 
+                                <span class="text-gray-600 text-[10px] ml-2">FROM ${game.host.slice(0,6)}...</span>
                             </div>
                         </div>
-                        <div class="flex gap-2 w-full md:w-auto justify-end">
-                            ${getActionButtons(game, isHost, isChallenger)}
-                        </div>
-                    `;
+                        <div class="flex gap-2">${getActionButtons(game, isHost, isChallenger)}</div>`;
                     lobby.appendChild(div);
                 });
-            } catch (err) {
-                lobby.innerHTML = '<div class="text-center py-20 text-red-900 uppercase">Sector Scan Failure: Try Again in T-10s</div>';
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         function getActionButtons(game, isHost, isChallenger) {
-            const status = Number(game.status);
-            if (status === 0) {
-                if (isHost) return `<button onclick="handleRefund(${game.id})" class="text-[9px] border border-gray-700 px-4 py-2 hover:bg-white/5 uppercase transition">Retract</button>`;
-                return `<button onclick="handleChallenge(${game.id})" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
+            if (game.status == 0) {
+                return isHost ? `<button onclick="handleRefund(${game.game_id})" class="text-[9px] border border-gray-700 px-4 py-2 hover:bg-white/5 uppercase">Retract</button>` : 
+                                `<button onclick="handleChallenge(${game.game_id}, '${game.wager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
             }
-            if (status === 1) {
-                if (isHost) return `<button onclick="handleResolve(${game.id})" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Broadcast Reveal</button>`;
-                return `<span class="text-[9px] text-orange-900 uppercase italic tracking-widest">In Combat...</span>`;
+            if (game.status == 1) {
+                return isHost ? `<button onclick="handleResolve(${game.game_id}, '${game.commit_hash}')" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Broadcast Reveal</button>` : 
+                                `<span class="text-[9px] text-orange-900 uppercase italic">Combat Active</span>`;
             }
-            return `<span class="text-[9px] text-gray-700 uppercase">Deactivated</span>`;
+            return `<span class="text-[9px] text-gray-700 uppercase">Inactive</span>`;
         }
 
-        async function handleChallenge(id) {
-            if (!signer) return showToast("INITIALIZE UPLINK FIRST");
-            const move = prompt("SELECT COMBAT MANEUVER: 1 (Solar), 2 (Oxygen), 3 (Dust)");
-            if (![1, 2, 3].includes(Number(move))) return showToast("INVALID TACTIC");
-
+        async function handleChallenge(id, wager) {
+            const move = prompt("1-Solar, 2-Oxygen, 3-Dust");
             try {
-                const g = await contract.games(id);
-                showToast("TRANSMITTING INTERCEPT...");
-                const tx = await contract.challengeGame(id, move, { value: g.wager });
+                const tx = await contract.challengeGame(id, move, { value: ethers.parseEther(wager) });
                 await tx.wait();
-                showToast("INTERCEPT CONFIRMED");
+                await _supabase.from('games').update({ status: 1, challenger: userAddress.toLowerCase() }).eq('game_id', id);
                 refreshLobby();
-            } catch (err) {
-                showToast("INTERCEPT FAILED");
-            }
+            } catch (err) { showToast("FAILED"); }
         }
 
-        async function handleResolve(id) {
-            const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
-            let mySecret = null;
-            
-            for (let txHash in secrets) {
-                mySecret = secrets[txHash];
-                break;
-            }
-            
-            if (!mySecret) {
-                const move = prompt("MANUAL RECOVERY: Move (1-3)");
-                const salt = prompt("MANUAL RECOVERY: Salt Hex");
-                mySecret = { move, salt };
-            }
-
+        async function handleResolve(id, hash) {
+            const secret = JSON.parse(localStorage.getItem('martian_gambits') || '{}')[hash];
+            if (!secret) return showToast("SECRET NOT FOUND");
             try {
-                showToast("BROADCASTING RESOLUTION...");
-                const tx = await contract.resolveGame(id, mySecret.move, mySecret.salt);
+                const tx = await contract.resolveGame(id, secret.move, secret.salt);
                 await tx.wait();
-                showToast("SIGNAL RESOLVED");
+                await _supabase.from('games').update({ status: 2 }).eq('game_id', id);
                 refreshLobby();
-            } catch (err) {
-                showToast("PROTOCOL ERROR: HASH MISMATCH");
-            }
+            } catch (err) { showToast("RESOLVE ERROR"); }
         }
 
         async function handleRefund(id) {
             try {
-                showToast("RETRACTING SIGNAL...");
                 const tx = await contract.refundUnchallenged(id);
                 await tx.wait();
-                showToast("ENERGY RECLAIMED");
+                await _supabase.from('games').update({ status: 3 }).eq('game_id', id);
                 refreshLobby();
-            } catch (err) {
-                showToast("RETRACTION FAILED");
-            }
+            } catch (err) { showToast("FAILED"); }
         }
 
-        function getStatusText(s) { return ["Freq Open", "Challenged", "Resolved", "Refunded", "Forfeited"][s]; }
-
+        function getStatusText(s) { return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s]; }
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.innerText = msg;
             t.classList.remove('translate-y-32');
             setTimeout(() => t.classList.add('translate-y-32'), 3000);
         }
-
         window.onload = init;
     </script>
 </body>
