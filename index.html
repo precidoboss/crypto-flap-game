@@ -353,22 +353,37 @@
                     const isHost = userAddress && game.host === userAddress.toLowerCase();
                     const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
                     
+                    // Only show resolved games if you participated
                     if (status > 1 && !isHost && !isChallenger) return;
 
                     const div = document.createElement('div');
-                    div.className = "p-4 bg-black/40 border-l-2 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:bg-black/60 " + (status == 0 ? "border-orange-500" : "border-gray-800");
-                    div.innerHTML = `
+                    div.className = "p-4 bg-black/40 border-l-2 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:bg-black/60 " + (status == 0 ? "border-orange-500" : status == 1 ? "border-yellow-500" : status == 2 ? "border-green-700" : "border-gray-800");
+                    
+                    let gameInfo = `
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[9px] px-2 py-0.5 border ${status == 0 ? 'border-orange-500 text-orange-500' : 'border-gray-700 text-gray-500'} uppercase">${getStatusText(status)}</span>
+                                <span class="text-[9px] px-2 py-0.5 border ${status == 0 ? 'border-orange-500 text-orange-500' : status == 1 ? 'border-yellow-500 text-yellow-500' : status == 2 ? 'border-green-500 text-green-500' : 'border-gray-700 text-gray-500'} uppercase">${getStatusText(status)}</span>
                                 <span class="text-[9px] text-orange-900/40">ID: ${game.game_id}</span>
                             </div>
                             <div class="orbitron text-white text-sm">
                                 <span class="text-orange-500">${game.wager} $EROL</span> 
-                                <span class="text-gray-600 text-[10px] ml-2">FROM ${game.host.slice(0,6)}...</span>
+                                <span class="text-gray-600 text-[10px] ml-2">FROM ${game.host.slice(0,6)}...</span>`;
+                    
+                    // Show moves for resolved games
+                    if (status == 2 && game.host_move && game.challenger_move) {
+                        const moves = ['', '☀️ Solar', '🌬️ Oxygen', '🌪️ Dust'];
+                        gameInfo += `
+                            <div class="text-[10px] mt-1 text-gray-400">
+                                Host: ${moves[game.host_move]} vs Challenger: ${moves[game.challenger_move]}
+                            </div>`;
+                    }
+                    
+                    gameInfo += `
                             </div>
                         </div>
                         <div class="flex gap-2">${getActionButtons(game, isHost, isChallenger)}</div>`;
+                    
+                    div.innerHTML = gameInfo;
                     lobby.appendChild(div);
                 });
             } catch (err) { 
@@ -378,12 +393,30 @@
 
         function getActionButtons(game, isHost, isChallenger) {
             if (game.status == 0) {
-                return isHost ? `<button onclick="handleRefund(${game.game_id})" class="text-[9px] border border-gray-700 px-4 py-2 hover:bg-white/5 uppercase">Retract</button>` : 
-                                `<button onclick="handleChallenge(${game.game_id}, '${game.wager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
+                // Only show retract button if you're actually the host
+                if (isHost) {
+                    return `<button onclick="handleRefund(${game.game_id})" class="text-[9px] border border-gray-700 px-4 py-2 hover:bg-white/5 uppercase">Retract</button>`;
+                }
+                // Don't allow challenging your own game
+                if (userAddress && game.host === userAddress.toLowerCase()) {
+                    return `<span class="text-[9px] text-gray-500 uppercase italic">Your Signal</span>`;
+                }
+                return `<button onclick="handleChallenge(${game.game_id}, '${game.wager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
             }
             if (game.status == 1) {
-                return isHost ? `<button onclick="handleResolve(${game.game_id}, '${game.commit_hash}')" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Broadcast Reveal</button>` : 
-                                `<span class="text-[9px] text-orange-900 uppercase italic">Combat Active</span>`;
+                if (isHost) {
+                    return `<button onclick="handleResolve(${game.game_id}, '${game.commit_hash}')" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Broadcast Reveal</button>`;
+                }
+                if (isChallenger) {
+                    return `<span class="text-[9px] text-orange-500 uppercase italic">⚔️ Awaiting Host Reveal...</span>`;
+                }
+                return `<span class="text-[9px] text-orange-900 uppercase italic">Combat Active</span>`;
+            }
+            if (game.status == 2) {
+                return `<span class="text-[9px] text-green-500 uppercase">✓ Resolved</span>`;
+            }
+            if (game.status == 3) {
+                return `<span class="text-[9px] text-gray-600 uppercase">Refunded</span>`;
             }
             return `<span class="text-[9px] text-gray-700 uppercase">Inactive</span>`;
         }
@@ -426,21 +459,52 @@
             if (!(await checkNetwork())) return;
             
             const secret = JSON.parse(localStorage.getItem('martian_gambits') || '{}')[hash];
-            if (!secret) return showToast("LOCAL SECRET MISSING");
+            if (!secret) {
+                showToast("⚠️ SECRET NOT FOUND - USE SAME BROWSER/DEVICE");
+                return;
+            }
             
             try {
                 showToast("BROADCASTING REVEAL...");
                 const tx = await contract.resolveGame(id, secret.move, secret.salt);
-                showToast("WAITING FOR CONFIRMATION...");
-                await tx.wait();
+                showToast("CONFIRMING TRANSACTION...");
+                const receipt = await tx.wait();
                 
-                await _supabase.from('games').update({ status: 2 }).eq('game_id', id);
+                // Fetch game data to determine winner
+                const gameData = await contract.games(id);
+                const hostMove = Number(gameData.hostMove);
+                const challengerMove = Number(gameData.challengerMove);
+                
+                let resultMsg = "COMBAT RESOLVED";
+                // Rock-Paper-Scissors logic: 1=Solar, 2=Oxygen, 3=Dust
+                if (hostMove === challengerMove) {
+                    resultMsg = "⚖️ DRAW - FUNDS SPLIT";
+                } else if (
+                    (hostMove === 1 && challengerMove === 3) ||
+                    (hostMove === 2 && challengerMove === 1) ||
+                    (hostMove === 3 && challengerMove === 2)
+                ) {
+                    resultMsg = "🏆 VICTORY - YOU WIN!";
+                } else {
+                    resultMsg = "💥 DEFEAT - CHALLENGER WINS";
+                }
+                
+                await _supabase.from('games').update({ 
+                    status: 2,
+                    host_move: hostMove,
+                    challenger_move: challengerMove
+                }).eq('game_id', id);
+                
                 refreshLobby();
                 updateBalance();
-                showToast("COMBAT RESOLVED");
+                showToast(resultMsg);
             } catch (err) { 
                 console.error(err);
-                showToast("RESOLVE FAILED"); 
+                if (err.message.includes("Already resolved")) {
+                    showToast("ALREADY RESOLVED");
+                } else {
+                    showToast("RESOLVE FAILED - CHECK CONSOLE"); 
+                }
             }
         }
 
