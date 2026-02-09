@@ -87,6 +87,29 @@
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: var(--habitat-bg); }
         ::-webkit-scrollbar-thumb { background: var(--mars-orange); }
+
+        .tab-btn {
+            color: #666;
+            background: transparent;
+        }
+
+        .tab-btn:hover {
+            color: var(--mars-orange);
+        }
+
+        .tab-btn.active {
+            color: var(--mars-orange);
+            background: rgba(255, 77, 0, 0.1);
+            border-bottom: 2px solid var(--mars-orange);
+        }
+
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4">
@@ -103,64 +126,178 @@
             </div>
         </div>
 
-        <div id="connection-interface" class="mt-4 md:mt-0">
-            <button id="connect-btn" class="btn-mars px-8 py-2">Initialize Uplink</button>
-            <div id="account-info" class="hidden flex items-center gap-4">
-                <div class="text-right">
-                    <div id="user-address" class="text-[10px] text-orange-400 opacity-70"></div>
-                    <div id="user-balance" class="orbitron text-orange-500 font-bold">0.00 $EROL</div>
+        <div class="flex items-center gap-6 mt-4 md:mt-0">
+            <!-- Navigation Tabs -->
+            <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30">
+                <button onclick="switchTab('lobby')" id="tab-lobby" class="tab-btn active px-4 py-2 text-[10px] uppercase transition">Lobby</button>
+                <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Profile</button>
+                <button onclick="switchTab('howto')" id="tab-howto" class="tab-btn px-4 py-2 text-[10px] uppercase transition">How to Play</button>
+            </div>
+
+            <div id="connection-interface">
+                <button id="connect-btn" class="btn-mars px-8 py-2">Initialize Uplink</button>
+                <div id="account-info" class="hidden flex items-center gap-4">
+                    <div class="text-right">
+                        <div id="user-address" class="text-[10px] text-orange-400 opacity-70"></div>
+                        <div id="user-balance" class="orbitron text-orange-500 font-bold">0.00 $EROL</div>
+                    </div>
+                    <div class="h-10 w-1 bg-orange-500"></div>
                 </div>
-                <div class="h-10 w-1 bg-orange-500"></div>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <aside class="lg:col-span-4 space-y-6">
-            <div class="mars-glass p-6">
-                <h2 class="orbitron text-sm text-orange-500 mb-6 flex items-center gap-2">
-                    <span class="w-2 h-2 bg-orange-500 animate-pulse"></span>
-                    COMMENCE SIGNAL DEPLOYMENT
-                </h2>
+    <main class="max-w-7xl mx-auto">
+        <!-- LOBBY PAGE -->
+        <div id="page-lobby" class="page-section active">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <aside class="lg:col-span-4 space-y-6">
+                    <div class="mars-glass p-6">
+                        <h2 class="orbitron text-sm text-orange-500 mb-6 flex items-center gap-2">
+                            <span class="w-2 h-2 bg-orange-500 animate-pulse"></span>
+                            COMMENCE SIGNAL DEPLOYMENT
+                        </h2>
 
-                <div class="grid grid-cols-3 gap-3 mb-6">
-                    <button onclick="selectMove(1)" id="move-1" class="move-select p-4 bg-black flex flex-col items-center">
-                        <span class="text-3xl mb-2">☀️</span>
-                        <span class="text-[9px] uppercase">Solar</span>
-                    </button>
-                    <button onclick="selectMove(2)" id="move-2" class="move-select p-4 bg-black flex flex-col items-center">
-                        <span class="text-3xl mb-2">🌬️</span>
-                        <span class="text-[9px] uppercase">Oxygen</span>
-                    </button>
-                    <button onclick="selectMove(3)" id="move-3" class="move-select p-4 bg-black flex flex-col items-center">
-                        <span class="text-3xl mb-2">🌪️</span>
-                        <span class="text-[9px] uppercase">Dust</span>
-                    </button>
-                </div>
+                        <div class="grid grid-cols-3 gap-3 mb-6">
+                            <button onclick="selectMove(1)" id="move-1" class="move-select p-4 bg-black flex flex-col items-center">
+                                <span class="text-3xl mb-2">☀️</span>
+                                <span class="text-[9px] uppercase">Solar</span>
+                            </button>
+                            <button onclick="selectMove(2)" id="move-2" class="move-select p-4 bg-black flex flex-col items-center">
+                                <span class="text-3xl mb-2">🌬️</span>
+                                <span class="text-[9px] uppercase">Oxygen</span>
+                            </button>
+                            <button onclick="selectMove(3)" id="move-3" class="move-select p-4 bg-black flex flex-col items-center">
+                                <span class="text-3xl mb-2">🌪️</span>
+                                <span class="text-[9px] uppercase">Dust</span>
+                            </button>
+                        </div>
 
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-[10px] text-orange-800 uppercase mb-2 block">Energy Stake ($EROL)</label>
-                        <input id="wager-amount" type="number" step="0.1" value="1.0" class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-[10px] text-orange-800 uppercase mb-2 block">Energy Stake ($EROL)</label>
+                                <input id="wager-amount" type="number" step="0.1" value="1.0" class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron">
+                            </div>
+                            <button id="create-btn" onclick="handleCreateGame()" class="btn-mars w-full py-4 text-lg">Deploy Signal</button>
+                            <button onclick="debugInfo()" class="w-full py-2 text-[9px] border border-orange-900/30 text-orange-700 hover:text-orange-500 uppercase">Debug Info</button>
+                        </div>
                     </div>
-                    <button id="create-btn" onclick="handleCreateGame()" class="btn-mars w-full py-4 text-lg">Deploy Signal</button>
-                    <button onclick="debugInfo()" class="w-full py-2 text-[9px] border border-orange-900/30 text-orange-700 hover:text-orange-500 uppercase">Debug Info</button>
-                </div>
-            </div>
-        </aside>
+                </aside>
 
-        <section class="lg:col-span-8">
-            <div class="mars-glass p-6 min-h-[500px] relative overflow-hidden">
-                <div class="flex justify-between items-center mb-8 border-b border-orange-900/20 pb-4">
-                    <h2 class="orbitron text-lg text-white tracking-widest flex items-center gap-3">
-                        LOBBY_FREQUENCIES
-                        <span class="text-[10px] bg-orange-900/30 px-2 py-1 text-orange-500">FAST INDEX</span>
-                    </h2>
-                    <button onclick="refreshLobby()" class="text-[10px] text-orange-500 hover:text-white border border-orange-500/30 px-3 py-1 uppercase transition">Sync Data</button>
-                </div>
-                <div id="lobby-list" class="space-y-4"></div>
+                <section class="lg:col-span-8">
+                    <div class="mars-glass p-6 min-h-[500px] relative overflow-hidden">
+                        <div class="flex justify-between items-center mb-8 border-b border-orange-900/20 pb-4">
+                            <h2 class="orbitron text-lg text-white tracking-widest flex items-center gap-3">
+                                LOBBY_FREQUENCIES
+                                <span class="text-[10px] bg-orange-900/30 px-2 py-1 text-orange-500">FAST INDEX</span>
+                            </h2>
+                            <button onclick="refreshLobby()" class="text-[10px] text-orange-500 hover:text-white border border-orange-500/30 px-3 py-1 uppercase transition">Sync Data</button>
+                        </div>
+                        <div id="lobby-list" class="space-y-4"></div>
+                    </div>
+                </section>
             </div>
-        </section>
+        </div>
+
+        <!-- PROFILE PAGE -->
+        <div id="page-profile" class="page-section">
+            <div class="mars-glass p-8 max-w-5xl mx-auto">
+                <h2 class="orbitron text-2xl text-orange-500 mb-8 flex items-center gap-3">
+                    <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
+                    PILOT STATISTICS
+                </h2>
+                <div id="profile-content" class="space-y-6"></div>
+            </div>
+        </div>
+
+        <!-- HOW TO PLAY PAGE -->
+        <div id="page-howto" class="page-section">
+            <div class="mars-glass p-8 max-w-4xl mx-auto">
+                <h2 class="orbitron text-2xl text-orange-500 mb-8">MISSION BRIEFING</h2>
+                
+                <div class="space-y-8 text-gray-300">
+                    <section>
+                        <h3 class="orbitron text-orange-500 text-lg mb-3">🎯 OBJECTIVE</h3>
+                        <p class="leading-relaxed">Martian Gambit is a high-stakes Rock-Paper-Scissors style game on the Martian Chain. Players bet $EROL tokens and compete using three strategic moves. The winner takes the pot (minus a small fee).</p>
+                    </section>
+
+                    <section>
+                        <h3 class="orbitron text-orange-500 text-lg mb-3">⚔️ THE THREE MOVES</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-black/40 p-4 border border-orange-900/30">
+                                <div class="text-4xl mb-2">☀️</div>
+                                <div class="orbitron text-orange-500 mb-1">SOLAR FLARE</div>
+                                <div class="text-[11px] text-gray-400">Beats Oxygen Siphon</div>
+                            </div>
+                            <div class="bg-black/40 p-4 border border-orange-900/30">
+                                <div class="text-4xl mb-2">🌬️</div>
+                                <div class="orbitron text-orange-500 mb-1">OXYGEN SIPHON</div>
+                                <div class="text-[11px] text-gray-400">Beats Dust Storm</div>
+                            </div>
+                            <div class="bg-black/40 p-4 border border-orange-900/30">
+                                <div class="text-4xl mb-2">🌪️</div>
+                                <div class="orbitron text-orange-500 mb-1">DUST STORM</div>
+                                <div class="text-[11px] text-gray-400">Beats Solar Flare</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 class="orbitron text-orange-500 text-lg mb-3">📋 HOW TO PLAY</h3>
+                        <div class="space-y-4">
+                            <div class="flex gap-4">
+                                <div class="orbitron text-orange-500 text-xl">1.</div>
+                                <div>
+                                    <div class="font-bold text-white mb-1">Deploy Signal (Host)</div>
+                                    <p class="text-sm text-gray-400">Select your move and wager amount. Your move is encrypted and stored locally. Click "Deploy Signal" to create the game.</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="orbitron text-orange-500 text-xl">2.</div>
+                                <div>
+                                    <div class="font-bold text-white mb-1">Intercept (Challenger)</div>
+                                    <p class="text-sm text-gray-400">Find an open game in the lobby and click "Intercept". Choose your move and match the wager amount.</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="orbitron text-orange-500 text-xl">3.</div>
+                                <div>
+                                    <div class="font-bold text-white mb-1">Broadcast Reveal (Host)</div>
+                                    <p class="text-sm text-gray-400">Once intercepted, click "Broadcast Reveal" to reveal your move. The smart contract determines the winner automatically.</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="orbitron text-orange-500 text-xl">4.</div>
+                                <div>
+                                    <div class="font-bold text-white mb-1">Victory or Defeat</div>
+                                    <p class="text-sm text-gray-400">Winner takes 97% of the pot. 1.5% goes to treasury, 1.5% is burned. In case of a draw, both players get their wager back minus 1.5% fee each.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 class="orbitron text-orange-500 text-lg mb-3">⚠️ IMPORTANT NOTES</h3>
+                        <ul class="space-y-2 text-sm text-gray-400">
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> You must use the same browser/device to reveal your move (secret is stored locally)</li>
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> If host doesn't reveal within 15 minutes, challenger can claim victory</li>
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> If no one intercepts within 15 minutes, host can retract their wager</li>
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> All games are on-chain and provably fair via cryptographic commitments</li>
+                        </ul>
+                    </section>
+
+                    <section class="bg-orange-900/10 border border-orange-500/30 p-6">
+                        <h3 class="orbitron text-orange-500 text-lg mb-3">💰 FEES & PAYOUTS</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between"><span>Winner Payout:</span><span class="text-orange-500">97% of pot</span></div>
+                            <div class="flex justify-between"><span>Treasury Fee:</span><span class="text-orange-500">1.5%</span></div>
+                            <div class="flex justify-between"><span>Burn Amount:</span><span class="text-orange-500">1.5%</span></div>
+                            <div class="flex justify-between"><span>Draw (each player):</span><span class="text-orange-500">Wager - 1.5%</span></div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
     </main>
 
     <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 mars-glass border-orange-500 px-8 py-4 text-orange-500 orbitron text-sm transform translate-y-32 transition-all duration-300 z-[200]">
@@ -388,12 +525,31 @@
                                 <span class="text-orange-500">${game.wager} $EROL</span> 
                                 <span class="text-gray-600 text-[10px] ml-2">FROM ${game.host.slice(0,6)}...</span>`;
                     
-                    // Show moves for resolved games
+                    // Show moves and winner for resolved games
                     if (status == 2 && game.host_move && game.challenger_move) {
                         const moves = ['', '☀️ Solar', '🌬️ Oxygen', '🌪️ Dust'];
+                        const hostMove = Number(game.host_move);
+                        const challengerMove = Number(game.challenger_move);
+                        
+                        let winner = '';
+                        if (hostMove === challengerMove) {
+                            winner = '⚖️ DRAW';
+                        } else if (
+                            (hostMove === 1 && challengerMove === 2) ||
+                            (hostMove === 2 && challengerMove === 3) ||
+                            (hostMove === 3 && challengerMove === 1)
+                        ) {
+                            winner = `🏆 ${game.host.slice(0,6)}... WINS`;
+                        } else {
+                            winner = `🏆 ${game.challenger.slice(0,6)}... WINS`;
+                        }
+                        
                         gameInfo += `
                             <div class="text-[10px] mt-1 text-gray-400">
-                                Host: ${moves[game.host_move]} vs Challenger: ${moves[game.challenger_move]}
+                                Host: ${moves[hostMove]} vs Challenger: ${moves[challengerMove]}
+                            </div>
+                            <div class="text-[11px] mt-1 font-bold ${hostMove === challengerMove ? 'text-yellow-500' : 'text-green-500'}">
+                                ${winner}
                             </div>`;
                     }
                     
@@ -654,6 +810,173 @@
         }
 
         function getStatusText(s) { return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s]; }
+        
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            // Update page sections
+            document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active'));
+            document.getElementById(`page-${tab}`).classList.add('active');
+            
+            // Load profile data if switching to profile
+            if (tab === 'profile') {
+                loadProfile();
+            }
+        }
+        
+        async function loadProfile() {
+            const profileContent = document.getElementById('profile-content');
+            
+            if (!userAddress) {
+                profileContent.innerHTML = `
+                    <div class="text-center py-20">
+                        <div class="text-orange-900 text-6xl mb-4">🔒</div>
+                        <div class="text-orange-500 orbitron text-lg mb-2">UPLINK REQUIRED</div>
+                        <div class="text-gray-500 text-sm">Connect your wallet to view pilot statistics</div>
+                    </div>`;
+                return;
+            }
+            
+            profileContent.innerHTML = `
+                <div class="text-center py-20">
+                    <div class="text-orange-500 animate-pulse">Loading pilot data...</div>
+                </div>`;
+            
+            try {
+                // Fetch all games for this user
+                const { data: games, error } = await _supabase
+                    .from('games')
+                    .select('*')
+                    .or(`host.eq.${userAddress.toLowerCase()},challenger.eq.${userAddress.toLowerCase()}`)
+                    .order('game_id', { ascending: false });
+                
+                if (error) {
+                    console.error("Profile fetch error:", error);
+                    profileContent.innerHTML = `<div class="text-red-500">Error loading profile data</div>`;
+                    return;
+                }
+                
+                // Calculate stats
+                let totalGames = 0;
+                let wins = 0;
+                let losses = 0;
+                let draws = 0;
+                let totalWagered = 0;
+                let totalWon = 0;
+                let totalLost = 0;
+                
+                const recentGames = [];
+                
+                games.forEach(game => {
+                    const isHost = game.host === userAddress.toLowerCase();
+                    const wager = parseFloat(game.wager);
+                    
+                    if (game.status === 2 && game.host_move && game.challenger_move) {
+                        totalGames++;
+                        totalWagered += wager;
+                        
+                        const hostMove = Number(game.host_move);
+                        const challengerMove = Number(game.challenger_move);
+                        
+                        let result = '';
+                        if (hostMove === challengerMove) {
+                            draws++;
+                            result = 'DRAW';
+                            totalWon += wager * 0.985; // Get back wager minus 1.5% fee
+                            totalLost += wager * 0.015;
+                        } else {
+                            const hostWins = (
+                                (hostMove === 1 && challengerMove === 2) ||
+                                (hostMove === 2 && challengerMove === 3) ||
+                                (hostMove === 3 && challengerMove === 1)
+                            );
+                            
+                            if ((isHost && hostWins) || (!isHost && !hostWins)) {
+                                wins++;
+                                result = 'WIN';
+                                totalWon += wager * 2 * 0.97; // Winner gets 97% of pot
+                            } else {
+                                losses++;
+                                result = 'LOSS';
+                                totalLost += wager;
+                            }
+                        }
+                        
+                        recentGames.push({ ...game, result, isHost });
+                    }
+                });
+                
+                const netPnL = totalWon - totalWagered;
+                const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
+                
+                // Render profile
+                profileContent.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-black/40 border border-orange-900/30 p-6 text-center">
+                            <div class="text-[10px] text-orange-800 uppercase mb-2">Total Games</div>
+                            <div class="orbitron text-3xl text-orange-500">${totalGames}</div>
+                        </div>
+                        <div class="bg-black/40 border border-green-900/30 p-6 text-center">
+                            <div class="text-[10px] text-green-800 uppercase mb-2">Wins</div>
+                            <div class="orbitron text-3xl text-green-500">${wins}</div>
+                        </div>
+                        <div class="bg-black/40 border border-red-900/30 p-6 text-center">
+                            <div class="text-[10px] text-red-800 uppercase mb-2">Losses</div>
+                            <div class="orbitron text-3xl text-red-500">${losses}</div>
+                        </div>
+                        <div class="bg-black/40 border border-yellow-900/30 p-6 text-center">
+                            <div class="text-[10px] text-yellow-800 uppercase mb-2">Draws</div>
+                            <div class="orbitron text-3xl text-yellow-500">${draws}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="bg-black/40 border border-orange-900/30 p-6">
+                            <div class="text-[10px] text-orange-800 uppercase mb-2">Win Rate</div>
+                            <div class="orbitron text-2xl text-orange-500">${winRate}%</div>
+                        </div>
+                        <div class="bg-black/40 border border-orange-900/30 p-6">
+                            <div class="text-[10px] text-orange-800 uppercase mb-2">Total Wagered</div>
+                            <div class="orbitron text-2xl text-orange-500">${totalWagered.toFixed(2)} $EROL</div>
+                        </div>
+                        <div class="bg-black/40 border border-${netPnL >= 0 ? 'green' : 'red'}-900/30 p-6">
+                            <div class="text-[10px] text-${netPnL >= 0 ? 'green' : 'red'}-800 uppercase mb-2">Net P&L</div>
+                            <div class="orbitron text-2xl text-${netPnL >= 0 ? 'green' : 'red'}-500">${netPnL >= 0 ? '+' : ''}${netPnL.toFixed(2)} $EROL</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h3 class="orbitron text-orange-500 text-lg mb-4">RECENT BATTLES</h3>
+                        <div class="space-y-3">
+                            ${recentGames.slice(0, 10).map(game => {
+                                const moves = ['', '☀️', '🌬️', '🌪️'];
+                                const opponent = game.isHost ? game.challenger : game.host;
+                                return `
+                                    <div class="bg-black/40 border-l-2 border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-700 p-4 flex justify-between items-center">
+                                        <div>
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="text-[10px] px-2 py-0.5 border border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 text-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 uppercase">${game.result}</span>
+                                                <span class="text-[9px] text-gray-600">Game #${game.game_id}</span>
+                                            </div>
+                                            <div class="text-sm">
+                                                <span class="text-orange-500">${game.wager} $EROL</span>
+                                                <span class="text-gray-600 text-[10px] ml-2">vs ${opponent ? opponent.slice(0,8) + '...' : 'Unknown'}</span>
+                                            </div>
+                                        </div>
+                                        <div class="text-2xl">${game.isHost ? moves[game.host_move] : moves[game.challenger_move]}</div>
+                                    </div>
+                                `;
+                            }).join('') || '<div class="text-center text-gray-600 py-8">No battles yet</div>'}
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                console.error("Profile error:", err);
+                profileContent.innerHTML = `<div class="text-red-500">Error: ${err.message}</div>`;
+            }
+        }
         
         function debugInfo() {
             const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
