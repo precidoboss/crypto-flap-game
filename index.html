@@ -259,14 +259,14 @@
             if (selectedMoveIdx === 0) return showToast("SELECT TACTICAL MOVE");
             if (!(await checkNetwork())) return;
             
-            const wager = document.getElementById('wager-amount').value;
+            const wagerInput = document.getElementById('wager-amount').value;
+            const wagerValue = ethers.parseEther(wagerInput);
             const salt = ethers.hexlify(ethers.randomBytes(16));
-            // Ensure address is checksummed for the hash to match contract expectations if necessary
             const hash = ethers.solidityPackedKeccak256(["uint8", "string", "address"], [selectedMoveIdx, salt, userAddress]);
 
             try {
                 showToast("ENCRYPTING SIGNAL...");
-                const tx = await contract.createGame(hash, { value: ethers.parseEther(wager) });
+                const tx = await contract.createGame(hash, { value: wagerValue });
                 
                 showToast("WAITING FOR CONFIRMATION...");
                 const receipt = await tx.wait();
@@ -276,24 +276,32 @@
                 secrets[hash] = { move: selectedMoveIdx, salt: salt };
                 localStorage.setItem('martian_gambits', JSON.stringify(secrets));
 
-                // Find the GameCreated event
-                const event = receipt.logs.find(log => {
-                    try {
-                        const parsed = contract.interface.parseLog(log);
-                        return parsed && parsed.name === 'GameCreated';
-                    } catch(e) { return false; }
-                });
+                let gameId;
+                // Method 1: Try parsing logs
+                try {
+                    const eventLog = receipt.logs.find(log => {
+                        try {
+                            const parsed = contract.interface.parseLog(log);
+                            return parsed && parsed.name === 'GameCreated';
+                        } catch(e) { return false; }
+                    });
+                    if (eventLog) {
+                        const parsed = contract.interface.parseLog(eventLog);
+                        gameId = Number(parsed.args.gameId);
+                    }
+                } catch (e) { console.warn("Log parsing failed, trying counter fallback"); }
 
-                if (!event) throw new Error("Event not found in receipt");
-                
-                const parsedLog = contract.interface.parseLog(event);
-                const gameId = Number(parsedLog.args.gameId);
+                // Method 2: Fallback to gameCounter
+                if (gameId === undefined) {
+                    const counter = await contract.gameCounter();
+                    gameId = Number(counter) - 1; // Counter is usually incremented after creation
+                }
 
                 // INDEX TO SUPABASE
                 const { error: sbError } = await _supabase.from('games').insert([{
                     game_id: gameId,
                     host: userAddress.toLowerCase(),
-                    wager: wager,
+                    wager: wagerInput,
                     status: 0,
                     commit_hash: hash
                 }]);
@@ -301,7 +309,7 @@
                 if (sbError) console.error("Supabase insert error:", sbError);
 
                 showToast("SIGNAL DEPLOYED");
-                refreshLobby();
+                setTimeout(refreshLobby, 1000);
             } catch (err) { 
                 console.error("Game Creation Error:", err);
                 showToast("DEPLOYMENT ABORTED"); 
@@ -327,7 +335,6 @@
                     const isHost = userAddress && game.host === userAddress.toLowerCase();
                     const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
                     
-                    // Filter logic for privacy
                     if (status > 1 && !isHost && !isChallenger) return;
 
                     const div = document.createElement('div');
