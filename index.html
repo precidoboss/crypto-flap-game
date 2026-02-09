@@ -144,6 +144,7 @@
                         <input id="wager-amount" type="number" step="0.1" value="1.0" class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron">
                     </div>
                     <button id="create-btn" onclick="handleCreateGame()" class="btn-mars w-full py-4 text-lg">Deploy Signal</button>
+                    <button onclick="debugInfo()" class="w-full py-2 text-[9px] border border-orange-900/30 text-orange-700 hover:text-orange-500 uppercase">Debug Info</button>
                 </div>
             </div>
         </aside>
@@ -435,21 +436,37 @@
                 const gameData = await contract.games(id);
                 const actualWager = gameData.wager;
                 
+                console.log("Challenging game", id, "with move", move, "and wager", ethers.formatEther(actualWager));
+                
                 const tx = await contract.challengeGame(id, move, { value: actualWager });
-                showToast("WAITING FOR CONFIRMATION...");
-                await tx.wait();
+                showToast("CONFIRMING TRANSACTION...");
+                const receipt = await tx.wait();
+                
+                console.log("Challenge successful, receipt:", receipt);
                 
                 // Update Supabase with challenger info
-                await _supabase.from('games').update({ 
-                    status: 1, 
-                    challenger: userAddress.toLowerCase(),
-                    challenger_move: parseInt(move)
-                }).eq('game_id', id);
+                const { data: updateData, error: updateError } = await _supabase
+                    .from('games')
+                    .update({ 
+                        status: 1, 
+                        challenger: userAddress.toLowerCase(),
+                        challenger_move: parseInt(move)
+                    })
+                    .eq('game_id', id)
+                    .select();
                 
-                refreshLobby();
-                showToast("SIGNAL INTERCEPTED - AWAITING HOST REVEAL");
+                if (updateError) {
+                    console.error("Supabase update error:", updateError);
+                    showToast("⚠️ INTERCEPTED BUT DB UPDATE FAILED");
+                } else {
+                    console.log("Supabase updated:", updateData);
+                    showToast("✓ SIGNAL INTERCEPTED");
+                }
+                
+                // Force refresh after delay
+                setTimeout(refreshLobby, 1500);
             } catch (err) { 
-                console.error(err);
+                console.error("Challenge error:", err);
                 showToast("INTERCEPTION FAILED"); 
             }
         }
@@ -458,11 +475,19 @@
             if (!signer) return showToast("CONNECT UPLINK FIRST");
             if (!(await checkNetwork())) return;
             
-            const secret = JSON.parse(localStorage.getItem('martian_gambits') || '{}')[hash];
+            console.log("Attempting to resolve game", id, "with hash", hash);
+            
+            const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
+            console.log("Stored secrets:", Object.keys(secrets));
+            
+            const secret = secrets[hash];
             if (!secret) {
-                showToast("⚠️ SECRET NOT FOUND - USE SAME BROWSER/DEVICE");
+                console.error("Secret not found for hash:", hash);
+                showToast("⚠️ SECRET NOT FOUND - USE SAME BROWSER");
                 return;
             }
+            
+            console.log("Found secret - move:", secret.move, "salt:", secret.salt);
             
             try {
                 showToast("BROADCASTING REVEAL...");
@@ -470,10 +495,14 @@
                 showToast("CONFIRMING TRANSACTION...");
                 const receipt = await tx.wait();
                 
+                console.log("Resolve transaction confirmed:", receipt);
+                
                 // Fetch game data to determine winner
                 const gameData = await contract.games(id);
                 const hostMove = Number(gameData.hostMove);
                 const challengerMove = Number(gameData.challengerMove);
+                
+                console.log("Game resolved - Host:", hostMove, "Challenger:", challengerMove);
                 
                 let resultMsg = "COMBAT RESOLVED";
                 // Rock-Paper-Scissors logic: 1=Solar, 2=Oxygen, 3=Dust
@@ -489,19 +518,31 @@
                     resultMsg = "💥 DEFEAT - CHALLENGER WINS";
                 }
                 
-                await _supabase.from('games').update({ 
-                    status: 2,
-                    host_move: hostMove,
-                    challenger_move: challengerMove
-                }).eq('game_id', id);
+                const { data: updateData, error: updateError } = await _supabase
+                    .from('games')
+                    .update({ 
+                        status: 2,
+                        host_move: hostMove,
+                        challenger_move: challengerMove
+                    })
+                    .eq('game_id', id)
+                    .select();
                 
-                refreshLobby();
+                if (updateError) {
+                    console.error("Supabase update error:", updateError);
+                } else {
+                    console.log("Supabase updated:", updateData);
+                }
+                
+                setTimeout(refreshLobby, 1000);
                 updateBalance();
                 showToast(resultMsg);
             } catch (err) { 
-                console.error(err);
-                if (err.message.includes("Already resolved")) {
+                console.error("Resolve error:", err);
+                if (err.message && err.message.includes("Already resolved")) {
                     showToast("ALREADY RESOLVED");
+                } else if (err.reason) {
+                    showToast("ERROR: " + err.reason.toUpperCase());
                 } else {
                     showToast("RESOLVE FAILED - CHECK CONSOLE"); 
                 }
@@ -529,6 +570,22 @@
         }
 
         function getStatusText(s) { return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s]; }
+        
+        function debugInfo() {
+            const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
+            console.log("=== DEBUG INFO ===");
+            console.log("Connected Address:", userAddress);
+            console.log("Contract Address:", CONTRACT_ADDR);
+            console.log("Supabase URL:", SB_URL);
+            console.log("Stored Secrets Count:", Object.keys(secrets).length);
+            console.log("Secret Hashes:", Object.keys(secrets));
+            
+            Object.entries(secrets).forEach(([hash, data]) => {
+                console.log(`  ${hash.slice(0, 10)}... -> Move: ${data.move}, Salt: ${data.salt}`);
+            });
+            
+            showToast("CHECK CONSOLE FOR DEBUG INFO");
+        }
         
         function showToast(msg) {
             const t = document.getElementById('toast');
