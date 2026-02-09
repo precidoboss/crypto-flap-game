@@ -262,8 +262,24 @@
             
             const wagerInput = document.getElementById('wager-amount').value;
             const wagerValue = ethers.parseEther(wagerInput);
-            const salt = ethers.hexlify(ethers.randomBytes(16));
-            const hash = ethers.solidityPackedKeccak256(["uint8", "string", "address"], [selectedMoveIdx, salt, userAddress]);
+            const salt = ethers.hexlify(ethers.randomBytes(32)); // Use 32 bytes for better entropy
+            
+            // CRITICAL: Must match Solidity's keccak256(abi.encodePacked(move, salt, host))
+            // We need to encode exactly as Solidity does
+            const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+            
+            // Solidity abi.encodePacked with uint8, string, address
+            const encoded = ethers.solidityPacked(
+                ["uint8", "string", "address"],
+                [selectedMoveIdx, salt, userAddress]
+            );
+            const hash = ethers.keccak256(encoded);
+            
+            console.log("=== GAME CREATION DEBUG ===");
+            console.log("Move:", selectedMoveIdx);
+            console.log("Salt:", salt);
+            console.log("Address:", userAddress);
+            console.log("Generated Hash:", hash);
 
             try {
                 showToast("ENCRYPTING SIGNAL...");
@@ -276,6 +292,8 @@
                 const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
                 secrets[hash] = { move: selectedMoveIdx, salt: salt };
                 localStorage.setItem('martian_gambits', JSON.stringify(secrets));
+                
+                console.log("Secret saved:", { hash, move: selectedMoveIdx, salt });
 
                 let gameId;
                 // Method 1: Try parsing logs with proper error handling
@@ -308,7 +326,7 @@
                 if (gameId === undefined) {
                     try {
                         const counter = await contract.gameCounter();
-                        gameId = Number(counter) - 1;
+                        gameId = Number(counter);
                         console.log("Game ID from counter:", gameId);
                     } catch (e) {
                         console.error("Counter fetch failed:", e);
@@ -475,22 +493,81 @@
             if (!signer) return showToast("CONNECT UPLINK FIRST");
             if (!(await checkNetwork())) return;
             
-            console.log("Attempting to resolve game", id, "with hash", hash);
+            console.log("=== RESOLVE DEBUG ===");
+            console.log("Game ID:", id);
+            console.log("Commit Hash:", hash);
             
             const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
-            console.log("Stored secrets:", Object.keys(secrets));
+            console.log("All stored secrets:", Object.keys(secrets));
             
-            const secret = secrets[hash];
+            let secret = secrets[hash];
+            
+            // If secret not found, offer manual input
             if (!secret) {
                 console.error("Secret not found for hash:", hash);
-                showToast("⚠️ SECRET NOT FOUND - USE SAME BROWSER");
+                const manualReveal = confirm("Secret not found in localStorage. Do you want to manually enter your move and salt?");
+                
+                if (manualReveal) {
+                    const move = prompt("Enter your original move (1-Solar, 2-Oxygen, 3-Dust):");
+                    const salt = prompt("Enter your salt (hex string starting with 0x):");
+                    
+                    if (!move || !salt) {
+                        showToast("CANCELLED");
+                        return;
+                    }
+                    
+                    // Verify the hash matches using same method as contract
+                    const encoded = ethers.solidityPacked(
+                        ["uint8", "string", "address"],
+                        [parseInt(move), salt, userAddress]
+                    );
+                    const testHash = ethers.keccak256(encoded);
+                    
+                    console.log("Manual hash:", testHash);
+                    console.log("Expected hash:", hash);
+                    
+                    if (testHash.toLowerCase() !== hash.toLowerCase()) {
+                        showToast("⚠️ HASH MISMATCH - WRONG MOVE/SALT");
+                        console.error("Hash verification failed!");
+                        return;
+                    }
+                    
+                    secret = { move: parseInt(move), salt: salt };
+                    console.log("Using manual secret:", secret);
+                } else {
+                    showToast("⚠️ SECRET NOT FOUND - USE SAME BROWSER");
+                    return;
+                }
+            }
+            
+            console.log("Using secret - Move:", secret.move, "Salt:", secret.salt);
+            
+            // Verify hash locally before sending transaction
+            const encoded = ethers.solidityPacked(
+                ["uint8", "string", "address"],
+                [secret.move, secret.salt, userAddress]
+            );
+            const verifyHash = ethers.keccak256(encoded);
+            
+            console.log("Verification hash:", verifyHash);
+            console.log("Expected hash:", hash);
+            console.log("Hashes match:", verifyHash.toLowerCase() === hash.toLowerCase());
+            
+            if (verifyHash.toLowerCase() !== hash.toLowerCase()) {
+                showToast("⚠️ LOCAL HASH VERIFICATION FAILED");
+                console.error("Hash mismatch - secret may be corrupted");
+                console.error("Move:", secret.move, "Salt:", secret.salt, "Address:", userAddress);
                 return;
             }
             
-            console.log("Found secret - move:", secret.move, "salt:", secret.salt);
-            
             try {
                 showToast("BROADCASTING REVEAL...");
+                console.log("Calling resolveGame with:", {
+                    gameId: id,
+                    move: secret.move,
+                    salt: secret.salt
+                });
+                
                 const tx = await contract.resolveGame(id, secret.move, secret.salt);
                 showToast("CONFIRMING TRANSACTION...");
                 const receipt = await tx.wait();
@@ -505,13 +582,16 @@
                 console.log("Game resolved - Host:", hostMove, "Challenger:", challengerMove);
                 
                 let resultMsg = "COMBAT RESOLVED";
-                // Rock-Paper-Scissors logic: 1=Solar, 2=Oxygen, 3=Dust
+                // Rock-Paper-Scissors logic matching contract:
+                // 1 (SolarFlare) beats 2 (OxygenSiphon)
+                // 2 (OxygenSiphon) beats 3 (DustStorm) 
+                // 3 (DustStorm) beats 1 (SolarFlare)
                 if (hostMove === challengerMove) {
                     resultMsg = "⚖️ DRAW - FUNDS SPLIT";
                 } else if (
-                    (hostMove === 1 && challengerMove === 3) ||
-                    (hostMove === 2 && challengerMove === 1) ||
-                    (hostMove === 3 && challengerMove === 2)
+                    (hostMove === 1 && challengerMove === 2) ||
+                    (hostMove === 2 && challengerMove === 3) ||
+                    (hostMove === 3 && challengerMove === 1)
                 ) {
                     resultMsg = "🏆 VICTORY - YOU WIN!";
                 } else {
@@ -539,10 +619,14 @@
                 showToast(resultMsg);
             } catch (err) { 
                 console.error("Resolve error:", err);
+                console.error("Full error object:", JSON.stringify(err, null, 2));
+                
                 if (err.message && err.message.includes("Already resolved")) {
                     showToast("ALREADY RESOLVED");
                 } else if (err.reason) {
                     showToast("ERROR: " + err.reason.toUpperCase());
+                } else if (err.message) {
+                    showToast("ERROR: " + err.message.slice(0, 50));
                 } else {
                     showToast("RESOLVE FAILED - CHECK CONSOLE"); 
                 }
@@ -578,13 +662,37 @@
             console.log("Contract Address:", CONTRACT_ADDR);
             console.log("Supabase URL:", SB_URL);
             console.log("Stored Secrets Count:", Object.keys(secrets).length);
-            console.log("Secret Hashes:", Object.keys(secrets));
+            console.log("");
+            console.log("=== STORED SECRETS ===");
             
-            Object.entries(secrets).forEach(([hash, data]) => {
-                console.log(`  ${hash.slice(0, 10)}... -> Move: ${data.move}, Salt: ${data.salt}`);
-            });
+            if (Object.keys(secrets).length === 0) {
+                console.log("No secrets stored! You need to create a game first.");
+            } else {
+                Object.entries(secrets).forEach(([hash, data]) => {
+                    console.log(`Hash: ${hash}`);
+                    console.log(`  Move: ${data.move} (${['', 'SolarFlare', 'OxygenSiphon', 'DustStorm'][data.move]})`);
+                    console.log(`  Salt: ${data.salt}`);
+                    
+                    // Verify the hash using correct encoding
+                    const encoded = ethers.solidityPacked(
+                        ["uint8", "string", "address"],
+                        [data.move, data.salt, userAddress]
+                    );
+                    const verifyHash = ethers.keccak256(encoded);
+                    console.log(`  Verify: ${verifyHash.toLowerCase() === hash.toLowerCase() ? '✓ Valid' : '✗ INVALID'}`);
+                    if (verifyHash.toLowerCase() !== hash.toLowerCase()) {
+                        console.log(`  Expected: ${hash}`);
+                        console.log(`  Got:      ${verifyHash}`);
+                    }
+                    console.log("");
+                });
+            }
             
-            showToast("CHECK CONSOLE FOR DEBUG INFO");
+            console.log("=== COPY THIS FOR MANUAL REVEAL ===");
+            console.log("If you need to manually reveal on a different device:");
+            console.log("Secrets JSON:", JSON.stringify(secrets, null, 2));
+            
+            alert("Debug info printed to console (F12)!\n\nSecrets stored: " + Object.keys(secrets).length);
         }
         
         function showToast(msg) {
