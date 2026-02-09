@@ -173,7 +173,6 @@
         
         // Supabase Configuration
         const SB_URL = "https://tvckbtgggsuwxtlgilcl.supabase.co"; 
-        // Updated with the provided service_role key to resolve Unauthorized issues
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y2tidGdnZ3N1d3h0bGdpbGNsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDY2NDY0NSwiZXhwIjoyMDg2MjQwNjQ1fQ.DhvGNo3seKoRtDmeRod0gAP48yFZw_0-kAvY3eT_554"; 
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
@@ -196,11 +195,29 @@
                 document.getElementById('connect-btn').addEventListener('click', connectWallet);
                 refreshLobby();
                 
-                // Real-time subscription
                 _supabase.channel('game_updates')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'games' }, () => refreshLobby())
                     .subscribe();
+
+                window.ethereum.on('accountsChanged', () => window.location.reload());
+                window.ethereum.on('chainChanged', () => window.location.reload());
             }
+        }
+
+        async function checkNetwork() {
+            const network = await provider.getNetwork();
+            if ("0x" + network.chainId.toString(16).toUpperCase() !== CHAIN_ID.toUpperCase()) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: CHAIN_ID }],
+                    });
+                } catch (switchError) {
+                    showToast("SWITCH TO MARTIAN NETWORK");
+                    return false;
+                }
+            }
+            return true;
         }
 
         async function connectWallet() {
@@ -208,19 +225,27 @@
                 const accounts = await provider.send("eth_requestAccounts", []);
                 userAddress = accounts[0];
                 signer = await provider.getSigner();
+                
+                if (!(await checkNetwork())) return;
+
                 contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
                 document.getElementById('connect-btn').classList.add('hidden');
                 document.getElementById('account-info').classList.remove('hidden');
                 document.getElementById('user-address').innerText = userAddress.toLowerCase();
                 updateBalance();
                 refreshLobby();
-            } catch (err) { showToast("UPLINK FAILED"); }
+            } catch (err) { 
+                console.error(err);
+                showToast("UPLINK FAILED"); 
+            }
         }
 
         async function updateBalance() {
-            if (!userAddress) return;
-            const balance = await provider.getBalance(userAddress);
-            document.getElementById('user-balance').innerText = `${parseFloat(ethers.formatEther(balance)).toFixed(2)} $EROL`;
+            if (!userAddress || !provider) return;
+            try {
+                const balance = await provider.getBalance(userAddress);
+                document.getElementById('user-balance').innerText = `${parseFloat(ethers.formatEther(balance)).toFixed(2)} $EROL`;
+            } catch (e) { console.error("Balance fetch error", e); }
         }
 
         function selectMove(idx) {
@@ -232,25 +257,40 @@
         async function handleCreateGame() {
             if (!signer) return showToast("CONNECT UPLINK FIRST");
             if (selectedMoveIdx === 0) return showToast("SELECT TACTICAL MOVE");
+            if (!(await checkNetwork())) return;
             
             const wager = document.getElementById('wager-amount').value;
             const salt = ethers.hexlify(ethers.randomBytes(16));
+            // Ensure address is checksummed for the hash to match contract expectations if necessary
             const hash = ethers.solidityPackedKeccak256(["uint8", "string", "address"], [selectedMoveIdx, salt, userAddress]);
 
             try {
                 showToast("ENCRYPTING SIGNAL...");
                 const tx = await contract.createGame(hash, { value: ethers.parseEther(wager) });
                 
+                showToast("WAITING FOR CONFIRMATION...");
+                const receipt = await tx.wait();
+                
+                // Save secret locally
                 const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
                 secrets[hash] = { move: selectedMoveIdx, salt: salt };
                 localStorage.setItem('martian_gambits', JSON.stringify(secrets));
 
-                const receipt = await tx.wait();
-                const event = receipt.logs.find(log => log.topics[0] === ethers.id("GameCreated(uint256,address,uint256,bytes32)"));
-                const gameId = Number(ethers.toQuantity(event.topics[1]));
+                // Find the GameCreated event
+                const event = receipt.logs.find(log => {
+                    try {
+                        const parsed = contract.interface.parseLog(log);
+                        return parsed && parsed.name === 'GameCreated';
+                    } catch(e) { return false; }
+                });
+
+                if (!event) throw new Error("Event not found in receipt");
+                
+                const parsedLog = contract.interface.parseLog(event);
+                const gameId = Number(parsedLog.args.gameId);
 
                 // INDEX TO SUPABASE
-                await _supabase.from('games').insert([{
+                const { error: sbError } = await _supabase.from('games').insert([{
                     game_id: gameId,
                     host: userAddress.toLowerCase(),
                     wager: wager,
@@ -258,9 +298,14 @@
                     commit_hash: hash
                 }]);
 
+                if (sbError) console.error("Supabase insert error:", sbError);
+
                 showToast("SIGNAL DEPLOYED");
                 refreshLobby();
-            } catch (err) { showToast("DEPLOYMENT ABORTED"); }
+            } catch (err) { 
+                console.error("Game Creation Error:", err);
+                showToast("DEPLOYMENT ABORTED"); 
+            }
         }
 
         async function refreshLobby() {
@@ -271,7 +316,7 @@
 
                 if (error) {
                     console.error("Supabase Fetch Error:", error);
-                    lobby.innerHTML = `<div class="text-center py-20 text-red-500 uppercase">Indexing Error: ${error.message}</div>`;
+                    lobby.innerHTML = `<div class="text-center py-20 text-red-500 uppercase">Indexing Error</div>`;
                     return;
                 }
 
@@ -281,6 +326,8 @@
                     const status = Number(game.status);
                     const isHost = userAddress && game.host === userAddress.toLowerCase();
                     const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
+                    
+                    // Filter logic for privacy
                     if (status > 1 && !isHost && !isChallenger) return;
 
                     const div = document.createElement('div');
@@ -301,7 +348,6 @@
                 });
             } catch (err) { 
                 console.error("Lobby Refresh Catch:", err);
-                lobby.innerHTML = '<div class="text-center py-20 text-red-500 uppercase">System Error: Check Terminal</div>';
             }
         }
 
@@ -318,33 +364,51 @@
         }
 
         async function handleChallenge(id, wager) {
+            if (!(await checkNetwork())) return;
             const move = prompt("1-Solar, 2-Oxygen, 3-Dust");
+            if (!move) return;
             try {
+                showToast("INTERCEPTING...");
                 const tx = await contract.challengeGame(id, move, { value: ethers.parseEther(wager) });
                 await tx.wait();
                 await _supabase.from('games').update({ status: 1, challenger: userAddress.toLowerCase() }).eq('game_id', id);
                 refreshLobby();
-            } catch (err) { showToast("FAILED"); }
+                showToast("SIGNAL INTERCEPTED");
+            } catch (err) { 
+                console.error(err);
+                showToast("INTERCEPTION FAILED"); 
+            }
         }
 
         async function handleResolve(id, hash) {
+            if (!(await checkNetwork())) return;
             const secret = JSON.parse(localStorage.getItem('martian_gambits') || '{}')[hash];
-            if (!secret) return showToast("SECRET NOT FOUND");
+            if (!secret) return showToast("LOCAL SECRET MISSING");
             try {
+                showToast("BROADCASTING REVEAL...");
                 const tx = await contract.resolveGame(id, secret.move, secret.salt);
                 await tx.wait();
                 await _supabase.from('games').update({ status: 2 }).eq('game_id', id);
                 refreshLobby();
-            } catch (err) { showToast("RESOLVE ERROR"); }
+                showToast("VICTORY SECURED");
+            } catch (err) { 
+                console.error(err);
+                showToast("RESOLVE FAILED"); 
+            }
         }
 
         async function handleRefund(id) {
+            if (!(await checkNetwork())) return;
             try {
                 const tx = await contract.refundUnchallenged(id);
                 await tx.wait();
                 await _supabase.from('games').update({ status: 3 }).eq('game_id', id);
                 refreshLobby();
-            } catch (err) { showToast("FAILED"); }
+                showToast("FUNDS RETRACTED");
+            } catch (err) { 
+                console.error(err);
+                showToast("REFUND FAILED"); 
+            }
         }
 
         function getStatusText(s) { return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s]; }
@@ -352,7 +416,7 @@
             const t = document.getElementById('toast');
             t.innerText = msg;
             t.classList.remove('translate-y-32');
-            setTimeout(() => t.classList.add('translate-y-32'), 3000);
+            setTimeout(() => t.classList.add('translate-y-32'), 4000);
         }
         window.onload = init;
     </script>
