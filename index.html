@@ -277,24 +277,42 @@
                 localStorage.setItem('martian_gambits', JSON.stringify(secrets));
 
                 let gameId;
-                // Method 1: Try parsing logs
+                // Method 1: Try parsing logs with proper error handling
                 try {
-                    const eventLog = receipt.logs.find(log => {
+                    for (const log of receipt.logs) {
                         try {
-                            const parsed = contract.interface.parseLog(log);
-                            return parsed && parsed.name === 'GameCreated';
-                        } catch(e) { return false; }
-                    });
-                    if (eventLog) {
-                        const parsed = contract.interface.parseLog(eventLog);
-                        gameId = Number(parsed.args.gameId);
+                            // Check if log is from our contract
+                            if (log.address.toLowerCase() !== CONTRACT_ADDR.toLowerCase()) continue;
+                            
+                            const parsed = contract.interface.parseLog({
+                                topics: log.topics,
+                                data: log.data
+                            });
+                            
+                            if (parsed && parsed.name === 'GameCreated') {
+                                gameId = Number(parsed.args.gameId);
+                                console.log("Game ID from event:", gameId);
+                                break;
+                            }
+                        } catch(e) { 
+                            // Skip logs that aren't GameCreated events
+                            continue; 
+                        }
                     }
-                } catch (e) { console.warn("Log parsing failed, trying counter fallback"); }
+                } catch (e) { 
+                    console.warn("Log parsing failed:", e); 
+                }
 
                 // Method 2: Fallback to gameCounter
                 if (gameId === undefined) {
-                    const counter = await contract.gameCounter();
-                    gameId = Number(counter) - 1; // Counter is usually incremented after creation
+                    try {
+                        const counter = await contract.gameCounter();
+                        gameId = Number(counter) - 1;
+                        console.log("Game ID from counter:", gameId);
+                    } catch (e) {
+                        console.error("Counter fetch failed:", e);
+                        throw new Error("Unable to determine game ID");
+                    }
                 }
 
                 // INDEX TO SUPABASE
