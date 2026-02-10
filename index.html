@@ -439,7 +439,7 @@
     <script>
         const CHAIN_ID = "0x7EB"; 
         const RPC_URL = "https://martian-rpc1.amichain.org/";
-        const CONTRACT_ADDR = "0x395E368045315062b26AC950690f384c98fDEEe2"; // UPDATE THIS AFTER DEPLOYMENT
+        const CONTRACT_ADDR = "0xYOUR_NEW_CONTRACT_ADDRESS_HERE"; // UPDATE THIS AFTER DEPLOYMENT
         
         // Supabase Configuration
         const SB_URL = "https://tvckbtgggsuwxtlgilcl.supabase.co"; 
@@ -464,6 +464,7 @@
 
         let provider, signer, contract, userAddress;
         let selectedMoveIdx = 0;
+        let avaxProvider, avaxBalance = 0;
 
         async function init() {
             if (window.ethereum) {
@@ -658,11 +659,31 @@
                     const div = document.createElement('div');
                     div.className = "p-4 bg-black/40 border-l-2 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:bg-black/60 " + (status == 0 ? "border-orange-500" : status == 1 ? "border-yellow-500" : status == 2 ? "border-green-700" : "border-gray-800");
                     
+                    // Calculate countdown
+                    let countdownHTML = '';
+                    if (status === 0 || status === 1) {
+                        const createdAt = new Date(game.created_at).getTime() / 1000;
+                        const timeout = game.timeout || 900; // Default 15 min
+                        const deadline = createdAt + timeout;
+                        const now = Math.floor(Date.now() / 1000);
+                        const remaining = deadline - now;
+                        
+                        if (remaining > 0) {
+                            const minutes = Math.floor(remaining / 60);
+                            const seconds = remaining % 60;
+                            const timeColor = remaining < 60 ? 'text-red-500' : 'text-orange-500';
+                            countdownHTML = `<span class="text-[10px] ${timeColor} ml-2">⏱ ${minutes}m ${seconds}s</span>`;
+                        } else {
+                            countdownHTML = `<span class="text-[10px] text-red-500 ml-2 animate-pulse">⏱ TIMEOUT</span>`;
+                        }
+                    }
+                    
                     let gameInfo = `
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-[9px] px-2 py-0.5 border ${status == 0 ? 'border-orange-500 text-orange-500' : status == 1 ? 'border-yellow-500 text-yellow-500' : status == 2 ? 'border-green-500 text-green-500' : 'border-gray-700 text-gray-500'} uppercase">${getStatusText(status)}</span>
                                 <span class="text-[9px] text-orange-900/40">ID: ${game.game_id}</span>
+                                ${countdownHTML}
                             </div>
                             <div class="orbitron text-white text-sm">
                                 <span class="text-orange-500">${game.wager} $EROL</span> 
@@ -726,6 +747,15 @@
                     return `<button onclick="handleResolve(${game.game_id}, '${game.commit_hash}')" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Broadcast Reveal</button>`;
                 }
                 if (isChallenger) {
+                    // Check if timeout has passed for force forfeit
+                    const now = Math.floor(Date.now() / 1000);
+                    const createdAt = new Date(game.created_at).getTime() / 1000;
+                    const timeout = game.timeout || 900; // Default 15 min
+                    const deadline = createdAt + timeout;
+                    
+                    if (now >= deadline) {
+                        return `<button onclick="handleForceForfeit(${game.game_id})" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Claim Victory</button>`;
+                    }
                     return `<span class="text-[9px] text-orange-500 uppercase italic">⚔️ Awaiting Host Reveal...</span>`;
                 }
                 return `<span class="text-[9px] text-orange-900 uppercase italic">Combat Active</span>`;
@@ -735,6 +765,9 @@
             }
             if (game.status == 3) {
                 return `<span class="text-[9px] text-gray-600 uppercase">Refunded</span>`;
+            }
+            if (game.status == 4) {
+                return `<span class="text-[9px] text-red-600 uppercase">⚡ Forfeited</span>`;
             }
             return `<span class="text-[9px] text-gray-700 uppercase">Inactive</span>`;
         }
@@ -792,7 +825,7 @@
             if (!signer) return showToast("CONNECT UPLINK FIRST");
             if (!(await checkNetwork())) return;
             
-            console.log("=== RESOLVE DEBUG ===");
+            console.log("=== RESOLVE DEBUG V2 ===");
             console.log("Game ID:", id);
             console.log("Commit Hash:", hash);
             
@@ -815,10 +848,10 @@
                         return;
                     }
                     
-                    // Verify the hash matches using same method as contract
-                    const encoded = ethers.solidityPacked(
-                        ["uint8", "string", "address"],
-                        [parseInt(move), salt, userAddress]
+                    // Verify the hash matches using V2 format (includes gameId)
+                    const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+                        ["uint8", "string", "address", "uint256"],
+                        [parseInt(move), salt, userAddress, BigInt(id)]
                     );
                     const testHash = ethers.keccak256(encoded);
                     
@@ -831,7 +864,7 @@
                         return;
                     }
                     
-                    secret = { move: parseInt(move), salt: salt };
+                    secret = { move: parseInt(move), salt: salt, gameId: id.toString() };
                     console.log("Using manual secret:", secret);
                 } else {
                     showToast("⚠️ SECRET NOT FOUND - USE SAME BROWSER");
@@ -839,12 +872,12 @@
                 }
             }
             
-            console.log("Using secret - Move:", secret.move, "Salt:", secret.salt);
+            console.log("Using secret - Move:", secret.move, "Salt:", secret.salt, "GameId:", secret.gameId || id);
             
-            // Verify hash locally before sending transaction
-            const encoded = ethers.solidityPacked(
-                ["uint8", "string", "address"],
-                [secret.move, secret.salt, userAddress]
+            // Verify hash locally before sending transaction (V2 format with gameId)
+            const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+                ["uint8", "string", "address", "uint256"],
+                [secret.move, secret.salt, userAddress, BigInt(secret.gameId || id)]
             );
             const verifyHash = ethers.keccak256(encoded);
             
@@ -855,7 +888,7 @@
             if (verifyHash.toLowerCase() !== hash.toLowerCase()) {
                 showToast("⚠️ LOCAL HASH VERIFICATION FAILED");
                 console.error("Hash mismatch - secret may be corrupted");
-                console.error("Move:", secret.move, "Salt:", secret.salt, "Address:", userAddress);
+                console.error("Move:", secret.move, "Salt:", secret.salt, "Address:", userAddress, "GameId:", secret.gameId || id);
                 return;
             }
             
@@ -886,15 +919,15 @@
                 // 2 (OxygenSiphon) beats 3 (DustStorm) 
                 // 3 (DustStorm) beats 1 (SolarFlare)
                 if (hostMove === challengerMove) {
-                    resultMsg = "⚖️ DRAW - FUNDS SPLIT";
+                    resultMsg = "⚖️ DRAW";
                 } else if (
                     (hostMove === 1 && challengerMove === 2) ||
                     (hostMove === 2 && challengerMove === 3) ||
                     (hostMove === 3 && challengerMove === 1)
                 ) {
-                    resultMsg = "🏆 VICTORY - YOU WIN!";
+                    resultMsg = "🏆 VICTORY!";
                 } else {
-                    resultMsg = "💥 DEFEAT - CHALLENGER WINS";
+                    resultMsg = "💥 DEFEAT";
                 }
                 
                 const { data: updateData, error: updateError } = await _supabase
@@ -952,6 +985,34 @@
             }
         }
 
+        async function handleForceForfeit(gameId) {
+            if (!signer) return showToast("CONNECT UPLINK FIRST");
+            if (!(await checkNetwork())) return;
+            
+            try {
+                showToast("CLAIMING VICTORY...");
+                const tx = await contract.forceForfeit(gameId);
+                showToast("CONFIRMING TRANSACTION...");
+                await tx.wait();
+                
+                // Update Supabase
+                await _supabase.from('games').update({ 
+                    status: 4 // Forfeited
+                }).eq('game_id', gameId);
+                
+                refreshLobby();
+                updateBalance();
+                showToast("🏆 VICTORY BY FORFEIT!");
+            } catch (err) {
+                console.error("Forfeit error:", err);
+                if (err.reason) {
+                    showToast("ERROR: " + err.reason.toUpperCase());
+                } else {
+                    showToast("FORFEIT FAILED");
+                }
+            }
+        }
+
         function getStatusText(s) { return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s]; }
         
         function switchTab(tab) {
@@ -967,6 +1028,306 @@
             if (tab === 'profile') {
                 loadProfile();
             }
+            
+            // Load bridge data if switching to bridge
+            if (tab === 'bridge') {
+                loadBridge();
+            }
+        }
+        
+        // ===== BRIDGE FUNCTIONALITY =====
+        
+        async function loadBridge() {
+            if (userAddress) {
+                await updateAvaxBalance();
+                loadBridgeHistory();
+            }
+        }
+        
+        async function updateAvaxBalance() {
+            try {
+                // Create Avalanche C-Chain provider
+                const avaxRPC = 'https://api.avax.network/ext/bc/C/rpc';
+                avaxProvider = new ethers.JsonRpcProvider(avaxRPC);
+                
+                const balance = await avaxProvider.getBalance(userAddress);
+                avaxBalance = parseFloat(ethers.formatEther(balance));
+                document.getElementById('avax-balance').textContent = avaxBalance.toFixed(4) + ' AVAX';
+            } catch (err) {
+                console.error("AVAX balance fetch error:", err);
+                document.getElementById('avax-balance').textContent = '-- AVAX';
+            }
+        }
+        
+        function updateBridgeEstimate() {
+            const amount = parseFloat(document.getElementById('bridge-amount').value) || 0;
+            
+            if (amount > 0) {
+                // Tesseract bridge fee is typically 0.1-0.3%
+                const fee = amount * 0.003; // 0.3% estimate
+                const receive = amount - fee;
+                
+                document.getElementById('bridge-fee').textContent = fee.toFixed(6) + ' AVAX';
+                document.getElementById('erol-receive').textContent = receive.toFixed(4) + ' $EROL';
+            } else {
+                document.getElementById('bridge-fee').textContent = '-- AVAX';
+                document.getElementById('erol-receive').textContent = '-- $EROL';
+            }
+        }
+        
+        function setMaxBridge() {
+            if (avaxBalance > 0) {
+                // Leave 0.01 AVAX for gas on Avalanche
+                const maxAmount = Math.max(0, avaxBalance - 0.01);
+                document.getElementById('bridge-amount').value = maxAmount.toFixed(4);
+                updateBridgeEstimate();
+            } else {
+                showToast("FETCH AVAX BALANCE FIRST");
+            }
+        }
+        
+        async function handleBridge() {
+            if (!userAddress) {
+                showToast("CONNECT WALLET FIRST");
+                return;
+            }
+            
+            const amount = parseFloat(document.getElementById('bridge-amount').value);
+            
+            if (!amount || amount < 0.01) {
+                showToast("MINIMUM 0.01 AVAX");
+                return;
+            }
+            
+            if (amount > avaxBalance) {
+                showToast("INSUFFICIENT BALANCE");
+                return;
+            }
+            
+            // Show bridge status
+            document.getElementById('bridge-status').classList.remove('hidden');
+            document.getElementById('bridge-btn').disabled = true;
+            
+            try {
+                // Step 1: Switch to Avalanche C-Chain
+                updateBridgeStatus('Switching to Avalanche C-Chain...');
+                
+                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+                
+                if (currentChainId !== '0xa86a') {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0xa86a' }], // Avalanche C-Chain
+                        });
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            // Chain not added, add it
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0xa86a',
+                                    chainName: 'Avalanche Network',
+                                    nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+                                    rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
+                                    blockExplorerUrls: ['https://snowtrace.io/']
+                                }]
+                            });
+                        } else {
+                            throw switchError;
+                        }
+                    }
+                }
+                
+                // Step 2: Get quote from Tesseract API
+                updateBridgeStatus('Getting bridge quote...');
+                
+                const quoteResponse = await fetch('https://api.tesseract.finance/v1/quote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sourceChain: 'avalanche',
+                        destChain: 'martian',
+                        sourceToken: 'AVAX',
+                        destToken: 'EROL',
+                        amount: ethers.parseEther(amount.toString()).toString(),
+                        recipient: userAddress
+                    })
+                });
+                
+                if (!quoteResponse.ok) {
+                    throw new Error('Failed to get bridge quote');
+                }
+                
+                const quote = await quoteResponse.json();
+                console.log('Bridge quote:', quote);
+                
+                // Step 3: Initiate bridge transaction
+                updateBridgeStatus('Preparing bridge transaction...');
+                
+                const bridgeResponse = await fetch('https://api.tesseract.finance/v1/bridge', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sourceChain: 'avalanche',
+                        destChain: 'martian',
+                        sourceToken: 'AVAX',
+                        destToken: 'EROL',
+                        amount: ethers.parseEther(amount.toString()).toString(),
+                        recipient: userAddress,
+                        quoteId: quote.id
+                    })
+                });
+                
+                if (!bridgeResponse.ok) {
+                    throw new Error('Failed to initiate bridge');
+                }
+                
+                const bridgeData = await bridgeResponse.json();
+                console.log('Bridge data:', bridgeData);
+                
+                // Step 4: Execute the transaction
+                updateBridgeStatus('Confirm transaction in wallet...');
+                
+                const avaxSigner = await (new ethers.BrowserProvider(window.ethereum)).getSigner();
+                
+                const tx = await avaxSigner.sendTransaction({
+                    to: bridgeData.to,
+                    value: bridgeData.value,
+                    data: bridgeData.data,
+                    gasLimit: bridgeData.gasLimit || 300000
+                });
+                
+                updateBridgeStatus('Processing bridge transaction...');
+                console.log('Bridge TX:', tx.hash);
+                
+                const receipt = await tx.wait();
+                console.log('Bridge receipt:', receipt);
+                
+                // Step 5: Monitor bridge status
+                updateBridgeStatus('Waiting for cross-chain confirmation...');
+                
+                // Add to history
+                addBridgeHistory({
+                    amount: amount,
+                    timestamp: Date.now(),
+                    status: 'pending',
+                    txHash: tx.hash,
+                    sourceChain: 'avalanche',
+                    destChain: 'martian'
+                });
+                
+                // Poll for completion (Tesseract typically takes 2-5 minutes)
+                let attempts = 0;
+                const maxAttempts = 60; // 5 minutes with 5 second intervals
+                
+                const checkInterval = setInterval(async () => {
+                    attempts++;
+                    
+                    try {
+                        const statusResponse = await fetch(`https://api.tesseract.finance/v1/bridge/status/${tx.hash}`);
+                        const status = await statusResponse.json();
+                        
+                        if (status.status === 'completed') {
+                            clearInterval(checkInterval);
+                            updateBridgeStatus('Bridge completed successfully! ✓');
+                            
+                            // Update history
+                            updateBridgeHistoryStatus(tx.hash, 'completed');
+                            
+                            setTimeout(() => {
+                                document.getElementById('bridge-status').classList.add('hidden');
+                                document.getElementById('bridge-btn').disabled = false;
+                                showToast('🌉 BRIDGE SUCCESSFUL');
+                                
+                                // Switch back to Martian Chain
+                                checkNetwork();
+                            }, 2000);
+                        } else if (status.status === 'failed') {
+                            clearInterval(checkInterval);
+                            throw new Error('Bridge transaction failed');
+                        } else if (attempts >= maxAttempts) {
+                            clearInterval(checkInterval);
+                            updateBridgeStatus('Bridge taking longer than expected. Check status manually.');
+                            setTimeout(() => {
+                                document.getElementById('bridge-status').classList.add('hidden');
+                                document.getElementById('bridge-btn').disabled = false;
+                            }, 5000);
+                        }
+                    } catch (err) {
+                        console.error('Status check error:', err);
+                    }
+                }, 5000); // Check every 5 seconds
+                
+            } catch (error) {
+                console.error("Bridge error:", error);
+                
+                let errorMsg = "BRIDGE FAILED";
+                if (error.message.includes('user rejected')) {
+                    errorMsg = "TRANSACTION REJECTED";
+                } else if (error.message.includes('insufficient funds')) {
+                    errorMsg = "INSUFFICIENT FUNDS";
+                } else if (error.message.includes('quote')) {
+                    errorMsg = "QUOTE EXPIRED - TRY AGAIN";
+                }
+                
+                showToast(errorMsg);
+                document.getElementById('bridge-status').classList.add('hidden');
+                document.getElementById('bridge-btn').disabled = false;
+            }
+        }
+        
+        function updateBridgeStatus(message) {
+            document.getElementById('bridge-status-text').textContent = message;
+        }
+        
+        function addBridgeHistory(tx) {
+            const history = JSON.parse(localStorage.getItem('bridge_history') || '[]');
+            history.unshift(tx);
+            if (history.length > 10) history.pop();
+            localStorage.setItem('bridge_history', JSON.stringify(history));
+            loadBridgeHistory();
+        }
+        
+        function updateBridgeHistoryStatus(txHash, status) {
+            const history = JSON.parse(localStorage.getItem('bridge_history') || '[]');
+            const tx = history.find(t => t.txHash === txHash);
+            if (tx) {
+                tx.status = status;
+                localStorage.setItem('bridge_history', JSON.stringify(history));
+                loadBridgeHistory();
+            }
+        }
+        
+        function loadBridgeHistory() {
+            const history = JSON.parse(localStorage.getItem('bridge_history') || '[]');
+            const container = document.getElementById('bridge-history');
+            
+            if (history.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-600 py-4 text-sm">No recent bridge transactions</div>';
+                return;
+            }
+            
+            container.innerHTML = history.map(tx => `
+                <div class="bg-black/40 border-l-2 border-${tx.status === 'completed' ? 'green' : tx.status === 'failed' ? 'red' : 'yellow'}-700 p-3 flex justify-between items-center">
+                    <div class="flex-1">
+                        <div class="text-sm text-white">${tx.amount.toFixed(4)} AVAX → $EROL</div>
+                        <div class="text-[10px] text-gray-500">${new Date(tx.timestamp).toLocaleString()}</div>
+                        ${tx.txHash ? `<div class="text-[10px] text-gray-600 mt-1">
+                            <a href="https://snowtrace.io/tx/${tx.txHash}" target="_blank" class="hover:text-orange-500">
+                                ${tx.txHash.slice(0, 10)}...${tx.txHash.slice(-8)}
+                            </a>
+                        </div>` : ''}
+                    </div>
+                    <div class="text-[10px] px-2 py-1 border border-${tx.status === 'completed' ? 'green' : tx.status === 'failed' ? 'red' : 'yellow'}-500 text-${tx.status === 'completed' ? 'green' : tx.status === 'failed' ? 'red' : 'yellow'}-500 uppercase">
+                        ${tx.status}
+                    </div>
+                </div>
+            `).join('');
         }
         
         async function loadProfile() {
@@ -1169,318 +1530,6 @@
         }
         
         window.onload = init;
-// ===== BRIDGE FUNCTIONALITY =====
-
-let avaxBalance = 0;
-
-async function updateBridgeEstimate() {
-    const amount = parseFloat(document.getElementById('bridge-amount').value) || 0;
-    const fee = amount * 0.003; // 0.3% bridge fee estimate
-    const receive = amount - fee;
-    
-    document.getElementById('bridge-fee').textContent = fee.toFixed(4) + ' AVAX';
-    document.getElementById('erol-receive').textContent = receive.toFixed(4) + ' $EROL';
-}
-
-async function setMaxBridge() {
-    if (avaxBalance > 0) {
-        // Leave some for gas
-        const maxAmount = Math.max(0, avaxBalance - 0.01);
-        document.getElementById('bridge-amount').value = maxAmount.toFixed(4);
-        updateBridgeEstimate();
-    }
-}
-
-async function handleBridge() {
-    if (!userAddress) {
-        showToast("CONNECT WALLET FIRST");
-        return;
-    }
-    
-    const amount = parseFloat(document.getElementById('bridge-amount').value);
-    
-    if (!amount || amount < 0.01) {
-        showToast("MINIMUM 0.01 AVAX");
-        return;
-    }
-    
-    // Show status
-    document.getElementById('bridge-status').classList.remove('hidden');
-    document.getElementById('bridge-btn').disabled = true;
-    
-    try {
-        // Step 1: Switch to Avalanche C-Chain
-        document.getElementById('bridge-status-text').textContent = 'Switching to Avalanche C-Chain...';
-        
-        try {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0xa86a' }], // Avalanche C-Chain
-            });
-        } catch (switchError) {
-            if (switchError.code === 4902) {
-                await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                        chainId: '0xa86a',
-                        chainName: 'Avalanche Network',
-                        nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
-                        rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
-                        blockExplorerUrls: ['https://snowtrace.io/']
-                    }]
-                });
-            } else {
-                throw switchError;
-            }
-        }
-        
-        // Step 2: Call Tesseract Bridge API
-        document.getElementById('bridge-status-text').textContent = 'Initiating bridge transfer...';
-        
-        const bridgeRequest = {
-            sourceChain: 'avalanche',
-            destChain: 'martian',
-            sourceToken: 'AVAX',
-            destToken: 'EROL',
-            amount: amount.toString(),
-            recipient: userAddress
-        };
-        
-        // NOTE: This is a placeholder - actual Tesseract API integration would go here
-        // See: https://dev.tesseract.finance/api/docs
-        
-        showToast("BRIDGE FEATURE COMING SOON");
-        document.getElementById('bridge-status-text').textContent = 'Bridge integration in progress...';
-        
-        // For now, simulate the process
-        setTimeout(() => {
-            document.getElementById('bridge-status').classList.add('hidden');
-            document.getElementById('bridge-btn').disabled = false;
-            
-            // Add to history
-            addBridgeHistory({
-                amount: amount,
-                timestamp: Date.now(),
-                status: 'pending',
-                txHash: '0x' + Math.random().toString(16).substr(2, 64)
-            });
-        }, 3000);
-        
-    } catch (error) {
-        console.error("Bridge error:", error);
-        showToast("BRIDGE FAILED");
-        document.getElementById('bridge-status').classList.add('hidden');
-        document.getElementById('bridge-btn').disabled = false;
-    }
-}
-
-function addBridgeHistory(tx) {
-    const history = JSON.parse(localStorage.getItem('bridge_history') || '[]');
-    history.unshift(tx);
-    if (history.length > 10) history.pop();
-    localStorage.setItem('bridge_history', JSON.stringify(history));
-    loadBridgeHistory();
-}
-
-function loadBridgeHistory() {
-    const history = JSON.parse(localStorage.getItem('bridge_history') || '[]');
-    const container = document.getElementById('bridge-history');
-    
-    if (history.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-600 py-4 text-sm">No recent bridge transactions</div>';
-        return;
-    }
-    
-    container.innerHTML = history.map(tx => `
-        <div class="bg-black/40 border-l-2 border-${tx.status === 'completed' ? 'green' : 'yellow'}-700 p-3 flex justify-between items-center">
-            <div>
-                <div class="text-sm text-white">${tx.amount} AVAX → $EROL</div>
-                <div class="text-[10px] text-gray-500">${new Date(tx.timestamp).toLocaleString()}</div>
-            </div>
-            <div class="text-[10px] px-2 py-1 border border-${tx.status === 'completed' ? 'green' : 'yellow'}-500 text-${tx.status === 'completed' ? 'green' : 'yellow'}-500 uppercase">
-                ${tx.status}
-            </div>
-        </div>
-    `).join('');
-}
-
-// ===== COUNTDOWN TIMER FUNCTIONALITY =====
-
-let countdownIntervals = {};
-
-function startCountdown(gameId, deadline) {
-    // Clear existing interval if any
-    if (countdownIntervals[gameId]) {
-        clearInterval(countdownIntervals[gameId]);
-    }
-    
-    const elementId = `countdown-${gameId}`;
-    const element = document.getElementById(elementId);
-    if (!element) return;
-    
-    countdownIntervals[gameId] = setInterval(() => {
-        const now = Math.floor(Date.now() / 1000);
-        const remaining = deadline - now;
-        
-        if (remaining <= 0) {
-            element.textContent = 'TIMEOUT REACHED';
-            element.classList.add('text-red-500');
-            clearInterval(countdownIntervals[gameId]);
-            return;
-        }
-        
-        const minutes = Math.floor(remaining / 60);
-        const seconds = remaining % 60;
-        element.textContent = `${minutes}m ${seconds}s`;
-        
-        if (remaining < 60) {
-            element.classList.add('text-red-500', 'animate-pulse');
-        }
-    }, 1000);
-}
-
-function stopAllCountdowns() {
-    Object.values(countdownIntervals).forEach(interval => clearInterval(interval));
-    countdownIntervals = {};
-}
-
-// ===== FORCE FORFEIT FUNCTIONALITY =====
-
-async function handleForceForfeit(gameId) {
-    if (!signer) return showToast("CONNECT UPLINK FIRST");
-    if (!(await checkNetwork())) return;
-    
-    try {
-        // Check if forfeit is available
-        const canForfeit = await contract.canForfeit(gameId);
-        if (!canForfeit) {
-            showToast("TIMEOUT NOT REACHED YET");
-            return;
-        }
-        
-        showToast("CLAIMING VICTORY...");
-        const tx = await contract.forceForfeit(gameId);
-        showToast("CONFIRMING TRANSACTION...");
-        await tx.wait();
-        
-        // Update Supabase
-        await _supabase.from('games').update({ 
-            status: 4 // Forfeited
-        }).eq('game_id', gameId);
-        
-        refreshLobby();
-        updateBalance();
-        showToast("🏆 VICTORY BY FORFEIT!");
-    } catch (err) {
-        console.error("Forfeit error:", err);
-        showToast("FORFEIT FAILED");
-    }
-}
-
-// ===== UPDATED RESOLVE FUNCTION FOR V2 =====
-
-async function handleResolveV2(id, hash) {
-    if (!signer) return showToast("CONNECT UPLINK FIRST");
-    if (!(await checkNetwork())) return;
-    
-    console.log("=== RESOLVE DEBUG V2 ===");
-    console.log("Game ID:", id);
-    console.log("Commit Hash:", hash);
-    
-    const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
-    console.log("All stored secrets:", Object.keys(secrets));
-    
-    let secret = secrets[hash];
-    
-    if (!secret) {
-        console.error("Secret not found for hash:", hash);
-        const manualReveal = confirm("Secret not found. Manual entry?");
-        
-        if (manualReveal) {
-            const move = prompt("Enter move (1-Solar, 2-Oxygen, 3-Dust):");
-            const salt = prompt("Enter salt (hex with 0x):");
-            const gameId = prompt("Enter game ID:");
-            
-            if (!move || !salt || !gameId) {
-                showToast("CANCELLED");
-                return;
-            }
-            
-            // Verify V2 hash with gameId
-            const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
-                ["uint8", "string", "address", "uint256"],
-                [parseInt(move), salt, userAddress, BigInt(gameId)]
-            );
-            const testHash = ethers.keccak256(encoded);
-            
-            if (testHash.toLowerCase() !== hash.toLowerCase()) {
-                showToast("⚠️ HASH MISMATCH");
-                return;
-            }
-            
-            secret = { move: parseInt(move), salt: salt, gameId: gameId };
-        } else {
-            showToast("⚠️ SECRET NOT FOUND");
-            return;
-        }
-    }
-    
-    // Verify hash locally with V2 format (includes gameId)
-    const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["uint8", "string", "address", "uint256"],
-        [secret.move, secret.salt, userAddress, BigInt(secret.gameId || id)]
-    );
-    const verifyHash = ethers.keccak256(encoded);
-    
-    console.log("Verification hash:", verifyHash);
-    console.log("Expected hash:", hash);
-    console.log("Hashes match:", verifyHash.toLowerCase() === hash.toLowerCase());
-    
-    if (verifyHash.toLowerCase() !== hash.toLowerCase()) {
-        showToast("⚠️ HASH VERIFICATION FAILED");
-        console.error("Hash mismatch - using V2 format with gameId");
-        return;
-    }
-    
-    try {
-        showToast("BROADCASTING REVEAL...");
-        const tx = await contract.resolveGame(id, secret.move, secret.salt);
-        showToast("CONFIRMING TRANSACTION...");
-        await tx.wait();
-        
-        const gameData = await contract.games(id);
-        const hostMove = Number(gameData.hostMove);
-        const challengerMove = Number(gameData.challengerMove);
-        
-        let resultMsg = "COMBAT RESOLVED";
-        if (hostMove === challengerMove) {
-            resultMsg = "⚖️ DRAW";
-        } else if (
-            (hostMove === 1 && challengerMove === 2) ||
-            (hostMove === 2 && challengerMove === 3) ||
-            (hostMove === 3 && challengerMove === 1)
-        ) {
-            resultMsg = "🏆 VICTORY!";
-        } else {
-            resultMsg = "💥 DEFEAT";
-        }
-        
-        await _supabase.from('games').update({ 
-            status: 2,
-            host_move: hostMove,
-            challenger_move: challengerMove
-        }).eq('game_id', id);
-        
-        setTimeout(refreshLobby, 1000);
-        updateBalance();
-        showToast(resultMsg);
-    } catch (err) {
-        console.error("Resolve error:", err);
-        showToast("RESOLVE FAILED");
-    }
-}
-
     </script>
 </body>
 </html>
-
