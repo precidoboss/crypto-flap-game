@@ -712,22 +712,26 @@
                     console.warn("Log parsing failed, using counter:", e); 
                 }
 
-                // INDEX TO SUPABASE
-                console.log("Inserting to Supabase - Game ID:", gameId);
-                const { data: insertData, error: sbError } = await _supabase.from('games').insert([{
-                    game_id: gameId,
-                    host: userAddress.toLowerCase(),
-                    wager: wagerInput,
-                    timeout: parseInt(timeoutValue),
-                    status: 0,
-                    commit_hash: hash
-                }]).select();
+                // INDEX TO SUPABASE (use upsert to handle duplicates)
+                console.log("Upserting to Supabase - Game ID:", gameId);
+                const { data: upsertData, error: sbError } = await _supabase.from('games')
+                    .upsert([{
+                        game_id: gameId,
+                        host: userAddress.toLowerCase(),
+                        wager: wagerInput,
+                        timeout: parseInt(timeoutValue),
+                        status: 0,
+                        commit_hash: hash
+                    }], {
+                        onConflict: 'game_id'
+                    })
+                    .select();
 
                 if (sbError) {
-                    console.error("Supabase insert error:", sbError);
+                    console.error("Supabase upsert error:", sbError);
                     showToast("⚠️ GAME CREATED BUT INDEX FAILED");
                 } else {
-                    console.log("Supabase insert successful:", insertData);
+                    console.log("Supabase upsert successful:", upsertData);
                     showToast("✓ SIGNAL DEPLOYED");
                 }
 
