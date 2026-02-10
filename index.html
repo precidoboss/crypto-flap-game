@@ -131,6 +131,7 @@
             <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30">
                 <button onclick="switchTab('lobby')" id="tab-lobby" class="tab-btn active px-4 py-2 text-[10px] uppercase transition">Lobby</button>
                 <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Profile</button>
+                <button onclick="switchTab('bridge')" id="tab-bridge" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Bridge</button>
                 <button onclick="switchTab('howto')" id="tab-howto" class="tab-btn px-4 py-2 text-[10px] uppercase transition">How to Play</button>
             </div>
 
@@ -177,6 +178,14 @@
                             <div>
                                 <label class="text-[10px] text-orange-800 uppercase mb-2 block">Energy Stake ($EROL)</label>
                                 <input id="wager-amount" type="number" step="0.1" value="1.0" class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-orange-800 uppercase mb-2 block">Interception Timeout</label>
+                                <select id="timeout-select" class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron text-sm">
+                                    <option value="300">5 Minutes</option>
+                                    <option value="600">10 Minutes</option>
+                                    <option value="900" selected>15 Minutes</option>
+                                </select>
                             </div>
                             <button id="create-btn" onclick="handleCreateGame()" class="btn-mars w-full py-4 text-lg">Deploy Signal</button>
                             <button onclick="debugInfo()" class="w-full py-2 text-[9px] border border-orange-900/30 text-orange-700 hover:text-orange-500 uppercase">Debug Info</button>
@@ -249,7 +258,7 @@
                                 <div class="orbitron text-orange-500 text-xl">1.</div>
                                 <div>
                                     <div class="font-bold text-white mb-1">Deploy Signal (Host)</div>
-                                    <p class="text-sm text-gray-400">Select your move and wager amount. Your move is encrypted and stored locally. Click "Deploy Signal" to create the game.</p>
+                                    <p class="text-sm text-gray-400">Select your move, wager amount, and timeout. Your move is encrypted and stored locally. Click "Deploy Signal" to create the game.</p>
                                 </div>
                             </div>
                             <div class="flex gap-4">
@@ -270,7 +279,7 @@
                                 <div class="orbitron text-orange-500 text-xl">4.</div>
                                 <div>
                                     <div class="font-bold text-white mb-1">Victory or Defeat</div>
-                                    <p class="text-sm text-gray-400">Winner takes 97% of the pot. 1.5% goes to treasury, 1.5% is burned. In case of a draw, both players get their wager back minus 1.5% fee each.</p>
+                                    <p class="text-sm text-gray-400">Winner takes 97% of the pot. 1.5% goes to treasury, 1.5% is burned. In case of a draw, both players get their wager back minus fees.</p>
                                 </div>
                             </div>
                         </div>
@@ -280,8 +289,8 @@
                         <h3 class="orbitron text-orange-500 text-lg mb-3">⚠️ IMPORTANT NOTES</h3>
                         <ul class="space-y-2 text-sm text-gray-400">
                             <li class="flex gap-2"><span class="text-orange-500">→</span> You must use the same browser/device to reveal your move (secret is stored locally)</li>
-                            <li class="flex gap-2"><span class="text-orange-500">→</span> If host doesn't reveal within 15 minutes, challenger can claim victory</li>
-                            <li class="flex gap-2"><span class="text-orange-500">→</span> If no one intercepts within 15 minutes, host can retract their wager</li>
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> If host doesn't reveal within the timeout, challenger can force forfeit to claim victory</li>
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> If no one intercepts within the timeout, host can retract their wager</li>
                             <li class="flex gap-2"><span class="text-orange-500">→</span> All games are on-chain and provably fair via cryptographic commitments</li>
                         </ul>
                     </section>
@@ -292,9 +301,132 @@
                             <div class="flex justify-between"><span>Winner Payout:</span><span class="text-orange-500">97% of pot</span></div>
                             <div class="flex justify-between"><span>Treasury Fee:</span><span class="text-orange-500">1.5%</span></div>
                             <div class="flex justify-between"><span>Burn Amount:</span><span class="text-orange-500">1.5%</span></div>
-                            <div class="flex justify-between"><span>Draw (each player):</span><span class="text-orange-500">Wager - 1.5%</span></div>
+                            <div class="flex justify-between"><span>Draw (each player):</span><span class="text-orange-500">Wager - 3%</span></div>
                         </div>
                     </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- BRIDGE PAGE -->
+        <div id="page-bridge" class="page-section">
+            <div class="mars-glass p-8 max-w-3xl mx-auto">
+                <h2 class="orbitron text-2xl text-orange-500 mb-2 flex items-center gap-3">
+                    <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
+                    CROSS-CHAIN BRIDGE
+                </h2>
+                <p class="text-gray-500 text-sm mb-8">Transfer assets from Avalanche C-Chain to Martian Chain</p>
+                
+                <div id="bridge-content" class="space-y-6">
+                    <!-- Bridge Interface -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <!-- From Chain -->
+                        <div class="bg-black/40 border border-orange-900/30 p-6">
+                            <div class="text-[10px] text-orange-800 uppercase mb-3">From</div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold">
+                                    A
+                                </div>
+                                <div>
+                                    <div class="orbitron text-white">Avalanche C-Chain</div>
+                                    <div class="text-[10px] text-gray-500">Chain ID: 43114</div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-500 uppercase mb-2 block">Available Balance</label>
+                                <div id="avax-balance" class="orbitron text-orange-500 text-lg">-- AVAX</div>
+                            </div>
+                        </div>
+                        
+                        <!-- To Chain -->
+                        <div class="bg-black/40 border border-orange-900/30 p-6">
+                            <div class="text-[10px] text-orange-800 uppercase mb-3">To</div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center text-white font-bold">
+                                    M
+                                </div>
+                                <div>
+                                    <div class="orbitron text-white">Martian Chain</div>
+                                    <div class="text-[10px] text-gray-500">Chain ID: 2027</div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-500 uppercase mb-2 block">You'll Receive</label>
+                                <div id="erol-receive" class="orbitron text-orange-500 text-lg">-- $EROL</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Amount Input -->
+                    <div>
+                        <label class="text-[10px] text-orange-800 uppercase mb-2 block">Amount to Bridge</label>
+                        <div class="relative">
+                            <input 
+                                id="bridge-amount" 
+                                type="number" 
+                                step="0.01" 
+                                placeholder="0.0"
+                                class="w-full bg-black border border-orange-900/50 p-4 pr-20 text-orange-500 focus:outline-none focus:border-orange-500 orbitron text-xl"
+                                oninput="updateBridgeEstimate()"
+                            >
+                            <button 
+                                onclick="setMaxBridge()" 
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] px-3 py-1 border border-orange-500/50 text-orange-500 hover:bg-orange-500/10 uppercase transition"
+                            >
+                                Max
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bridge Info -->
+                    <div class="bg-orange-900/10 border border-orange-500/30 p-4 space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Bridge Fee:</span>
+                            <span class="text-orange-500" id="bridge-fee">-- AVAX</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Estimated Time:</span>
+                            <span class="text-orange-500">~2-5 minutes</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Min Amount:</span>
+                            <span class="text-orange-500">0.01 AVAX</span>
+                        </div>
+                    </div>
+
+                    <!-- Bridge Button -->
+                    <button 
+                        id="bridge-btn" 
+                        onclick="handleBridge()" 
+                        class="btn-mars w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Initialize Bridge Transfer
+                    </button>
+
+                    <!-- Bridge Status -->
+                    <div id="bridge-status" class="hidden bg-black/40 border border-orange-500/30 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div>
+                                <div class="text-orange-500 font-bold">Processing Bridge Transaction</div>
+                                <div class="text-[11px] text-gray-500" id="bridge-status-text">Initiating transfer...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Bridges -->
+                    <div class="mt-8">
+                        <h3 class="orbitron text-orange-500 mb-4">RECENT BRIDGE TRANSACTIONS</h3>
+                        <div id="bridge-history" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Powered by Tesseract -->
+                    <div class="text-center pt-6 border-t border-orange-900/20">
+                        <div class="text-[10px] text-gray-600 uppercase mb-2">Powered by</div>
+                        <a href="https://tesseract.finance" target="_blank" class="text-orange-500 hover:text-orange-400 transition orbitron">
+                            Tesseract Finance Bridge
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -307,7 +439,7 @@
     <script>
         const CHAIN_ID = "0x7EB"; 
         const RPC_URL = "https://martian-rpc1.amichain.org/";
-        const CONTRACT_ADDR = "0x0b912a321801B2f6062b4BdC3d9763e643584074";
+        const CONTRACT_ADDR = "0xYOUR_NEW_CONTRACT_ADDRESS_HERE"; // UPDATE THIS AFTER DEPLOYMENT
         
         // Supabase Configuration
         const SB_URL = "https://tvckbtgggsuwxtlgilcl.supabase.co"; 
@@ -315,13 +447,19 @@
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
         const ABI = [
-            "function createGame(bytes32 _hash) external payable",
+            "function createGame(bytes32 _hash, uint256 _timeout) external payable",
             "function challengeGame(uint256 _gameId, uint8 _move) external payable",
             "function resolveGame(uint256 _gameId, uint8 _move, string calldata _salt) external",
+            "function forceForfeit(uint256 _gameId) external",
             "function refundUnchallenged(uint256 _gameId) external",
             "function gameCounter() public view returns (uint256)",
-            "function games(uint256) public view returns (address host, address challenger, bytes32 commitHash, uint8 hostMove, uint8 challengerMove, uint256 wager, uint256 timestamp, uint8 status)",
-            "event GameCreated(uint256 indexed gameId, address indexed host, uint256 wager, bytes32 commitHash)"
+            "function games(uint256) public view returns (address host, address challenger, bytes32 commitHash, uint8 hostMove, uint8 challengerMove, uint256 wager, uint256 timeout, uint256 timestamp, uint8 status)",
+            "function getTimeRemaining(uint256 _gameId) external view returns (uint256)",
+            "function canForfeit(uint256 _gameId) external view returns (bool)",
+            "function canRefund(uint256 _gameId) external view returns (bool)",
+            "event GameCreated(uint256 indexed gameId, address indexed host, uint256 wager, uint256 timeout, bytes32 commitHash)",
+            "event GameChallenged(uint256 indexed gameId, address indexed challenger)",
+            "event GameResolved(uint256 indexed gameId, address winner, uint256 payout)"
         ];
 
         let provider, signer, contract, userAddress;
@@ -399,45 +537,52 @@
             
             const wagerInput = document.getElementById('wager-amount').value;
             const wagerValue = ethers.parseEther(wagerInput);
-            const salt = ethers.hexlify(ethers.randomBytes(32)); // Use 32 bytes for better entropy
+            const timeoutValue = document.getElementById('timeout-select').value;
+            const salt = ethers.hexlify(ethers.randomBytes(32));
             
-            // CRITICAL: Must match Solidity's keccak256(abi.encodePacked(move, salt, host))
-            // We need to encode exactly as Solidity does
-            const abiCoder = ethers.AbiCoder.defaultAbiCoder();
-            
-            // Solidity abi.encodePacked with uint8, string, address
-            const encoded = ethers.solidityPacked(
-                ["uint8", "string", "address"],
-                [selectedMoveIdx, salt, userAddress]
-            );
-            const hash = ethers.keccak256(encoded);
-            
-            console.log("=== GAME CREATION DEBUG ===");
-            console.log("Move:", selectedMoveIdx);
-            console.log("Salt:", salt);
-            console.log("Address:", userAddress);
-            console.log("Generated Hash:", hash);
-
             try {
+                // First, get the next gameId
+                const nextGameId = (await contract.gameCounter()) + BigInt(1);
+                
+                // CRITICAL V2: Hash now includes gameId for replay protection
+                // keccak256(abi.encode(move, salt, host, gameId))
+                const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+                    ["uint8", "string", "address", "uint256"],
+                    [selectedMoveIdx, salt, userAddress, nextGameId]
+                );
+                const hash = ethers.keccak256(encoded);
+                
+                console.log("=== GAME CREATION DEBUG V2 ===");
+                console.log("Move:", selectedMoveIdx);
+                console.log("Salt:", salt);
+                console.log("Address:", userAddress);
+                console.log("Game ID:", nextGameId.toString());
+                console.log("Timeout:", timeoutValue, "seconds");
+                console.log("Generated Hash:", hash);
+
                 showToast("ENCRYPTING SIGNAL...");
-                const tx = await contract.createGame(hash, { value: wagerValue });
+                const tx = await contract.createGame(hash, timeoutValue, { value: wagerValue });
                 
                 showToast("WAITING FOR CONFIRMATION...");
                 const receipt = await tx.wait();
                 
-                // Save secret locally
+                // Save secret locally with gameId
                 const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
-                secrets[hash] = { move: selectedMoveIdx, salt: salt };
+                secrets[hash] = { 
+                    move: selectedMoveIdx, 
+                    salt: salt,
+                    gameId: nextGameId.toString(),
+                    address: userAddress.toLowerCase()
+                };
                 localStorage.setItem('martian_gambits', JSON.stringify(secrets));
                 
-                console.log("Secret saved:", { hash, move: selectedMoveIdx, salt });
+                console.log("Secret saved:", secrets[hash]);
 
                 let gameId;
-                // Method 1: Try parsing logs with proper error handling
+                // Try parsing logs
                 try {
                     for (const log of receipt.logs) {
                         try {
-                            // Check if log is from our contract
                             if (log.address.toLowerCase() !== CONTRACT_ADDR.toLowerCase()) continue;
                             
                             const parsed = contract.interface.parseLog({
@@ -450,16 +595,13 @@
                                 console.log("Game ID from event:", gameId);
                                 break;
                             }
-                        } catch(e) { 
-                            // Skip logs that aren't GameCreated events
-                            continue; 
-                        }
+                        } catch(e) { continue; }
                     }
                 } catch (e) { 
                     console.warn("Log parsing failed:", e); 
                 }
 
-                // Method 2: Fallback to gameCounter
+                // Fallback to counter
                 if (gameId === undefined) {
                     try {
                         const counter = await contract.gameCounter();
@@ -476,6 +618,7 @@
                     game_id: gameId,
                     host: userAddress.toLowerCase(),
                     wager: wagerInput,
+                    timeout: parseInt(timeoutValue),
                     status: 0,
                     commit_hash: hash
                 }]);
@@ -1026,6 +1169,317 @@
         }
         
         window.onload = init;
+// ===== BRIDGE FUNCTIONALITY =====
+
+let avaxBalance = 0;
+
+async function updateBridgeEstimate() {
+    const amount = parseFloat(document.getElementById('bridge-amount').value) || 0;
+    const fee = amount * 0.003; // 0.3% bridge fee estimate
+    const receive = amount - fee;
+    
+    document.getElementById('bridge-fee').textContent = fee.toFixed(4) + ' AVAX';
+    document.getElementById('erol-receive').textContent = receive.toFixed(4) + ' $EROL';
+}
+
+async function setMaxBridge() {
+    if (avaxBalance > 0) {
+        // Leave some for gas
+        const maxAmount = Math.max(0, avaxBalance - 0.01);
+        document.getElementById('bridge-amount').value = maxAmount.toFixed(4);
+        updateBridgeEstimate();
+    }
+}
+
+async function handleBridge() {
+    if (!userAddress) {
+        showToast("CONNECT WALLET FIRST");
+        return;
+    }
+    
+    const amount = parseFloat(document.getElementById('bridge-amount').value);
+    
+    if (!amount || amount < 0.01) {
+        showToast("MINIMUM 0.01 AVAX");
+        return;
+    }
+    
+    // Show status
+    document.getElementById('bridge-status').classList.remove('hidden');
+    document.getElementById('bridge-btn').disabled = true;
+    
+    try {
+        // Step 1: Switch to Avalanche C-Chain
+        document.getElementById('bridge-status-text').textContent = 'Switching to Avalanche C-Chain...';
+        
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0xa86a' }], // Avalanche C-Chain
+            });
+        } catch (switchError) {
+            if (switchError.code === 4902) {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: '0xa86a',
+                        chainName: 'Avalanche Network',
+                        nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+                        rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
+                        blockExplorerUrls: ['https://snowtrace.io/']
+                    }]
+                });
+            } else {
+                throw switchError;
+            }
+        }
+        
+        // Step 2: Call Tesseract Bridge API
+        document.getElementById('bridge-status-text').textContent = 'Initiating bridge transfer...';
+        
+        const bridgeRequest = {
+            sourceChain: 'avalanche',
+            destChain: 'martian',
+            sourceToken: 'AVAX',
+            destToken: 'EROL',
+            amount: amount.toString(),
+            recipient: userAddress
+        };
+        
+        // NOTE: This is a placeholder - actual Tesseract API integration would go here
+        // See: https://dev.tesseract.finance/api/docs
+        
+        showToast("BRIDGE FEATURE COMING SOON");
+        document.getElementById('bridge-status-text').textContent = 'Bridge integration in progress...';
+        
+        // For now, simulate the process
+        setTimeout(() => {
+            document.getElementById('bridge-status').classList.add('hidden');
+            document.getElementById('bridge-btn').disabled = false;
+            
+            // Add to history
+            addBridgeHistory({
+                amount: amount,
+                timestamp: Date.now(),
+                status: 'pending',
+                txHash: '0x' + Math.random().toString(16).substr(2, 64)
+            });
+        }, 3000);
+        
+    } catch (error) {
+        console.error("Bridge error:", error);
+        showToast("BRIDGE FAILED");
+        document.getElementById('bridge-status').classList.add('hidden');
+        document.getElementById('bridge-btn').disabled = false;
+    }
+}
+
+function addBridgeHistory(tx) {
+    const history = JSON.parse(localStorage.getItem('bridge_history') || '[]');
+    history.unshift(tx);
+    if (history.length > 10) history.pop();
+    localStorage.setItem('bridge_history', JSON.stringify(history));
+    loadBridgeHistory();
+}
+
+function loadBridgeHistory() {
+    const history = JSON.parse(localStorage.getItem('bridge_history') || '[]');
+    const container = document.getElementById('bridge-history');
+    
+    if (history.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-600 py-4 text-sm">No recent bridge transactions</div>';
+        return;
+    }
+    
+    container.innerHTML = history.map(tx => `
+        <div class="bg-black/40 border-l-2 border-${tx.status === 'completed' ? 'green' : 'yellow'}-700 p-3 flex justify-between items-center">
+            <div>
+                <div class="text-sm text-white">${tx.amount} AVAX → $EROL</div>
+                <div class="text-[10px] text-gray-500">${new Date(tx.timestamp).toLocaleString()}</div>
+            </div>
+            <div class="text-[10px] px-2 py-1 border border-${tx.status === 'completed' ? 'green' : 'yellow'}-500 text-${tx.status === 'completed' ? 'green' : 'yellow'}-500 uppercase">
+                ${tx.status}
+            </div>
+        </div>
+    `).join('');
+}
+
+// ===== COUNTDOWN TIMER FUNCTIONALITY =====
+
+let countdownIntervals = {};
+
+function startCountdown(gameId, deadline) {
+    // Clear existing interval if any
+    if (countdownIntervals[gameId]) {
+        clearInterval(countdownIntervals[gameId]);
+    }
+    
+    const elementId = `countdown-${gameId}`;
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    countdownIntervals[gameId] = setInterval(() => {
+        const now = Math.floor(Date.now() / 1000);
+        const remaining = deadline - now;
+        
+        if (remaining <= 0) {
+            element.textContent = 'TIMEOUT REACHED';
+            element.classList.add('text-red-500');
+            clearInterval(countdownIntervals[gameId]);
+            return;
+        }
+        
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+        element.textContent = `${minutes}m ${seconds}s`;
+        
+        if (remaining < 60) {
+            element.classList.add('text-red-500', 'animate-pulse');
+        }
+    }, 1000);
+}
+
+function stopAllCountdowns() {
+    Object.values(countdownIntervals).forEach(interval => clearInterval(interval));
+    countdownIntervals = {};
+}
+
+// ===== FORCE FORFEIT FUNCTIONALITY =====
+
+async function handleForceForfeit(gameId) {
+    if (!signer) return showToast("CONNECT UPLINK FIRST");
+    if (!(await checkNetwork())) return;
+    
+    try {
+        // Check if forfeit is available
+        const canForfeit = await contract.canForfeit(gameId);
+        if (!canForfeit) {
+            showToast("TIMEOUT NOT REACHED YET");
+            return;
+        }
+        
+        showToast("CLAIMING VICTORY...");
+        const tx = await contract.forceForfeit(gameId);
+        showToast("CONFIRMING TRANSACTION...");
+        await tx.wait();
+        
+        // Update Supabase
+        await _supabase.from('games').update({ 
+            status: 4 // Forfeited
+        }).eq('game_id', gameId);
+        
+        refreshLobby();
+        updateBalance();
+        showToast("🏆 VICTORY BY FORFEIT!");
+    } catch (err) {
+        console.error("Forfeit error:", err);
+        showToast("FORFEIT FAILED");
+    }
+}
+
+// ===== UPDATED RESOLVE FUNCTION FOR V2 =====
+
+async function handleResolveV2(id, hash) {
+    if (!signer) return showToast("CONNECT UPLINK FIRST");
+    if (!(await checkNetwork())) return;
+    
+    console.log("=== RESOLVE DEBUG V2 ===");
+    console.log("Game ID:", id);
+    console.log("Commit Hash:", hash);
+    
+    const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
+    console.log("All stored secrets:", Object.keys(secrets));
+    
+    let secret = secrets[hash];
+    
+    if (!secret) {
+        console.error("Secret not found for hash:", hash);
+        const manualReveal = confirm("Secret not found. Manual entry?");
+        
+        if (manualReveal) {
+            const move = prompt("Enter move (1-Solar, 2-Oxygen, 3-Dust):");
+            const salt = prompt("Enter salt (hex with 0x):");
+            const gameId = prompt("Enter game ID:");
+            
+            if (!move || !salt || !gameId) {
+                showToast("CANCELLED");
+                return;
+            }
+            
+            // Verify V2 hash with gameId
+            const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+                ["uint8", "string", "address", "uint256"],
+                [parseInt(move), salt, userAddress, BigInt(gameId)]
+            );
+            const testHash = ethers.keccak256(encoded);
+            
+            if (testHash.toLowerCase() !== hash.toLowerCase()) {
+                showToast("⚠️ HASH MISMATCH");
+                return;
+            }
+            
+            secret = { move: parseInt(move), salt: salt, gameId: gameId };
+        } else {
+            showToast("⚠️ SECRET NOT FOUND");
+            return;
+        }
+    }
+    
+    // Verify hash locally with V2 format (includes gameId)
+    const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["uint8", "string", "address", "uint256"],
+        [secret.move, secret.salt, userAddress, BigInt(secret.gameId || id)]
+    );
+    const verifyHash = ethers.keccak256(encoded);
+    
+    console.log("Verification hash:", verifyHash);
+    console.log("Expected hash:", hash);
+    console.log("Hashes match:", verifyHash.toLowerCase() === hash.toLowerCase());
+    
+    if (verifyHash.toLowerCase() !== hash.toLowerCase()) {
+        showToast("⚠️ HASH VERIFICATION FAILED");
+        console.error("Hash mismatch - using V2 format with gameId");
+        return;
+    }
+    
+    try {
+        showToast("BROADCASTING REVEAL...");
+        const tx = await contract.resolveGame(id, secret.move, secret.salt);
+        showToast("CONFIRMING TRANSACTION...");
+        await tx.wait();
+        
+        const gameData = await contract.games(id);
+        const hostMove = Number(gameData.hostMove);
+        const challengerMove = Number(gameData.challengerMove);
+        
+        let resultMsg = "COMBAT RESOLVED";
+        if (hostMove === challengerMove) {
+            resultMsg = "⚖️ DRAW";
+        } else if (
+            (hostMove === 1 && challengerMove === 2) ||
+            (hostMove === 2 && challengerMove === 3) ||
+            (hostMove === 3 && challengerMove === 1)
+        ) {
+            resultMsg = "🏆 VICTORY!";
+        } else {
+            resultMsg = "💥 DEFEAT";
+        }
+        
+        await _supabase.from('games').update({ 
+            status: 2,
+            host_move: hostMove,
+            challenger_move: challengerMove
+        }).eq('game_id', id);
+        
+        setTimeout(refreshLobby, 1000);
+        updateBalance();
+        showToast(resultMsg);
+    } catch (err) {
+        console.error("Resolve error:", err);
+        showToast("RESOLVE FAILED");
+    }
+}
+
     </script>
 </body>
 </html>
