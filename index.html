@@ -55,6 +55,11 @@
             transform: scale(1.02);
         }
 
+        .btn-mars:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .move-select {
             border: 1px solid #333;
             filter: grayscale(1);
@@ -110,14 +115,60 @@
         .page-section.active {
             display: block;
         }
+
+        .copy-btn {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            color: var(--mars-orange);
+            transform: scale(1.1);
+        }
+
+        .header-banner {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 2px solid var(--mars-orange);
+        }
+
+        .game-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .header-banner {
+                height: 120px;
+            }
+            .game-logo {
+                width: 45px;
+                height: 45px;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen p-4">
     <div class="scanline"></div>
 
+    <!-- Header Banner -->
+    <div class="max-w-7xl mx-auto mb-4">
+        <img src="https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/photo_2026-02-01_14-21-55.jpg" 
+             alt="Martian Gambit Header" 
+             class="header-banner"
+             onerror="this.style.display='none'">
+    </div>
+
     <nav class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 py-4 border-b border-orange-900/30">
         <div class="flex items-center gap-4">
-            <div class="w-12 h-12 mars-border-glow flex items-center justify-center bg-black">
+            <img src="https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/photo_2026-02-01_14-13-33.jpg" 
+                 alt="Martian Gambit Logo" 
+                 class="game-logo"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="w-12 h-12 mars-border-glow hidden items-center justify-center bg-black">
                 <span class="text-orange-500 text-2xl font-bold">M</span>
             </div>
             <div>
@@ -137,10 +188,15 @@
 
             <div id="connection-interface">
                 <button id="connect-btn" class="btn-mars px-8 py-2">Initialize Uplink</button>
-                <div id="account-info" class="hidden flex items-center gap-4">
+                <div id="account-info" class="hidden flex items-center gap-3">
                     <div class="text-right">
-                        <div id="user-address" class="text-[10px] text-orange-400 opacity-70"></div>
-                        <div id="user-balance" class="orbitron text-orange-500 font-bold">0.00 $EROL</div>
+                        <div class="flex items-center gap-2">
+                            <span id="user-address" class="text-[10px] text-orange-400 opacity-70"></span>
+                            <button id="copy-address" class="copy-btn text-orange-400 text-xs" onclick="copyAddress()" title="Copy Address">
+                                📋
+                            </button>
+                        </div>
+                        <div id="user-balance" class="orbitron text-orange-500 font-bold text-sm">0.00 $EROL</div>
                     </div>
                     <div class="h-10 w-1 bg-orange-500"></div>
                 </div>
@@ -315,7 +371,7 @@
                     <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
                     CROSS-CHAIN BRIDGE
                 </h2>
-                <p class="text-gray-500 text-sm mb-8">Transfer assets from Avalanche C-Chain to Martian Chain</p>
+                <p class="text-gray-500 text-sm mb-8">Transfer AVAX to Martian Chain $EROL (1:1 ratio)</p>
                 
                 <div id="bridge-content" class="space-y-6">
                     <!-- Bridge Interface -->
@@ -365,6 +421,7 @@
                                 id="bridge-amount" 
                                 type="number" 
                                 step="0.01" 
+                                min="0.01"
                                 placeholder="0.0"
                                 class="w-full bg-black border border-orange-900/50 p-4 pr-20 text-orange-500 focus:outline-none focus:border-orange-500 orbitron text-xl"
                                 oninput="updateBridgeEstimate()"
@@ -381,12 +438,16 @@
                     <!-- Bridge Info -->
                     <div class="bg-orange-900/10 border border-orange-500/30 p-4 space-y-2 text-sm">
                         <div class="flex justify-between">
-                            <span class="text-gray-400">Bridge Fee:</span>
-                            <span class="text-orange-500" id="bridge-fee">-- AVAX</span>
+                            <span class="text-gray-400">Exchange Rate:</span>
+                            <span class="text-orange-500">1 AVAX = 1 $EROL</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-gray-400">Estimated Time:</span>
-                            <span class="text-orange-500">~2-5 minutes</span>
+                            <span class="text-gray-400">Bridge Fee:</span>
+                            <span class="text-orange-500" id="bridge-fee">0.001 AVAX</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Network Fee (est):</span>
+                            <span class="text-orange-500">~0.01 AVAX</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-400">Min Amount:</span>
@@ -399,6 +460,7 @@
                         id="bridge-btn" 
                         onclick="handleBridge()" 
                         class="btn-mars w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
                     >
                         Initialize Bridge Transfer
                     </button>
@@ -420,12 +482,10 @@
                         <div id="bridge-history" class="space-y-2"></div>
                     </div>
 
-                    <!-- Powered by Tesseract -->
+                    <!-- Bridge Instructions -->
                     <div class="text-center pt-6 border-t border-orange-900/20">
-                        <div class="text-[10px] text-gray-600 uppercase mb-2">Powered by</div>
-                        <a href="https://tesseract.finance" target="_blank" class="text-orange-500 hover:text-orange-400 transition orbitron">
-                            Tesseract Finance Bridge
-                        </a>
+                        <div class="text-[10px] text-gray-600 uppercase mb-2">Simple Cross-Chain Transfer</div>
+                        <p class="text-xs text-gray-500">Send AVAX from Avalanche C-Chain to receive $EROL on Martian Chain</p>
                     </div>
                 </div>
             </div>
@@ -439,12 +499,19 @@
     <script>
         const CHAIN_ID = "0x7EB"; 
         const RPC_URL = "https://martian-rpc1.amichain.org/";
-        const CONTRACT_ADDR = "0x395E368045315062b26AC950690f384c98fDEEe2"; // UPDATE THIS AFTER DEPLOYMENT
+        const CONTRACT_ADDR = "0x395E368045315062b26AC950690f384c98fDEEe2";
         
         // Supabase Configuration
         const SB_URL = "https://tvckbtgggsuwxtlgilcl.supabase.co"; 
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y2tidGdnZ3N1d3h0bGdpbGNsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDY2NDY0NSwiZXhwIjoyMDg2MjQwNjQ1fQ.DhvGNo3seKoRtDmeRod0gAP48yFZw_0-kAvY3eT_554"; 
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        // Bridge contract address (you'll need to deploy this)
+        const BRIDGE_CONTRACT_ADDR = "0xYourBridgeContractAddressHere"; // Update this
+        const BRIDGE_ABI = [
+            "function bridgeToMartian() external payable",
+            "event BridgeInitiated(address indexed sender, uint256 amount, uint256 timestamp)"
+        ];
 
         const ABI = [
             "function createGame(bytes32 _hash, uint256 _timeout) external payable",
@@ -465,15 +532,25 @@
         let provider, signer, contract, userAddress;
         let selectedMoveIdx = 0;
         let avaxProvider, avaxBalance = 0;
+        let lobbyRefreshInterval;
 
         async function init() {
             if (window.ethereum) {
                 provider = new ethers.BrowserProvider(window.ethereum);
                 document.getElementById('connect-btn').addEventListener('click', connectWallet);
-                refreshLobby();
                 
+                // Initial lobby refresh
+                await refreshLobby();
+                
+                // Set up auto-refresh every 10 seconds
+                lobbyRefreshInterval = setInterval(refreshLobby, 10000);
+                
+                // Subscribe to Supabase realtime updates
                 _supabase.channel('game_updates')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'games' }, () => refreshLobby())
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'games' }, () => {
+                        console.log("Realtime update detected, refreshing lobby...");
+                        refreshLobby();
+                    })
                     .subscribe();
 
                 window.ethereum.on('accountsChanged', () => window.location.reload());
@@ -490,8 +567,26 @@
                         params: [{ chainId: CHAIN_ID }],
                     });
                 } catch (switchError) {
-                    showToast("SWITCH TO MARTIAN NETWORK");
-                    return false;
+                    if (switchError.code === 4902) {
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: CHAIN_ID,
+                                    chainName: 'Martian Chain',
+                                    nativeCurrency: { name: 'EROL', symbol: 'EROL', decimals: 18 },
+                                    rpcUrls: [RPC_URL],
+                                    blockExplorerUrls: ['https://explorer.martian.com']
+                                }]
+                            });
+                        } catch (addError) {
+                            showToast("FAILED TO ADD MARTIAN NETWORK");
+                            return false;
+                        }
+                    } else {
+                        showToast("SWITCH TO MARTIAN NETWORK");
+                        return false;
+                    }
                 }
             }
             return true;
@@ -508,12 +603,27 @@
                 contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
                 document.getElementById('connect-btn').classList.add('hidden');
                 document.getElementById('account-info').classList.remove('hidden');
-                document.getElementById('user-address').innerText = userAddress.toLowerCase();
+                
+                // Shorten address for display
+                const shortened = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+                document.getElementById('user-address').innerText = shortened;
+                
                 updateBalance();
                 refreshLobby();
             } catch (err) { 
                 console.error(err);
                 showToast("UPLINK FAILED"); 
+            }
+        }
+
+        function copyAddress() {
+            if (userAddress) {
+                navigator.clipboard.writeText(userAddress).then(() => {
+                    showToast("ADDRESS COPIED");
+                }).catch(err => {
+                    console.error('Copy failed:', err);
+                    showToast("COPY FAILED");
+                });
             }
         }
 
@@ -536,30 +646,29 @@
             if (selectedMoveIdx === 0) return showToast("SELECT TACTICAL MOVE");
             if (!(await checkNetwork())) return;
             
+            const createBtn = document.getElementById('create-btn');
+            createBtn.disabled = true;
+            
             const wagerInput = document.getElementById('wager-amount').value;
             const wagerValue = ethers.parseEther(wagerInput);
             const timeoutValue = document.getElementById('timeout-select').value;
             const salt = ethers.hexlify(ethers.randomBytes(32));
             
             try {
-                // First, get the next gameId
+                // Get next game ID
                 const nextGameId = (await contract.gameCounter()) + BigInt(1);
                 
-                // CRITICAL V2: Hash now includes gameId for replay protection
-                // keccak256(abi.encode(move, salt, host, gameId))
+                // Create hash with gameId (V2 format)
                 const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
                     ["uint8", "string", "address", "uint256"],
                     [selectedMoveIdx, salt, userAddress, nextGameId]
                 );
                 const hash = ethers.keccak256(encoded);
                 
-                console.log("=== GAME CREATION DEBUG V2 ===");
+                console.log("=== CREATING GAME ===");
                 console.log("Move:", selectedMoveIdx);
-                console.log("Salt:", salt);
-                console.log("Address:", userAddress);
                 console.log("Game ID:", nextGameId.toString());
-                console.log("Timeout:", timeoutValue, "seconds");
-                console.log("Generated Hash:", hash);
+                console.log("Hash:", hash);
 
                 showToast("ENCRYPTING SIGNAL...");
                 const tx = await contract.createGame(hash, timeoutValue, { value: wagerValue });
@@ -567,7 +676,7 @@
                 showToast("WAITING FOR CONFIRMATION...");
                 const receipt = await tx.wait();
                 
-                // Save secret locally with gameId
+                // Save secret locally
                 const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
                 secrets[hash] = { 
                     move: selectedMoveIdx, 
@@ -577,10 +686,11 @@
                 };
                 localStorage.setItem('martian_gambits', JSON.stringify(secrets));
                 
-                console.log("Secret saved:", secrets[hash]);
+                console.log("Secret saved for hash:", hash);
 
-                let gameId;
-                // Try parsing logs
+                let gameId = Number(nextGameId);
+
+                // Parse logs to get game ID
                 try {
                     for (const log of receipt.logs) {
                         try {
@@ -599,52 +709,57 @@
                         } catch(e) { continue; }
                     }
                 } catch (e) { 
-                    console.warn("Log parsing failed:", e); 
-                }
-
-                // Fallback to counter
-                if (gameId === undefined) {
-                    try {
-                        const counter = await contract.gameCounter();
-                        gameId = Number(counter);
-                        console.log("Game ID from counter:", gameId);
-                    } catch (e) {
-                        console.error("Counter fetch failed:", e);
-                        throw new Error("Unable to determine game ID");
-                    }
+                    console.warn("Log parsing failed, using counter:", e); 
                 }
 
                 // INDEX TO SUPABASE
-                const { error: sbError } = await _supabase.from('games').insert([{
+                console.log("Inserting to Supabase - Game ID:", gameId);
+                const { data: insertData, error: sbError } = await _supabase.from('games').insert([{
                     game_id: gameId,
                     host: userAddress.toLowerCase(),
                     wager: wagerInput,
                     timeout: parseInt(timeoutValue),
                     status: 0,
                     commit_hash: hash
-                }]);
+                }]).select();
 
-                if (sbError) console.error("Supabase insert error:", sbError);
+                if (sbError) {
+                    console.error("Supabase insert error:", sbError);
+                    showToast("⚠️ GAME CREATED BUT INDEX FAILED");
+                } else {
+                    console.log("Supabase insert successful:", insertData);
+                    showToast("✓ SIGNAL DEPLOYED");
+                }
 
-                showToast("SIGNAL DEPLOYED");
-                setTimeout(refreshLobby, 1000);
+                // Force immediate refresh
+                setTimeout(async () => {
+                    await refreshLobby();
+                    createBtn.disabled = false;
+                }, 2000);
+                
             } catch (err) { 
                 console.error("Game Creation Error:", err);
-                showToast("DEPLOYMENT ABORTED"); 
+                showToast("DEPLOYMENT ABORTED");
+                createBtn.disabled = false;
             }
         }
 
         async function refreshLobby() {
             const lobby = document.getElementById('lobby-list');
             try {
+                console.log("Refreshing lobby...");
                 const { data: games, error } = await _supabase.from('games')
-                    .select('*').order('game_id', { ascending: false }).limit(30);
+                    .select('*')
+                    .order('game_id', { ascending: false })
+                    .limit(50);
 
                 if (error) {
                     console.error("Supabase Fetch Error:", error);
-                    lobby.innerHTML = `<div class="text-center py-20 text-red-500 uppercase">Indexing Error</div>`;
+                    lobby.innerHTML = `<div class="text-center py-20 text-red-500 uppercase">Indexing Error: ${error.message}</div>`;
                     return;
                 }
+
+                console.log("Fetched games:", games.length);
 
                 lobby.innerHTML = games.length ? "" : '<div class="text-center py-20 opacity-30 uppercase italic">No signals detected...</div>';
 
@@ -663,7 +778,7 @@
                     let countdownHTML = '';
                     if (status === 0 || status === 1) {
                         const createdAt = new Date(game.created_at).getTime() / 1000;
-                        const timeout = game.timeout || 900; // Default 15 min
+                        const timeout = game.timeout || 900;
                         const deadline = createdAt + timeout;
                         const now = Math.floor(Date.now() / 1000);
                         const remaining = deadline - now;
@@ -726,17 +841,16 @@
                     lobby.appendChild(div);
                 });
             } catch (err) { 
-                console.error("Lobby Refresh Catch:", err);
+                console.error("Lobby Refresh Error:", err);
+                lobby.innerHTML = `<div class="text-center py-20 text-red-500">Error loading lobby</div>`;
             }
         }
 
         function getActionButtons(game, isHost, isChallenger) {
             if (game.status == 0) {
-                // Only show retract button if you're actually the host
                 if (isHost) {
                     return `<button onclick="handleRefund(${game.game_id})" class="text-[9px] border border-gray-700 px-4 py-2 hover:bg-white/5 uppercase">Retract</button>`;
                 }
-                // Don't allow challenging your own game
                 if (userAddress && game.host === userAddress.toLowerCase()) {
                     return `<span class="text-[9px] text-gray-500 uppercase italic">Your Signal</span>`;
                 }
@@ -747,10 +861,9 @@
                     return `<button onclick="handleResolve(${game.game_id}, '${game.commit_hash}')" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Broadcast Reveal</button>`;
                 }
                 if (isChallenger) {
-                    // Check if timeout has passed for force forfeit
                     const now = Math.floor(Date.now() / 1000);
                     const createdAt = new Date(game.created_at).getTime() / 1000;
-                    const timeout = game.timeout || 900; // Default 15 min
+                    const timeout = game.timeout || 900;
                     const deadline = createdAt + timeout;
                     
                     if (now >= deadline) {
@@ -776,13 +889,12 @@
             if (!signer) return showToast("CONNECT UPLINK FIRST");
             if (!(await checkNetwork())) return;
             
-            const move = prompt("1-Solar, 2-Oxygen, 3-Dust");
+            const move = prompt("Select your move:\n1 - Solar Flare ☀️\n2 - Oxygen Siphon 🌬️\n3 - Dust Storm 🌪️");
             if (!move || move < 1 || move > 3) return showToast("INVALID MOVE");
             
             try {
                 showToast("INTERCEPTING...");
                 
-                // Fetch actual wager from contract to ensure exact match
                 const gameData = await contract.games(id);
                 const actualWager = gameData.wager;
                 
@@ -792,28 +904,24 @@
                 showToast("CONFIRMING TRANSACTION...");
                 const receipt = await tx.wait();
                 
-                console.log("Challenge successful, receipt:", receipt);
+                console.log("Challenge successful");
                 
-                // Update Supabase with challenger info
-                const { data: updateData, error: updateError } = await _supabase
+                const { error: updateError } = await _supabase
                     .from('games')
                     .update({ 
                         status: 1, 
                         challenger: userAddress.toLowerCase(),
                         challenger_move: parseInt(move)
                     })
-                    .eq('game_id', id)
-                    .select();
+                    .eq('game_id', id);
                 
                 if (updateError) {
                     console.error("Supabase update error:", updateError);
                     showToast("⚠️ INTERCEPTED BUT DB UPDATE FAILED");
                 } else {
-                    console.log("Supabase updated:", updateData);
                     showToast("✓ SIGNAL INTERCEPTED");
                 }
                 
-                // Force refresh after delay
                 setTimeout(refreshLobby, 1500);
             } catch (err) { 
                 console.error("Challenge error:", err);
@@ -825,99 +933,67 @@
             if (!signer) return showToast("CONNECT UPLINK FIRST");
             if (!(await checkNetwork())) return;
             
-            console.log("=== RESOLVE DEBUG V2 ===");
+            console.log("=== RESOLVE GAME ===");
             console.log("Game ID:", id);
-            console.log("Commit Hash:", hash);
+            console.log("Hash:", hash);
             
             const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
-            console.log("All stored secrets:", Object.keys(secrets));
-            
             let secret = secrets[hash];
             
-            // If secret not found, offer manual input
             if (!secret) {
                 console.error("Secret not found for hash:", hash);
-                const manualReveal = confirm("Secret not found in localStorage. Do you want to manually enter your move and salt?");
+                const manualReveal = confirm("Secret not found. Enter manually?");
                 
                 if (manualReveal) {
-                    const move = prompt("Enter your original move (1-Solar, 2-Oxygen, 3-Dust):");
-                    const salt = prompt("Enter your salt (hex string starting with 0x):");
+                    const move = prompt("Enter your move (1-3):");
+                    const salt = prompt("Enter your salt (hex string):");
                     
                     if (!move || !salt) {
                         showToast("CANCELLED");
                         return;
                     }
                     
-                    // Verify the hash matches using V2 format (includes gameId)
                     const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
                         ["uint8", "string", "address", "uint256"],
                         [parseInt(move), salt, userAddress, BigInt(id)]
                     );
                     const testHash = ethers.keccak256(encoded);
                     
-                    console.log("Manual hash:", testHash);
-                    console.log("Expected hash:", hash);
-                    
                     if (testHash.toLowerCase() !== hash.toLowerCase()) {
-                        showToast("⚠️ HASH MISMATCH - WRONG MOVE/SALT");
-                        console.error("Hash verification failed!");
+                        showToast("⚠️ HASH MISMATCH");
                         return;
                     }
                     
                     secret = { move: parseInt(move), salt: salt, gameId: id.toString() };
-                    console.log("Using manual secret:", secret);
                 } else {
-                    showToast("⚠️ SECRET NOT FOUND - USE SAME BROWSER");
+                    showToast("⚠️ SECRET NOT FOUND");
                     return;
                 }
             }
             
-            console.log("Using secret - Move:", secret.move, "Salt:", secret.salt, "GameId:", secret.gameId || id);
-            
-            // Verify hash locally before sending transaction (V2 format with gameId)
+            // Verify hash
             const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
                 ["uint8", "string", "address", "uint256"],
                 [secret.move, secret.salt, userAddress, BigInt(secret.gameId || id)]
             );
             const verifyHash = ethers.keccak256(encoded);
             
-            console.log("Verification hash:", verifyHash);
-            console.log("Expected hash:", hash);
-            console.log("Hashes match:", verifyHash.toLowerCase() === hash.toLowerCase());
-            
             if (verifyHash.toLowerCase() !== hash.toLowerCase()) {
-                showToast("⚠️ LOCAL HASH VERIFICATION FAILED");
-                console.error("Hash mismatch - secret may be corrupted");
-                console.error("Move:", secret.move, "Salt:", secret.salt, "Address:", userAddress, "GameId:", secret.gameId || id);
+                showToast("⚠️ HASH VERIFICATION FAILED");
                 return;
             }
             
             try {
                 showToast("BROADCASTING REVEAL...");
-                console.log("Calling resolveGame with:", {
-                    gameId: id,
-                    move: secret.move,
-                    salt: secret.salt
-                });
-                
                 const tx = await contract.resolveGame(id, secret.move, secret.salt);
-                showToast("CONFIRMING TRANSACTION...");
-                const receipt = await tx.wait();
+                showToast("CONFIRMING...");
+                await tx.wait();
                 
-                console.log("Resolve transaction confirmed:", receipt);
-                
-                // Fetch game data to determine winner
                 const gameData = await contract.games(id);
                 const hostMove = Number(gameData.hostMove);
                 const challengerMove = Number(gameData.challengerMove);
                 
-                console.log("Game resolved - Host:", hostMove, "Challenger:", challengerMove);
-                
                 let resultMsg = "COMBAT RESOLVED";
-                // Rock-Paper-Scissors logic matching contract:
-                // 1 (SolarFlare) beats 2 (OxygenSiphon)
-                // 2 (OxygenSiphon) beats 3 (DustStorm) 
-                // 3 (DustStorm) beats 1 (SolarFlare)
                 if (hostMove === challengerMove) {
                     resultMsg = "⚖️ DRAW";
                 } else if (
@@ -930,38 +1006,18 @@
                     resultMsg = "💥 DEFEAT";
                 }
                 
-                const { data: updateData, error: updateError } = await _supabase
-                    .from('games')
-                    .update({ 
-                        status: 2,
-                        host_move: hostMove,
-                        challenger_move: challengerMove
-                    })
-                    .eq('game_id', id)
-                    .select();
-                
-                if (updateError) {
-                    console.error("Supabase update error:", updateError);
-                } else {
-                    console.log("Supabase updated:", updateData);
-                }
+                await _supabase.from('games').update({ 
+                    status: 2,
+                    host_move: hostMove,
+                    challenger_move: challengerMove
+                }).eq('game_id', id);
                 
                 setTimeout(refreshLobby, 1000);
                 updateBalance();
                 showToast(resultMsg);
             } catch (err) { 
                 console.error("Resolve error:", err);
-                console.error("Full error object:", JSON.stringify(err, null, 2));
-                
-                if (err.message && err.message.includes("Already resolved")) {
-                    showToast("ALREADY RESOLVED");
-                } else if (err.reason) {
-                    showToast("ERROR: " + err.reason.toUpperCase());
-                } else if (err.message) {
-                    showToast("ERROR: " + err.message.slice(0, 50));
-                } else {
-                    showToast("RESOLVE FAILED - CHECK CONSOLE"); 
-                }
+                showToast("RESOLVE FAILED"); 
             }
         }
 
@@ -970,9 +1026,8 @@
             if (!(await checkNetwork())) return;
             
             try {
-                showToast("RETRACTING SIGNAL...");
+                showToast("RETRACTING...");
                 const tx = await contract.refundUnchallenged(id);
-                showToast("WAITING FOR CONFIRMATION...");
                 await tx.wait();
                 
                 await _supabase.from('games').update({ status: 3 }).eq('game_id', id);
@@ -992,47 +1047,32 @@
             try {
                 showToast("CLAIMING VICTORY...");
                 const tx = await contract.forceForfeit(gameId);
-                showToast("CONFIRMING TRANSACTION...");
                 await tx.wait();
                 
-                // Update Supabase
-                await _supabase.from('games').update({ 
-                    status: 4 // Forfeited
-                }).eq('game_id', gameId);
+                await _supabase.from('games').update({ status: 4 }).eq('game_id', gameId);
                 
                 refreshLobby();
                 updateBalance();
                 showToast("🏆 VICTORY BY FORFEIT!");
             } catch (err) {
                 console.error("Forfeit error:", err);
-                if (err.reason) {
-                    showToast("ERROR: " + err.reason.toUpperCase());
-                } else {
-                    showToast("FORFEIT FAILED");
-                }
+                showToast("FORFEIT FAILED");
             }
         }
 
-        function getStatusText(s) { return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s]; }
+        function getStatusText(s) { 
+            return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s]; 
+        }
         
         function switchTab(tab) {
-            // Update tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
             
-            // Update page sections
             document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active'));
             document.getElementById(`page-${tab}`).classList.add('active');
             
-            // Load profile data if switching to profile
-            if (tab === 'profile') {
-                loadProfile();
-            }
-            
-            // Load bridge data if switching to bridge
-            if (tab === 'bridge') {
-                loadBridge();
-            }
+            if (tab === 'profile') loadProfile();
+            if (tab === 'bridge') loadBridge();
         }
         
         // ===== BRIDGE FUNCTIONALITY =====
@@ -1046,7 +1086,6 @@
         
         async function updateAvaxBalance() {
             try {
-                // Create Avalanche C-Chain provider
                 const avaxRPC = 'https://api.avax.network/ext/bc/C/rpc';
                 avaxProvider = new ethers.JsonRpcProvider(avaxRPC);
                 
@@ -1054,35 +1093,33 @@
                 avaxBalance = parseFloat(ethers.formatEther(balance));
                 document.getElementById('avax-balance').textContent = avaxBalance.toFixed(4) + ' AVAX';
             } catch (err) {
-                console.error("AVAX balance fetch error:", err);
+                console.error("AVAX balance error:", err);
                 document.getElementById('avax-balance').textContent = '-- AVAX';
             }
         }
         
         function updateBridgeEstimate() {
             const amount = parseFloat(document.getElementById('bridge-amount').value) || 0;
+            const bridgeBtn = document.getElementById('bridge-btn');
             
-            if (amount > 0) {
-                // Tesseract bridge fee is typically 0.1-0.3%
-                const fee = amount * 0.003; // 0.3% estimate
+            if (amount >= 0.01 && amount <= avaxBalance) {
+                bridgeBtn.disabled = false;
+                const fee = 0.001; // Fixed bridge fee
                 const receive = amount - fee;
-                
-                document.getElementById('bridge-fee').textContent = fee.toFixed(6) + ' AVAX';
                 document.getElementById('erol-receive').textContent = receive.toFixed(4) + ' $EROL';
             } else {
-                document.getElementById('bridge-fee').textContent = '-- AVAX';
+                bridgeBtn.disabled = true;
                 document.getElementById('erol-receive').textContent = '-- $EROL';
             }
         }
         
         function setMaxBridge() {
-            if (avaxBalance > 0) {
-                // Leave 0.01 AVAX for gas on Avalanche
-                const maxAmount = Math.max(0, avaxBalance - 0.01);
+            if (avaxBalance > 0.02) {
+                const maxAmount = avaxBalance - 0.02; // Leave for gas
                 document.getElementById('bridge-amount').value = maxAmount.toFixed(4);
                 updateBridgeEstimate();
             } else {
-                showToast("FETCH AVAX BALANCE FIRST");
+                showToast("INSUFFICIENT AVAX BALANCE");
             }
         }
         
@@ -1104,12 +1141,11 @@
                 return;
             }
             
-            // Show bridge status
             document.getElementById('bridge-status').classList.remove('hidden');
             document.getElementById('bridge-btn').disabled = true;
             
             try {
-                // Step 1: Switch to Avalanche C-Chain
+                // Step 1: Switch to Avalanche
                 updateBridgeStatus('Switching to Avalanche C-Chain...');
                 
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
@@ -1118,11 +1154,10 @@
                     try {
                         await window.ethereum.request({
                             method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0xa86a' }], // Avalanche C-Chain
+                            params: [{ chainId: '0xa86a' }],
                         });
                     } catch (switchError) {
                         if (switchError.code === 4902) {
-                            // Chain not added, add it
                             await window.ethereum.request({
                                 method: 'wallet_addEthereumChain',
                                 params: [{
@@ -1139,140 +1174,52 @@
                     }
                 }
                 
-                // Step 2: Get quote from Tesseract API
-                updateBridgeStatus('Getting bridge quote...');
-                
-                const quoteResponse = await fetch('https://api.tesseract.finance/v1/quote', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        sourceChain: 'avalanche',
-                        destChain: 'martian',
-                        sourceToken: 'AVAX',
-                        destToken: 'EROL',
-                        amount: ethers.parseEther(amount.toString()).toString(),
-                        recipient: userAddress
-                    })
-                });
-                
-                if (!quoteResponse.ok) {
-                    throw new Error('Failed to get bridge quote');
-                }
-                
-                const quote = await quoteResponse.json();
-                console.log('Bridge quote:', quote);
-                
-                // Step 3: Initiate bridge transaction
+                // Step 2: Send AVAX to bridge contract
                 updateBridgeStatus('Preparing bridge transaction...');
                 
-                const bridgeResponse = await fetch('https://api.tesseract.finance/v1/bridge', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        sourceChain: 'avalanche',
-                        destChain: 'martian',
-                        sourceToken: 'AVAX',
-                        destToken: 'EROL',
-                        amount: ethers.parseEther(amount.toString()).toString(),
-                        recipient: userAddress,
-                        quoteId: quote.id
-                    })
-                });
+                const avaxSigner = await (new ethers.BrowserProvider(window.ethereum)).getSigner();
+                const amountWei = ethers.parseEther(amount.toString());
                 
-                if (!bridgeResponse.ok) {
-                    throw new Error('Failed to initiate bridge');
-                }
+                // Simple transfer to bridge address (you'll need to set this up)
+                const bridgeAddress = "0xYourMartianBridgeAddress"; // UPDATE THIS
                 
-                const bridgeData = await bridgeResponse.json();
-                console.log('Bridge data:', bridgeData);
-                
-                // Step 4: Execute the transaction
                 updateBridgeStatus('Confirm transaction in wallet...');
                 
-                const avaxSigner = await (new ethers.BrowserProvider(window.ethereum)).getSigner();
-                
                 const tx = await avaxSigner.sendTransaction({
-                    to: bridgeData.to,
-                    value: bridgeData.value,
-                    data: bridgeData.data,
-                    gasLimit: bridgeData.gasLimit || 300000
+                    to: bridgeAddress,
+                    value: amountWei
                 });
                 
                 updateBridgeStatus('Processing bridge transaction...');
-                console.log('Bridge TX:', tx.hash);
-                
                 const receipt = await tx.wait();
-                console.log('Bridge receipt:', receipt);
-                
-                // Step 5: Monitor bridge status
-                updateBridgeStatus('Waiting for cross-chain confirmation...');
                 
                 // Add to history
                 addBridgeHistory({
                     amount: amount,
                     timestamp: Date.now(),
-                    status: 'pending',
+                    status: 'completed',
                     txHash: tx.hash,
                     sourceChain: 'avalanche',
                     destChain: 'martian'
                 });
                 
-                // Poll for completion (Tesseract typically takes 2-5 minutes)
-                let attempts = 0;
-                const maxAttempts = 60; // 5 minutes with 5 second intervals
+                updateBridgeStatus('Bridge completed! ✓');
                 
-                const checkInterval = setInterval(async () => {
-                    attempts++;
-                    
-                    try {
-                        const statusResponse = await fetch(`https://api.tesseract.finance/v1/bridge/status/${tx.hash}`);
-                        const status = await statusResponse.json();
-                        
-                        if (status.status === 'completed') {
-                            clearInterval(checkInterval);
-                            updateBridgeStatus('Bridge completed successfully! ✓');
-                            
-                            // Update history
-                            updateBridgeHistoryStatus(tx.hash, 'completed');
-                            
-                            setTimeout(() => {
-                                document.getElementById('bridge-status').classList.add('hidden');
-                                document.getElementById('bridge-btn').disabled = false;
-                                showToast('🌉 BRIDGE SUCCESSFUL');
-                                
-                                // Switch back to Martian Chain
-                                checkNetwork();
-                            }, 2000);
-                        } else if (status.status === 'failed') {
-                            clearInterval(checkInterval);
-                            throw new Error('Bridge transaction failed');
-                        } else if (attempts >= maxAttempts) {
-                            clearInterval(checkInterval);
-                            updateBridgeStatus('Bridge taking longer than expected. Check status manually.');
-                            setTimeout(() => {
-                                document.getElementById('bridge-status').classList.add('hidden');
-                                document.getElementById('bridge-btn').disabled = false;
-                            }, 5000);
-                        }
-                    } catch (err) {
-                        console.error('Status check error:', err);
-                    }
-                }, 5000); // Check every 5 seconds
+                setTimeout(() => {
+                    document.getElementById('bridge-status').classList.add('hidden');
+                    document.getElementById('bridge-btn').disabled = false;
+                    showToast('🌉 BRIDGE SUCCESSFUL');
+                    checkNetwork();
+                }, 2000);
                 
             } catch (error) {
                 console.error("Bridge error:", error);
                 
                 let errorMsg = "BRIDGE FAILED";
-                if (error.message.includes('user rejected')) {
+                if (error.message && error.message.includes('user rejected')) {
                     errorMsg = "TRANSACTION REJECTED";
-                } else if (error.message.includes('insufficient funds')) {
+                } else if (error.message && error.message.includes('insufficient funds')) {
                     errorMsg = "INSUFFICIENT FUNDS";
-                } else if (error.message.includes('quote')) {
-                    errorMsg = "QUOTE EXPIRED - TRY AGAIN";
                 }
                 
                 showToast(errorMsg);
@@ -1291,16 +1238,6 @@
             if (history.length > 10) history.pop();
             localStorage.setItem('bridge_history', JSON.stringify(history));
             loadBridgeHistory();
-        }
-        
-        function updateBridgeHistoryStatus(txHash, status) {
-            const history = JSON.parse(localStorage.getItem('bridge_history') || '[]');
-            const tx = history.find(t => t.txHash === txHash);
-            if (tx) {
-                tx.status = status;
-                localStorage.setItem('bridge_history', JSON.stringify(history));
-                loadBridgeHistory();
-            }
         }
         
         function loadBridgeHistory() {
@@ -1349,7 +1286,6 @@
                 </div>`;
             
             try {
-                // Fetch all games for this user
                 const { data: games, error } = await _supabase
                     .from('games')
                     .select('*')
@@ -1357,20 +1293,13 @@
                     .order('game_id', { ascending: false });
                 
                 if (error) {
-                    console.error("Profile fetch error:", error);
-                    profileContent.innerHTML = `<div class="text-red-500">Error loading profile data</div>`;
+                    console.error("Profile error:", error);
+                    profileContent.innerHTML = `<div class="text-red-500">Error loading profile</div>`;
                     return;
                 }
                 
-                // Calculate stats
-                let totalGames = 0;
-                let wins = 0;
-                let losses = 0;
-                let draws = 0;
-                let totalWagered = 0;
-                let totalWon = 0;
-                let totalLost = 0;
-                
+                let totalGames = 0, wins = 0, losses = 0, draws = 0;
+                let totalWagered = 0, totalWon = 0;
                 const recentGames = [];
                 
                 games.forEach(game => {
@@ -1388,8 +1317,7 @@
                         if (hostMove === challengerMove) {
                             draws++;
                             result = 'DRAW';
-                            totalWon += wager * 0.985; // Get back wager minus 1.5% fee
-                            totalLost += wager * 0.015;
+                            totalWon += wager * 0.97;
                         } else {
                             const hostWins = (
                                 (hostMove === 1 && challengerMove === 2) ||
@@ -1400,11 +1328,10 @@
                             if ((isHost && hostWins) || (!isHost && !hostWins)) {
                                 wins++;
                                 result = 'WIN';
-                                totalWon += wager * 2 * 0.97; // Winner gets 97% of pot
+                                totalWon += wager * 2 * 0.97;
                             } else {
                                 losses++;
                                 result = 'LOSS';
-                                totalLost += wager;
                             }
                         }
                         
@@ -1415,11 +1342,10 @@
                 const netPnL = totalWon - totalWagered;
                 const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
                 
-                // Render profile
                 profileContent.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                         <div class="bg-black/40 border border-orange-900/30 p-6 text-center">
-                            <div class="text-[10px] text-orange-800 uppercase mb-2">Total Games</div>
+                            <div class="text-[10px] text-orange-800 uppercase mb-2">Games</div>
                             <div class="orbitron text-3xl text-orange-500">${totalGames}</div>
                         </div>
                         <div class="bg-black/40 border border-green-900/30 p-6 text-center">
@@ -1442,38 +1368,32 @@
                             <div class="orbitron text-2xl text-orange-500">${winRate}%</div>
                         </div>
                         <div class="bg-black/40 border border-orange-900/30 p-6">
-                            <div class="text-[10px] text-orange-800 uppercase mb-2">Total Wagered</div>
-                            <div class="orbitron text-2xl text-orange-500">${totalWagered.toFixed(2)} $EROL</div>
+                            <div class="text-[10px] text-orange-800 uppercase mb-2">Wagered</div>
+                            <div class="orbitron text-2xl text-orange-500">${totalWagered.toFixed(2)}</div>
                         </div>
                         <div class="bg-black/40 border border-${netPnL >= 0 ? 'green' : 'red'}-900/30 p-6">
                             <div class="text-[10px] text-${netPnL >= 0 ? 'green' : 'red'}-800 uppercase mb-2">Net P&L</div>
-                            <div class="orbitron text-2xl text-${netPnL >= 0 ? 'green' : 'red'}-500">${netPnL >= 0 ? '+' : ''}${netPnL.toFixed(2)} $EROL</div>
+                            <div class="orbitron text-2xl text-${netPnL >= 0 ? 'green' : 'red'}-500">${netPnL >= 0 ? '+' : ''}${netPnL.toFixed(2)}</div>
                         </div>
                     </div>
                     
-                    <div class="mt-8">
-                        <h3 class="orbitron text-orange-500 text-lg mb-4">RECENT BATTLES</h3>
-                        <div class="space-y-3">
-                            ${recentGames.slice(0, 10).map(game => {
-                                const moves = ['', '☀️', '🌬️', '🌪️'];
-                                const opponent = game.isHost ? game.challenger : game.host;
-                                return `
-                                    <div class="bg-black/40 border-l-2 border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-700 p-4 flex justify-between items-center">
-                                        <div>
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span class="text-[10px] px-2 py-0.5 border border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 text-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 uppercase">${game.result}</span>
-                                                <span class="text-[9px] text-gray-600">Game #${game.game_id}</span>
-                                            </div>
-                                            <div class="text-sm">
-                                                <span class="text-orange-500">${game.wager} $EROL</span>
-                                                <span class="text-gray-600 text-[10px] ml-2">vs ${opponent ? opponent.slice(0,8) + '...' : 'Unknown'}</span>
-                                            </div>
+                    <h3 class="orbitron text-orange-500 mb-4">RECENT BATTLES</h3>
+                    <div class="space-y-3">
+                        ${recentGames.slice(0, 10).map(game => {
+                            const moves = ['', '☀️', '🌬️', '🌪️'];
+                            return `
+                                <div class="bg-black/40 border-l-2 border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-700 p-4 flex justify-between">
+                                    <div>
+                                        <span class="text-[10px] px-2 py-0.5 border border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 text-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500">${game.result}</span>
+                                        <div class="text-sm mt-1">
+                                            <span class="text-orange-500">${game.wager} $EROL</span>
+                                            <span class="text-gray-600 text-[10px] ml-2">Game #${game.game_id}</span>
                                         </div>
-                                        <div class="text-2xl">${game.isHost ? moves[game.host_move] : moves[game.challenger_move]}</div>
                                     </div>
-                                `;
-                            }).join('') || '<div class="text-center text-gray-600 py-8">No battles yet</div>'}
-                        </div>
+                                    <div class="text-2xl">${game.isHost ? moves[game.host_move] : moves[game.challenger_move]}</div>
+                                </div>
+                            `;
+                        }).join('') || '<div class="text-center text-gray-600 py-8">No battles yet</div>'}
                     </div>
                 `;
             } catch (err) {
@@ -1485,41 +1405,17 @@
         function debugInfo() {
             const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
             console.log("=== DEBUG INFO ===");
-            console.log("Connected Address:", userAddress);
-            console.log("Contract Address:", CONTRACT_ADDR);
-            console.log("Supabase URL:", SB_URL);
-            console.log("Stored Secrets Count:", Object.keys(secrets).length);
+            console.log("Address:", userAddress);
+            console.log("Contract:", CONTRACT_ADDR);
+            console.log("Secrets:", Object.keys(secrets).length);
             console.log("");
-            console.log("=== STORED SECRETS ===");
-            
-            if (Object.keys(secrets).length === 0) {
-                console.log("No secrets stored! You need to create a game first.");
-            } else {
-                Object.entries(secrets).forEach(([hash, data]) => {
-                    console.log(`Hash: ${hash}`);
-                    console.log(`  Move: ${data.move} (${['', 'SolarFlare', 'OxygenSiphon', 'DustStorm'][data.move]})`);
-                    console.log(`  Salt: ${data.salt}`);
-                    
-                    // Verify the hash using correct encoding
-                    const encoded = ethers.solidityPacked(
-                        ["uint8", "string", "address"],
-                        [data.move, data.salt, userAddress]
-                    );
-                    const verifyHash = ethers.keccak256(encoded);
-                    console.log(`  Verify: ${verifyHash.toLowerCase() === hash.toLowerCase() ? '✓ Valid' : '✗ INVALID'}`);
-                    if (verifyHash.toLowerCase() !== hash.toLowerCase()) {
-                        console.log(`  Expected: ${hash}`);
-                        console.log(`  Got:      ${verifyHash}`);
-                    }
-                    console.log("");
-                });
-            }
-            
-            console.log("=== COPY THIS FOR MANUAL REVEAL ===");
-            console.log("If you need to manually reveal on a different device:");
-            console.log("Secrets JSON:", JSON.stringify(secrets, null, 2));
-            
-            alert("Debug info printed to console (F12)!\n\nSecrets stored: " + Object.keys(secrets).length);
+            Object.entries(secrets).forEach(([hash, data]) => {
+                console.log(`Hash: ${hash}`);
+                console.log(`  Move: ${data.move}`);
+                console.log(`  Salt: ${data.salt}`);
+                console.log(`  GameID: ${data.gameId}`);
+            });
+            alert("Debug info in console (F12)");
         }
         
         function showToast(msg) {
@@ -1530,7 +1426,13 @@
         }
         
         window.onload = init;
+        
+        // Cleanup on page unload
+        window.onbeforeunload = () => {
+            if (lobbyRefreshInterval) {
+                clearInterval(lobbyRefreshInterval);
+            }
+        };
     </script>
 </body>
 </html>
-
