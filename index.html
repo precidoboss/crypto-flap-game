@@ -764,16 +764,26 @@
                 }
 
                 console.log("Fetched games:", games.length);
+                console.log("All games:", games.map(g => ({ id: g.game_id, status: g.status, host: g.host })));
 
                 lobby.innerHTML = games.length ? "" : '<div class="text-center py-20 opacity-30 uppercase italic">No signals detected...</div>';
 
+                let displayedCount = 0;
                 games.forEach(game => {
                     const status = Number(game.status);
                     const isHost = userAddress && game.host === userAddress.toLowerCase();
                     const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
                     
-                    // Only show resolved games if you participated
-                    if (status > 1 && !isHost && !isChallenger) return;
+                    console.log(`Game ${game.game_id}: status=${status}, isHost=${isHost}, isChallenger=${isChallenger}, userAddress=${userAddress}`);
+                    
+                    // SHOW ALL OPEN/CHALLENGED GAMES (status 0 or 1)
+                    // Only filter out resolved/refunded/forfeited games (status > 1) that you didn't participate in
+                    if (status > 1 && !isHost && !isChallenger) {
+                        console.log(`Skipping game ${game.game_id} - resolved and not participant`);
+                        return;
+                    }
+                    
+                    displayedCount++;
 
                     const div = document.createElement('div');
                     div.className = "p-4 bg-black/40 border-l-2 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:bg-black/60 " + (status == 0 ? "border-orange-500" : status == 1 ? "border-yellow-500" : status == 2 ? "border-green-700" : "border-gray-800");
@@ -844,6 +854,12 @@
                     div.innerHTML = gameInfo;
                     lobby.appendChild(div);
                 });
+                
+                console.log(`Displayed ${displayedCount} out of ${games.length} games`);
+                
+                if (displayedCount === 0 && games.length > 0) {
+                    lobby.innerHTML = '<div class="text-center py-20 opacity-70 text-yellow-500 uppercase">All games filtered (resolved games not shown)</div>';
+                }
             } catch (err) { 
                 console.error("Lobby Refresh Error:", err);
                 lobby.innerHTML = `<div class="text-center py-20 text-red-500">Error loading lobby</div>`;
