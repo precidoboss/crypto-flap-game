@@ -154,6 +154,41 @@
             border-radius: 8px;
         }
 
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 20px;
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .activity-feed {
+            height: 500px;
+            overflow-y: auto;
+        }
+
         @media (max-width: 768px) {
             .header-banner {
                 height: 120px;
@@ -161,6 +196,9 @@
             .game-logo {
                 width: 45px;
                 height: 45px;
+            }
+            .chat-messages {
+                height: 300px;
             }
         }
     </style>
@@ -193,8 +231,9 @@
 
         <div class="flex items-center gap-6 mt-4 md:mt-0">
             <!-- Navigation Tabs -->
-            <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30">
+            <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30 flex-wrap">
                 <button onclick="switchTab('lobby')" id="tab-lobby" class="tab-btn active px-4 py-2 text-[10px] uppercase transition">Lobby</button>
+                <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Leaderboard</button>
                 <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Profile</button>
                 <button onclick="switchTab('bridge')" id="tab-bridge" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Bridge</button>
                 <button onclick="switchTab('howto')" id="tab-howto" class="tab-btn px-4 py-2 text-[10px] uppercase transition">How to Play</button>
@@ -261,9 +300,23 @@
                             <button onclick="debugInfo()" class="w-full py-2 text-[9px] border border-orange-900/30 text-orange-700 hover:text-orange-500 uppercase">Debug Info</button>
                         </div>
                     </div>
+
+                    <!-- Global Chat -->
+                    <div class="mars-glass p-6">
+                        <h2 class="orbitron text-sm text-orange-500 mb-4 flex items-center gap-2">
+                            <span class="w-2 h-2 bg-orange-500 animate-pulse"></span>
+                            GLOBAL COMMS
+                        </h2>
+                        <div id="chat-messages" class="chat-messages mb-4 bg-black/40 border border-orange-900/30 p-3 space-y-2"></div>
+                        <div class="flex gap-2">
+                            <input id="chat-input" type="text" placeholder="Type message..." maxlength="200" class="flex-1 bg-black border border-orange-900/50 p-2 text-sm text-orange-500 focus:outline-none focus:border-orange-500" onkeypress="if(event.key==='Enter') sendMessage()">
+                            <button onclick="sendMessage()" class="btn-mars px-4 py-2 text-xs">Send</button>
+                        </div>
+                    </div>
                 </aside>
 
-                <section class="lg:col-span-8">
+                <section class="lg:col-span-8 space-y-6">
+                    <!-- Game Lobby -->
                     <div class="mars-glass p-6 min-h-[500px] relative overflow-hidden">
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-orange-900/20 pb-4 gap-4">
                             <h2 class="orbitron text-lg text-white tracking-widest flex items-center gap-3">
@@ -285,7 +338,66 @@
                         </div>
                         <div id="lobby-list" class="space-y-4"></div>
                     </div>
+
+                    <!-- Live Activity Feed -->
+                    <div class="mars-glass p-6">
+                        <h2 class="orbitron text-lg text-white tracking-widest mb-6 flex items-center gap-3">
+                            LIVE ACTIVITY FEED
+                            <span class="w-2 h-2 bg-green-500 animate-pulse"></span>
+                        </h2>
+                        <div id="activity-feed" class="activity-feed space-y-2"></div>
+                    </div>
                 </section>
+            </div>
+        </div>
+
+<!-- END OF PART 1 - Continue with Part 2 -->
+<!-- START OF PART 2 - Paste this after Part 1 -->
+
+        <!-- LEADERBOARD PAGE -->
+        <div id="page-leaderboard" class="page-section">
+            <div class="mars-glass p-8">
+                <h2 class="orbitron text-2xl text-orange-500 mb-8 flex items-center gap-3">
+                    <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
+                    PILOT RANKINGS
+                </h2>
+
+                <!-- Global Stats -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                        <div class="text-[10px] text-orange-800 uppercase mb-2">Total Wagered</div>
+                        <div id="global-wagered" class="orbitron text-2xl text-orange-500">--</div>
+                    </div>
+                    <div class="bg-black/40 border border-red-900/30 p-4 text-center">
+                        <div class="text-[10px] text-red-800 uppercase mb-2">Burnt ($EROL)</div>
+                        <div id="global-burnt" class="orbitron text-2xl text-red-500">--</div>
+                    </div>
+                    <div class="bg-black/40 border border-blue-900/30 p-4 text-center">
+                        <div class="text-[10px] text-blue-800 uppercase mb-2">Treasury</div>
+                        <div id="global-treasury" class="orbitron text-2xl text-blue-500">--</div>
+                    </div>
+                    <div class="bg-black/40 border border-green-900/30 p-4 text-center">
+                        <div class="text-[10px] text-green-800 uppercase mb-2">Games Played</div>
+                        <div id="global-games" class="orbitron text-2xl text-green-500">--</div>
+                    </div>
+                </div>
+
+                <!-- Leaderboard Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-orange-900/30">
+                                <th class="text-left p-3 text-[10px] text-orange-800 uppercase">Rank</th>
+                                <th class="text-left p-3 text-[10px] text-orange-800 uppercase">Pilot</th>
+                                <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Wagered</th>
+                                <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Win Rate</th>
+                                <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Biggest Pot</th>
+                                <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Win Streak</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -396,7 +508,7 @@
                     <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
                     CROSS-CHAIN BRIDGE
                 </h2>
-                <p class="text-gray-500 text-sm mb-8">Transfer AVAX to Martian Chain $EROL (1:1 ratio)</p>
+                <p class="text-gray-500 text-sm mb-8">Transfer $EROL from Avalanche C-Chain to Martian Chain (1:1 ratio)</p>
                 
                 <div id="bridge-content" class="space-y-6">
                     <!-- Bridge Interface -->
@@ -415,7 +527,7 @@
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-500 uppercase mb-2 block">Available Balance</label>
-                                <div id="avax-balance" class="orbitron text-orange-500 text-lg">-- AVAX</div>
+                                <div id="avax-erol-balance" class="orbitron text-orange-500 text-lg">-- $EROL</div>
                             </div>
                         </div>
                         
@@ -433,7 +545,7 @@
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-500 uppercase mb-2 block">You'll Receive</label>
-                                <div id="erol-receive" class="orbitron text-orange-500 text-lg">-- $EROL</div>
+                                <div id="martian-erol-receive" class="orbitron text-orange-500 text-lg">-- $EROL</div>
                             </div>
                         </div>
                     </div>
@@ -446,7 +558,7 @@
                                 id="bridge-amount" 
                                 type="number" 
                                 step="0.01" 
-                                min="0.01"
+                                min="1"
                                 placeholder="0.0"
                                 class="w-full bg-black border border-orange-900/50 p-4 pr-20 text-orange-500 focus:outline-none focus:border-orange-500 orbitron text-xl"
                                 oninput="updateBridgeEstimate()"
@@ -464,19 +576,15 @@
                     <div class="bg-orange-900/10 border border-orange-500/30 p-4 space-y-2 text-sm">
                         <div class="flex justify-between">
                             <span class="text-gray-400">Exchange Rate:</span>
-                            <span class="text-orange-500">1 AVAX = 1 $EROL</span>
+                            <span class="text-orange-500">1 $EROL = 1 $EROL</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-400">Bridge Fee:</span>
-                            <span class="text-orange-500" id="bridge-fee">0.001 AVAX</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Network Fee (est):</span>
-                            <span class="text-orange-500">~0.01 AVAX</span>
+                            <span class="text-orange-500">0 $EROL (gas only)</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-400">Min Amount:</span>
-                            <span class="text-orange-500">0.01 AVAX</span>
+                            <span class="text-orange-500">1 $EROL</span>
                         </div>
                     </div>
 
@@ -501,25 +609,37 @@
                         </div>
                     </div>
 
-                    <!-- Recent Bridges -->
-                    <div class="mt-8">
-                        <h3 class="orbitron text-orange-500 mb-4">RECENT BRIDGE TRANSACTIONS</h3>
-                        <div id="bridge-history" class="space-y-2"></div>
-                    </div>
-
                     <!-- Bridge Instructions -->
                     <div class="text-center pt-6 border-t border-orange-900/20">
                         <div class="text-[10px] text-gray-600 uppercase mb-2">Simple Cross-Chain Transfer</div>
-                        <p class="text-xs text-gray-500">Send AVAX from Avalanche C-Chain to receive $EROL on Martian Chain</p>
+                        <p class="text-xs text-gray-500">Send $EROL from Avalanche C-Chain to receive $EROL on Martian Chain</p>
+                        <div class="mt-4 text-[10px] text-gray-600">
+                            <div>Bridge Contract: <span class="text-orange-600">0xF95B...1928</span></div>
+                            <div>Token Address: <span class="text-orange-600">0xCaC4...D037</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
+    <!-- Player Profile Modal -->
+    <div id="player-modal" class="modal">
+        <div class="modal-content mars-glass p-8 w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="orbitron text-xl text-orange-500">PILOT PROFILE</h2>
+                <button onclick="closePlayerModal()" class="text-2xl text-gray-500 hover:text-orange-500">&times;</button>
+            </div>
+            <div id="player-modal-content"></div>
+        </div>
+    </div>
+
     <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 mars-glass border-orange-500 px-8 py-4 text-orange-500 orbitron text-sm transform translate-y-32 transition-all duration-300 z-[200]">
         SYSTEM MESSAGE
     </div>
+
+<!-- END OF PART 2 - Continue with Part 3 (JavaScript) -->
+<!-- START OF PART 3 - JavaScript - Paste this after Part 2 -->
 
     <script>
         const CHAIN_ID = "0x7EB"; 
@@ -531,10 +651,19 @@
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y2tidGdnZ3N1d3h0bGdpbGNsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDY2NDY0NSwiZXhwIjoyMDg2MjQwNjQ1fQ.DhvGNo3seKoRtDmeRod0gAP48yFZw_0-kAvY3eT_554"; 
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-        // Bridge contract address (you'll need to deploy this)
-        const BRIDGE_CONTRACT_ADDR = "0xYourBridgeContractAddressHere"; // Update this
+        // Bridge & Token Configuration
+        const BRIDGE_CONTRACT_ADDR = "0xF95BA10dd7d5EEe89ede7B98250DAD2AcD4B1928";
+        const EROL_TOKEN_ADDR = "0xCaC4904E1DB1589Aa17A2Ec742F5a6bCF4c4D037";
+        const AVAX_CHAIN_ID = "0xa86a"; // 43114
+
+        const ERC20_ABI = [
+            "function balanceOf(address owner) view returns (uint256)",
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function allowance(address owner, address spender) view returns (uint256)"
+        ];
+
         const BRIDGE_ABI = [
-            "function bridgeToMartian() external payable",
+            "function bridgeToMartian(uint256 amount) external",
             "event BridgeInitiated(address indexed sender, uint256 amount, uint256 timestamp)"
         ];
 
@@ -556,26 +685,36 @@
 
         let provider, signer, contract, userAddress;
         let selectedMoveIdx = 0;
-        let avaxProvider, avaxBalance = 0;
-        let lobbyRefreshInterval;
-        let currentLobbyFilter = 'all'; // Track current filter
+        let avaxProvider, avaxErolBalance = 0;
+        let lobbyRefreshInterval, activityRefreshInterval, chatRefreshInterval;
+        let currentLobbyFilter = 'all';
 
         async function init() {
             if (window.ethereum) {
                 provider = new ethers.BrowserProvider(window.ethereum);
                 document.getElementById('connect-btn').addEventListener('click', connectWallet);
                 
-                // Initial lobby refresh
+                // Initial refreshes
                 await refreshLobby();
+                await refreshActivityFeed();
+                await refreshChat();
                 
-                // Set up auto-refresh every 10 seconds
+                // Set up auto-refresh
                 lobbyRefreshInterval = setInterval(refreshLobby, 10000);
+                activityRefreshInterval = setInterval(refreshActivityFeed, 5000);
+                chatRefreshInterval = setInterval(refreshChat, 3000);
                 
-                // Subscribe to Supabase realtime updates
+                // Subscribe to Supabase realtime
                 _supabase.channel('game_updates')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'games' }, () => {
-                        console.log("Realtime update detected, refreshing lobby...");
                         refreshLobby();
+                        refreshActivityFeed();
+                    })
+                    .subscribe();
+
+                _supabase.channel('chat_updates')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, () => {
+                        refreshChat();
                     })
                     .subscribe();
 
@@ -630,7 +769,6 @@
                 document.getElementById('connect-btn').classList.add('hidden');
                 document.getElementById('account-info').classList.remove('hidden');
                 
-                // Shorten address for display
                 const shortened = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
                 document.getElementById('user-address').innerText = shortened;
                 
@@ -681,16 +819,14 @@
             const salt = ethers.hexlify(ethers.randomBytes(32));
             
             try {
-                // Get next game ID
                 const nextGameId = (await contract.gameCounter()) + BigInt(1);
                 
-                // Create hash with gameId (V2 format)
                 const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
                     ["uint8", "string", "address", "uint256"],
                     [selectedMoveIdx, salt, userAddress, nextGameId]
                 );
                 const hash = ethers.keccak256(encoded);
-                
+
                 console.log("=== CREATING GAME ===");
                 console.log("Move:", selectedMoveIdx);
                 console.log("Game ID:", nextGameId.toString());
@@ -702,7 +838,6 @@
                 showToast("WAITING FOR CONFIRMATION...");
                 const receipt = await tx.wait();
                 
-                // Save secret locally
                 const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
                 secrets[hash] = { 
                     move: selectedMoveIdx, 
@@ -716,7 +851,6 @@
 
                 let gameId = Number(nextGameId);
 
-                // Parse logs to get game ID
                 try {
                     for (const log of receipt.logs) {
                         try {
@@ -738,7 +872,6 @@
                     console.warn("Log parsing failed, using counter:", e); 
                 }
 
-                // INDEX TO SUPABASE (use upsert to handle duplicates)
                 console.log("Upserting to Supabase - Game ID:", gameId);
                 const { data: upsertData, error: sbError } = await _supabase.from('games')
                     .upsert([{
@@ -761,7 +894,6 @@
                     showToast("✓ SIGNAL DEPLOYED");
                 }
 
-                // Force immediate refresh
                 setTimeout(async () => {
                     await refreshLobby();
                     createBtn.disabled = false;
@@ -791,7 +923,6 @@
 
                 console.log("Fetched games:", games.length);
 
-                // Clear lobby
                 lobby.innerHTML = '';
                 let displayedCount = 0;
 
@@ -800,19 +931,16 @@
                     const isHost = userAddress && game.host === userAddress.toLowerCase();
                     const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
                     
-                    // Apply filter
                     if (currentLobbyFilter === 'open' && status !== 0) return;
                     if (currentLobbyFilter === 'intercepted' && status !== 1) return;
                     if (currentLobbyFilter === 'resolved' && status !== 2) return;
                     
-                    // Only hide resolved games if you didn't participate
                     if (status > 1 && !isHost && !isChallenger && currentLobbyFilter === 'all') {
                         return;
                     }
 
                     displayedCount++;
 
-                    // Create game card
                     const div = document.createElement('div');
                     div.className = "p-4 bg-black/40 border-l-2 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:bg-black/60 " + 
                         (status == 0 ? "border-orange-500" : 
@@ -820,7 +948,6 @@
                          status == 2 ? "border-green-700" : 
                          "border-gray-800");
                     
-                    // Calculate countdown
                     let countdownHTML = '';
                     if (status === 0 || status === 1) {
                         const createdAt = new Date(game.created_at).getTime() / 1000;
@@ -855,7 +982,6 @@
                                 <span class="text-orange-500">${game.wager} $EROL</span> 
                                 <span class="text-gray-600 text-[10px] ml-2">FROM ${game.host.slice(0,6)}...</span>`;
                     
-                    // Show moves and winner for resolved games
                     if (status == 2 && game.host_move && game.challenger_move) {
                         const moves = ['', '☀️ Solar', '🌬️ Oxygen', '🌪️ Dust'];
                         const hostMove = Number(game.host_move);
@@ -906,11 +1032,9 @@
         function setLobbyFilter(filter) {
             currentLobbyFilter = filter;
             
-            // Update button states
             document.querySelectorAll('.lobby-filter').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`filter-${filter}`).classList.add('active');
             
-            // Refresh lobby with new filter
             refreshLobby();
         }
 
@@ -1039,7 +1163,6 @@
                 }
             }
             
-            // Verify hash
             const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
                 ["uint8", "string", "address", "uint256"],
                 [secret.move, secret.salt, userAddress, BigInt(secret.gameId || id)]
@@ -1128,69 +1251,469 @@
             }
         }
 
-        function getStatusText(s) { 
-            return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s]; 
-        }
-        
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`tab-${tab}`).classList.add('active');
-            
-            document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active'));
-            document.getElementById(`page-${tab}`).classList.add('active');
-            
-            if (tab === 'profile') loadProfile();
-            if (tab === 'bridge') loadBridge();
-        }
-        
-        // ===== BRIDGE FUNCTIONALITY =====
-        
-        async function loadBridge() {
-            if (userAddress) {
-                await updateAvaxBalance();
-                loadBridgeHistory();
+        // ===== ACTIVITY FEED =====
+        async function refreshActivityFeed() {
+            const feed = document.getElementById('activity-feed');
+            try {
+                const { data: games, error } = await _supabase
+                    .from('games')
+                    .select('*')
+                    .eq('status', 2)
+                    .order('updated_at', { ascending: false })
+                    .limit(50);
+
+                if (error) {
+                    console.error("Activity feed error:", error);
+                    return;
+                }
+
+                feed.innerHTML = games.map(game => {
+                    const moves = ['', '☀️', '🌬️', '🌪️'];
+                    const hostMove = Number(game.host_move);
+                    const challengerMove = Number(game.challenger_move);
+                    
+                    let result = '';
+                    let resultColor = '';
+                    
+                    if (hostMove === challengerMove) {
+                        result = 'DRAW';
+                        resultColor = 'text-yellow-500';
+                    } else if (
+                        (hostMove === 1 && challengerMove === 2) ||
+                        (hostMove === 2 && challengerMove === 3) ||
+                        (hostMove === 3 && challengerMove === 1)
+                    ) {
+                        result = `${game.host.slice(0,6)}... WINS`;
+                        resultColor = 'text-green-500';
+                    } else {
+                        result = `${(game.challenger || 'Unknown').slice(0,6)}... WINS`;
+                        resultColor = 'text-green-500';
+                    }
+                    
+                    const timeAgo = getTimeAgo(new Date(game.updated_at || game.created_at));
+                    
+                    return `
+                        <div class="bg-black/40 border-l-2 border-green-700 p-3 flex justify-between items-center hover:bg-black/60 transition">
+                            <div class="flex-1">
+                                <div class="text-sm ${resultColor} font-bold">${result}</div>
+                                <div class="text-[10px] text-gray-500 mt-1">
+                                    ${moves[hostMove]} vs ${moves[challengerMove]} • ${game.wager} $EROL • ${timeAgo}
+                                </div>
+                            </div>
+                            <div class="text-2xl">${result.includes('DRAW') ? '⚖️' : '🏆'}</div>
+                        </div>
+                    `;
+                }).join('') || '<div class="text-center text-gray-600 py-8">No recent activity</div>';
+            } catch (err) {
+                console.error("Activity feed error:", err);
             }
         }
-        
-        async function updateAvaxBalance() {
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return `${seconds}s ago`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            const days = Math.floor(hours / 24);
+            return `${days}d ago`;
+        }
+
+        // ===== CHAT FUNCTIONALITY =====
+        async function refreshChat() {
+            const chatMessages = document.getElementById('chat-messages');
+            try {
+                const { data: messages, error } = await _supabase
+                    .from('chat_messages')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (error) {
+                    console.error("Chat error:", error);
+                    return;
+                }
+
+                const shouldScroll = chatMessages.scrollHeight - chatMessages.scrollTop === chatMessages.clientHeight;
+
+                chatMessages.innerHTML = messages.reverse().map(msg => {
+                    const isOwn = userAddress && msg.sender.toLowerCase() === userAddress.toLowerCase();
+                    return `
+                        <div class="${isOwn ? 'text-right' : 'text-left'}">
+                            <div class="inline-block max-w-[80%] ${isOwn ? 'bg-orange-900/30' : 'bg-gray-900/50'} px-3 py-2 rounded">
+                                <div class="text-[9px] text-orange-700 mb-1">${msg.sender.slice(0,6)}...${msg.sender.slice(-4)}</div>
+                                <div class="text-sm text-gray-200">${escapeHtml(msg.message)}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                if (shouldScroll) {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            } catch (err) {
+                console.error("Chat refresh error:", err);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message || !userAddress) return;
+            
+            try {
+                const { error } = await _supabase
+                    .from('chat_messages')
+                    .insert([{
+                        sender: userAddress.toLowerCase(),
+                        message: message
+                    }]);
+
+                if (error) {
+                    console.error("Send message error:", error);
+                    showToast("MESSAGE FAILED");
+                } else {
+                    input.value = '';
+                    refreshChat();
+                }
+            } catch (err) {
+                console.error("Send message error:", err);
+                showToast("MESSAGE FAILED");
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+
+        // ===== LEADERBOARD =====
+        async function loadLeaderboard() {
+            try {
+                const { data: games, error } = await _supabase
+                    .from('games')
+                    .select('*')
+                    .eq('status', 2);
+
+                if (error) {
+                    console.error("Leaderboard error:", error);
+                    return;
+                }
+
+                const playerStats = {};
+                let totalWagered = 0;
+                let totalBurnt = 0;
+                let totalTreasury = 0;
+
+                games.forEach(game => {
+                    const wager = parseFloat(game.wager);
+                    totalWagered += wager * 2;
+                    
+                    const pot = wager * 2;
+                    const burn = pot * 0.015;
+                    const treasury = pot * 0.015;
+                    totalBurnt += burn;
+                    totalTreasury += treasury;
+
+                    const hostMove = Number(game.host_move);
+                    const challengerMove = Number(game.challenger_move);
+                    
+                    if (!playerStats[game.host]) {
+                        playerStats[game.host] = {
+                            address: game.host,
+                            totalWagered: 0,
+                            wins: 0,
+                            losses: 0,
+                            draws: 0,
+                            games: 0,
+                            biggestPot: 0,
+                            currentStreak: 0,
+                            longestStreak: 0
+                        };
+                    }
+                    if (game.challenger && !playerStats[game.challenger]) {
+                        playerStats[game.challenger] = {
+                            address: game.challenger,
+                            totalWagered: 0,
+                            wins: 0,
+                            losses: 0,
+                            draws: 0,
+                            games: 0,
+                            biggestPot: 0,
+                            currentStreak: 0,
+                            longestStreak: 0
+                        };
+                    }
+
+                    playerStats[game.host].totalWagered += wager;
+                    playerStats[game.host].games++;
+                    if (wager * 2 > playerStats[game.host].biggestPot) {
+                        playerStats[game.host].biggestPot = wager * 2;
+                    }
+
+                    if (game.challenger) {
+                        playerStats[game.challenger].totalWagered += wager;
+                        playerStats[game.challenger].games++;
+                        if (wager * 2 > playerStats[game.challenger].biggestPot) {
+                            playerStats[game.challenger].biggestPot = wager * 2;
+                        }
+                    }
+
+                    if (hostMove === challengerMove) {
+                        playerStats[game.host].draws++;
+                        if (game.challenger) playerStats[game.challenger].draws++;
+                        
+                        playerStats[game.host].currentStreak = 0;
+                        if (game.challenger) playerStats[game.challenger].currentStreak = 0;
+                    } else {
+                        const hostWins = (
+                            (hostMove === 1 && challengerMove === 2) ||
+                            (hostMove === 2 && challengerMove === 3) ||
+                            (hostMove === 3 && challengerMove === 1)
+                        );
+
+                        if (hostWins) {
+                            playerStats[game.host].wins++;
+                            playerStats[game.host].currentStreak++;
+                            if (playerStats[game.host].currentStreak > playerStats[game.host].longestStreak) {
+                                playerStats[game.host].longestStreak = playerStats[game.host].currentStreak;
+                            }
+                            
+                            if (game.challenger) {
+                                playerStats[game.challenger].losses++;
+                                playerStats[game.challenger].currentStreak = 0;
+                            }
+                        } else if (game.challenger) {
+                            playerStats[game.challenger].wins++;
+                            playerStats[game.challenger].currentStreak++;
+                            if (playerStats[game.challenger].currentStreak > playerStats[game.challenger].longestStreak) {
+                                playerStats[game.challenger].longestStreak = playerStats[game.challenger].currentStreak;
+                            }
+                            
+                            playerStats[game.host].losses++;
+                            playerStats[game.host].currentStreak = 0;
+                        }
+                    }
+                });
+
+                document.getElementById('global-wagered').textContent = totalWagered.toFixed(2);
+                document.getElementById('global-burnt').textContent = totalBurnt.toFixed(2);
+                document.getElementById('global-treasury').textContent = totalTreasury.toFixed(2);
+                document.getElementById('global-games').textContent = games.length;
+
+                const leaderboard = Object.values(playerStats)
+                    .sort((a, b) => b.totalWagered - a.totalWagered)
+                    .slice(0, 50);
+
+                const tbody = document.getElementById('leaderboard-body');
+                tbody.innerHTML = leaderboard.map((player, index) => {
+                    const winRate = player.games > 0 ? ((player.wins / player.games) * 100).toFixed(1) : 0;
+                    
+                    return `
+                        <tr class="border-b border-gray-900/30 hover:bg-orange-900/10 cursor-pointer transition" onclick="showPlayerProfile('${player.address}')">
+                            <td class="p-3 text-orange-500 orbitron">#${index + 1}</td>
+                            <td class="p-3">
+                                <div class="text-sm text-white">${player.address.slice(0,8)}...${player.address.slice(-6)}</div>
+                                <div class="text-[10px] text-gray-600">${player.games} games</div>
+                            </td>
+                            <td class="p-3 text-right orbitron text-orange-500">${player.totalWagered.toFixed(2)}</td>
+                            <td class="p-3 text-right orbitron ${winRate >= 50 ? 'text-green-500' : 'text-red-500'}">${winRate}%</td>
+                            <td class="p-3 text-right orbitron text-orange-500">${player.biggestPot.toFixed(2)}</td>
+                            <td class="p-3 text-right orbitron text-yellow-500">${player.longestStreak}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error("Leaderboard error:", err);
+            }
+        }
+
+        async function showPlayerProfile(address) {
+            const modal = document.getElementById('player-modal');
+            const content = document.getElementById('player-modal-content');
+            
+            modal.classList.add('active');
+            content.innerHTML = '<div class="text-center py-8 text-orange-500">Loading...</div>';
+
+            try {
+                const { data: games, error } = await _supabase
+                    .from('games')
+                    .select('*')
+                    .eq('status', 2)
+                    .or(`host.eq.${address.toLowerCase()},challenger.eq.${address.toLowerCase()}`)
+                    .order('game_id', { ascending: false });
+
+                if (error) throw error;
+
+                let wins = 0, losses = 0, draws = 0;
+                let totalWagered = 0, biggestPot = 0, longestStreak = 0, currentStreak = 0;
+                const recentGames = [];
+
+                games.forEach(game => {
+                    const isHost = game.host === address.toLowerCase();
+                    const wager = parseFloat(game.wager);
+                    totalWagered += wager;
+                    if (wager * 2 > biggestPot) biggestPot = wager * 2;
+
+                    const hostMove = Number(game.host_move);
+                    const challengerMove = Number(game.challenger_move);
+
+                    let result = '';
+                    if (hostMove === challengerMove) {
+                        draws++;
+                        result = 'DRAW';
+                        currentStreak = 0;
+                    } else {
+                        const hostWins = (
+                            (hostMove === 1 && challengerMove === 2) ||
+                            (hostMove === 2 && challengerMove === 3) ||
+                            (hostMove === 3 && challengerMove === 1)
+                        );
+                        
+                        if ((isHost && hostWins) || (!isHost && !hostWins)) {
+                            wins++;
+                            result = 'WIN';
+                            currentStreak++;
+                            if (currentStreak > longestStreak) longestStreak = currentStreak;
+                        } else {
+                            losses++;
+                            result = 'LOSS';
+                            currentStreak = 0;
+                        }
+                    }
+
+                    recentGames.push({ ...game, result, isHost });
+                });
+
+                const totalGames = games.length;
+                const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
+
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="text-center pb-4 border-b border-orange-900/30">
+                            <div class="text-sm text-gray-500 mb-2">ADDRESS</div>
+                            <div class="orbitron text-orange-500 text-lg">${address.slice(0,12)}...${address.slice(-10)}</div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                                <div class="text-[10px] text-orange-800 uppercase mb-2">Games</div>
+                                <div class="orbitron text-2xl text-orange-500">${totalGames}</div>
+                            </div>
+                            <div class="bg-black/40 border border-green-900/30 p-4 text-center">
+                                <div class="text-[10px] text-green-800 uppercase mb-2">Wins</div>
+                                <div class="orbitron text-2xl text-green-500">${wins}</div>
+                            </div>
+                            <div class="bg-black/40 border border-red-900/30 p-4 text-center">
+                                <div class="text-[10px] text-red-800 uppercase mb-2">Losses</div>
+                                <div class="orbitron text-2xl text-red-500">${losses}</div>
+                            </div>
+                            <div class="bg-black/40 border border-yellow-900/30 p-4 text-center">
+                                <div class="text-[10px] text-yellow-800 uppercase mb-2">Draws</div>
+                                <div class="orbitron text-2xl text-yellow-500">${draws}</div>
+                            </div>
+                            <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                                <div class="text-[10px] text-orange-800 uppercase mb-2">Win Rate</div>
+                                <div class="orbitron text-2xl text-orange-500">${winRate}%</div>
+                            </div>
+                            <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                                <div class="text-[10px] text-orange-800 uppercase mb-2">Wagered</div>
+                                <div class="orbitron text-xl text-orange-500">${totalWagered.toFixed(2)}</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                                <div class="text-[10px] text-orange-800 uppercase mb-2">Biggest Pot</div>
+                                <div class="orbitron text-xl text-orange-500">${biggestPot.toFixed(2)}</div>
+                            </div>
+                            <div class="bg-black/40 border border-yellow-900/30 p-4 text-center">
+                                <div class="text-[10px] text-yellow-800 uppercase mb-2">Longest Streak</div>
+                                <div class="orbitron text-xl text-yellow-500">${longestStreak}</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="orbitron text-orange-500 mb-3">RECENT BATTLES</h3>
+                            <div class="space-y-2 max-h-60 overflow-y-auto">
+                                ${recentGames.slice(0, 10).map(game => {
+                                    const moves = ['', '☀️', '🌬️', '🌪️'];
+                                    return `
+                                        <div class="bg-black/40 border-l-2 border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-700 p-3 flex justify-between items-center">
+                                            <div>
+                                                <span class="text-[10px] px-2 py-0.5 border border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 text-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500">${game.result}</span>
+                                                <div class="text-sm mt-1">
+                                                    <span class="text-orange-500">${game.wager} $EROL</span>
+                                                    <span class="text-gray-600 text-[10px] ml-2">Game #${game.game_id}</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-2xl">${game.isHost ? moves[game.host_move] : moves[game.challenger_move]}</div>
+                                        </div>
+                                    `;
+                                }).join('') || '<div class="text-center text-gray-600 py-4">No battles yet</div>'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                console.error("Profile error:", err);
+                content.innerHTML = '<div class="text-center text-red-500 py-8">Error loading profile</div>';
+            }
+        }
+
+        function closePlayerModal() {
+            document.getElementById('player-modal').classList.remove('active');
+        }
+
+        // ===== BRIDGE FUNCTIONALITY =====
+        async function loadBridge() {
+            if (userAddress) {
+                await updateAvaxErolBalance();
+            }
+        }
+
+        async function updateAvaxErolBalance() {
             try {
                 const avaxRPC = 'https://api.avax.network/ext/bc/C/rpc';
                 avaxProvider = new ethers.JsonRpcProvider(avaxRPC);
                 
-                const balance = await avaxProvider.getBalance(userAddress);
-                avaxBalance = parseFloat(ethers.formatEther(balance));
-                document.getElementById('avax-balance').textContent = avaxBalance.toFixed(4) + ' AVAX';
+                const erolContract = new ethers.Contract(EROL_TOKEN_ADDR, ERC20_ABI, avaxProvider);
+                const balance = await erolContract.balanceOf(userAddress);
+                avaxErolBalance = parseFloat(ethers.formatEther(balance));
+                document.getElementById('avax-erol-balance').textContent = avaxErolBalance.toFixed(4) + ' $EROL';
             } catch (err) {
-                console.error("AVAX balance error:", err);
-                document.getElementById('avax-balance').textContent = '-- AVAX';
+                console.error("AVAX EROL balance error:", err);
+                document.getElementById('avax-erol-balance').textContent = '-- $EROL';
             }
         }
-        
+
         function updateBridgeEstimate() {
             const amount = parseFloat(document.getElementById('bridge-amount').value) || 0;
             const bridgeBtn = document.getElementById('bridge-btn');
             
-            if (amount >= 0.01 && amount <= avaxBalance) {
+            if (amount >= 1 && amount <= avaxErolBalance) {
                 bridgeBtn.disabled = false;
-                const fee = 0.001; // Fixed bridge fee
-                const receive = amount - fee;
-                document.getElementById('erol-receive').textContent = receive.toFixed(4) + ' $EROL';
+                document.getElementById('martian-erol-receive').textContent = amount.toFixed(4) + ' $EROL';
             } else {
                 bridgeBtn.disabled = true;
-                document.getElementById('erol-receive').textContent = '-- $EROL';
+                document.getElementById('martian-erol-receive').textContent = '-- $EROL';
             }
         }
-        
+
         function setMaxBridge() {
-            if (avaxBalance > 0.02) {
-                const maxAmount = avaxBalance - 0.02; // Leave for gas
-                document.getElementById('bridge-amount').value = maxAmount.toFixed(4);
+            if (avaxErolBalance > 0) {
+                document.getElementById('bridge-amount').value = avaxErolBalance.toFixed(4);
                 updateBridgeEstimate();
             } else {
-                showToast("INSUFFICIENT AVAX BALANCE");
+                showToast("INSUFFICIENT $EROL BALANCE");
             }
         }
-        
+
         async function handleBridge() {
             if (!userAddress) {
                 showToast("CONNECT WALLET FIRST");
@@ -1199,12 +1722,12 @@
             
             const amount = parseFloat(document.getElementById('bridge-amount').value);
             
-            if (!amount || amount < 0.01) {
-                showToast("MINIMUM 0.01 AVAX");
+            if (!amount || amount < 1) {
+                showToast("MINIMUM 1 $EROL");
                 return;
             }
             
-            if (amount > avaxBalance) {
+            if (amount > avaxErolBalance) {
                 showToast("INSUFFICIENT BALANCE");
                 return;
             }
@@ -1213,23 +1736,22 @@
             document.getElementById('bridge-btn').disabled = true;
             
             try {
-                // Step 1: Switch to Avalanche
                 updateBridgeStatus('Switching to Avalanche C-Chain...');
                 
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
                 
-                if (currentChainId !== '0xa86a') {
+                if (currentChainId !== AVAX_CHAIN_ID) {
                     try {
                         await window.ethereum.request({
                             method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0xa86a' }],
+                            params: [{ chainId: AVAX_CHAIN_ID }],
                         });
                     } catch (switchError) {
                         if (switchError.code === 4902) {
                             await window.ethereum.request({
                                 method: 'wallet_addEthereumChain',
                                 params: [{
-                                    chainId: '0xa86a',
+                                    chainId: AVAX_CHAIN_ID,
                                     chainName: 'Avalanche Network',
                                     nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
                                     rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
@@ -1242,34 +1764,30 @@
                     }
                 }
                 
-                // Step 2: Send AVAX to bridge contract
-                updateBridgeStatus('Preparing bridge transaction...');
+                updateBridgeStatus('Approving $EROL for bridge...');
                 
                 const avaxSigner = await (new ethers.BrowserProvider(window.ethereum)).getSigner();
+                const erolContract = new ethers.Contract(EROL_TOKEN_ADDR, ERC20_ABI, avaxSigner);
+                const bridgeContract = new ethers.Contract(BRIDGE_CONTRACT_ADDR, BRIDGE_ABI, avaxSigner);
+                
                 const amountWei = ethers.parseEther(amount.toString());
                 
-                // Simple transfer to bridge address (you'll need to set this up)
-                const bridgeAddress = "0xYourMartianBridgeAddress"; // UPDATE THIS
+                const allowance = await erolContract.allowance(userAddress, BRIDGE_CONTRACT_ADDR);
                 
+                if (allowance < amountWei) {
+                    updateBridgeStatus('Confirm approval in wallet...');
+                    const approveTx = await erolContract.approve(BRIDGE_CONTRACT_ADDR, amountWei);
+                    updateBridgeStatus('Waiting for approval confirmation...');
+                    await approveTx.wait();
+                }
+                
+                updateBridgeStatus('Initiating bridge transfer...');
                 updateBridgeStatus('Confirm transaction in wallet...');
                 
-                const tx = await avaxSigner.sendTransaction({
-                    to: bridgeAddress,
-                    value: amountWei
-                });
+                const bridgeTx = await bridgeContract.bridgeToMartian(amountWei);
                 
                 updateBridgeStatus('Processing bridge transaction...');
-                const receipt = await tx.wait();
-                
-                // Add to history
-                addBridgeHistory({
-                    amount: amount,
-                    timestamp: Date.now(),
-                    status: 'completed',
-                    txHash: tx.hash,
-                    sourceChain: 'avalanche',
-                    destChain: 'martian'
-                });
+                await bridgeTx.wait();
                 
                 updateBridgeStatus('Bridge completed! ✓');
                 
@@ -1295,46 +1813,11 @@
                 document.getElementById('bridge-btn').disabled = false;
             }
         }
-        
+
         function updateBridgeStatus(message) {
             document.getElementById('bridge-status-text').textContent = message;
         }
-        
-        function addBridgeHistory(tx) {
-            const history = JSON.parse(localStorage.getItem('bridge_history') || '[]');
-            history.unshift(tx);
-            if (history.length > 10) history.pop();
-            localStorage.setItem('bridge_history', JSON.stringify(history));
-            loadBridgeHistory();
-        }
-        
-        function loadBridgeHistory() {
-            const history = JSON.parse(localStorage.getItem('bridge_history') || '[]');
-            const container = document.getElementById('bridge-history');
-            
-            if (history.length === 0) {
-                container.innerHTML = '<div class="text-center text-gray-600 py-4 text-sm">No recent bridge transactions</div>';
-                return;
-            }
-            
-            container.innerHTML = history.map(tx => `
-                <div class="bg-black/40 border-l-2 border-${tx.status === 'completed' ? 'green' : tx.status === 'failed' ? 'red' : 'yellow'}-700 p-3 flex justify-between items-center">
-                    <div class="flex-1">
-                        <div class="text-sm text-white">${tx.amount.toFixed(4)} AVAX → $EROL</div>
-                        <div class="text-[10px] text-gray-500">${new Date(tx.timestamp).toLocaleString()}</div>
-                        ${tx.txHash ? `<div class="text-[10px] text-gray-600 mt-1">
-                            <a href="https://snowtrace.io/tx/${tx.txHash}" target="_blank" class="hover:text-orange-500">
-                                ${tx.txHash.slice(0, 10)}...${tx.txHash.slice(-8)}
-                            </a>
-                        </div>` : ''}
-                    </div>
-                    <div class="text-[10px] px-2 py-1 border border-${tx.status === 'completed' ? 'green' : tx.status === 'failed' ? 'red' : 'yellow'}-500 text-${tx.status === 'completed' ? 'green' : tx.status === 'failed' ? 'red' : 'yellow'}-500 uppercase">
-                        ${tx.status}
-                    </div>
-                </div>
-            `).join('');
-        }
-        
+
         async function loadProfile() {
             const profileContent = document.getElementById('profile-content');
             
@@ -1470,6 +1953,22 @@
             }
         }
         
+        function getStatusText(s) { 
+            return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s]; 
+        }
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active'));
+            document.getElementById(`page-${tab}`).classList.add('active');
+            
+            if (tab === 'profile') loadProfile();
+            if (tab === 'bridge') loadBridge();
+            if (tab === 'leaderboard') loadLeaderboard();
+        }
+        
         function debugInfo() {
             const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
             console.log("=== DEBUG INFO ===");
@@ -1495,12 +1994,13 @@
         
         window.onload = init;
         
-        // Cleanup on page unload
         window.onbeforeunload = () => {
-            if (lobbyRefreshInterval) {
-                clearInterval(lobbyRefreshInterval);
-            }
+            if (lobbyRefreshInterval) clearInterval(lobbyRefreshInterval);
+            if (activityRefreshInterval) clearInterval(activityRefreshInterval);
+            if (chatRefreshInterval) clearInterval(chatRefreshInterval);
         };
     </script>
 </body>
 </html>
+
+<!-- END OF PART 3 - Complete! -->
