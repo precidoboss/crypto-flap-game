@@ -108,6 +108,20 @@
             border-bottom: 2px solid var(--mars-orange);
         }
 
+        .lobby-filter {
+            color: #666;
+            background: transparent;
+        }
+
+        .lobby-filter:hover {
+            color: var(--mars-orange);
+        }
+
+        .lobby-filter.active {
+            color: var(--mars-orange);
+            background: rgba(255, 77, 0, 0.1);
+        }
+
         .page-section {
             display: none;
         }
@@ -251,12 +265,23 @@
 
                 <section class="lg:col-span-8">
                     <div class="mars-glass p-6 min-h-[500px] relative overflow-hidden">
-                        <div class="flex justify-between items-center mb-8 border-b border-orange-900/20 pb-4">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-orange-900/20 pb-4 gap-4">
                             <h2 class="orbitron text-lg text-white tracking-widest flex items-center gap-3">
                                 LOBBY_FREQUENCIES
                                 <span class="text-[10px] bg-orange-900/30 px-2 py-1 text-orange-500">FAST INDEX</span>
                             </h2>
-                            <button onclick="refreshLobby()" class="text-[10px] text-orange-500 hover:text-white border border-orange-500/30 px-3 py-1 uppercase transition">Sync Data</button>
+                            
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <!-- Filter Buttons -->
+                                <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30">
+                                    <button onclick="setLobbyFilter('all')" id="filter-all" class="lobby-filter active px-3 py-1 text-[9px] uppercase transition">All</button>
+                                    <button onclick="setLobbyFilter('open')" id="filter-open" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Open</button>
+                                    <button onclick="setLobbyFilter('intercepted')" id="filter-intercepted" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Intercepted</button>
+                                    <button onclick="setLobbyFilter('resolved')" id="filter-resolved" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Resolved</button>
+                                </div>
+                                
+                                <button onclick="refreshLobby()" class="text-[10px] text-orange-500 hover:text-white border border-orange-500/30 px-3 py-1 uppercase transition">Sync Data</button>
+                            </div>
                         </div>
                         <div id="lobby-list" class="space-y-4"></div>
                     </div>
@@ -533,6 +558,7 @@
         let selectedMoveIdx = 0;
         let avaxProvider, avaxBalance = 0;
         let lobbyRefreshInterval;
+        let currentLobbyFilter = 'all'; // Track current filter
 
         async function init() {
             if (window.ethereum) {
@@ -751,11 +777,11 @@
         async function refreshLobby() {
             const lobby = document.getElementById('lobby-list');
             try {
-                console.log("Refreshing lobby...");
+                console.log("Refreshing lobby with filter:", currentLobbyFilter);
                 const { data: games, error } = await _supabase.from('games')
                     .select('*')
                     .order('game_id', { ascending: false })
-                    .limit(50);
+                    .limit(100);
 
                 if (error) {
                     console.error("Supabase Fetch Error:", error);
@@ -764,29 +790,35 @@
                 }
 
                 console.log("Fetched games:", games.length);
-                console.log("All games:", games.map(g => ({ id: g.game_id, status: g.status, host: g.host })));
 
-                lobby.innerHTML = games.length ? "" : '<div class="text-center py-20 opacity-30 uppercase italic">No signals detected...</div>';
-
+                // Clear lobby
+                lobby.innerHTML = '';
                 let displayedCount = 0;
+
                 games.forEach(game => {
                     const status = Number(game.status);
                     const isHost = userAddress && game.host === userAddress.toLowerCase();
                     const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
                     
-                    console.log(`Game ${game.game_id}: status=${status}, isHost=${isHost}, isChallenger=${isChallenger}, userAddress=${userAddress}`);
+                    // Apply filter
+                    if (currentLobbyFilter === 'open' && status !== 0) return;
+                    if (currentLobbyFilter === 'intercepted' && status !== 1) return;
+                    if (currentLobbyFilter === 'resolved' && status !== 2) return;
                     
-                    // SHOW ALL OPEN/CHALLENGED GAMES (status 0 or 1)
-                    // Only filter out resolved/refunded/forfeited games (status > 1) that you didn't participate in
-                    if (status > 1 && !isHost && !isChallenger) {
-                        console.log(`Skipping game ${game.game_id} - resolved and not participant`);
+                    // Only hide resolved games if you didn't participate
+                    if (status > 1 && !isHost && !isChallenger && currentLobbyFilter === 'all') {
                         return;
                     }
-                    
+
                     displayedCount++;
 
+                    // Create game card
                     const div = document.createElement('div');
-                    div.className = "p-4 bg-black/40 border-l-2 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:bg-black/60 " + (status == 0 ? "border-orange-500" : status == 1 ? "border-yellow-500" : status == 2 ? "border-green-700" : "border-gray-800");
+                    div.className = "p-4 bg-black/40 border-l-2 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:bg-black/60 " + 
+                        (status == 0 ? "border-orange-500" : 
+                         status == 1 ? "border-yellow-500" : 
+                         status == 2 ? "border-green-700" : 
+                         "border-gray-800");
                     
                     // Calculate countdown
                     let countdownHTML = '';
@@ -809,8 +841,13 @@
                     
                     let gameInfo = `
                         <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[9px] px-2 py-0.5 border ${status == 0 ? 'border-orange-500 text-orange-500' : status == 1 ? 'border-yellow-500 text-yellow-500' : status == 2 ? 'border-green-500 text-green-500' : 'border-gray-700 text-gray-500'} uppercase">${getStatusText(status)}</span>
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="text-[9px] px-2 py-0.5 border ${
+                                    status == 0 ? 'border-orange-500 text-orange-500' : 
+                                    status == 1 ? 'border-yellow-500 text-yellow-500' : 
+                                    status == 2 ? 'border-green-500 text-green-500' : 
+                                    'border-gray-700 text-gray-500'
+                                } uppercase">${getStatusText(status)}</span>
                                 <span class="text-[9px] text-orange-900/40">ID: ${game.game_id}</span>
                                 ${countdownHTML}
                             </div>
@@ -834,7 +871,7 @@
                         ) {
                             winner = `🏆 ${game.host.slice(0,6)}... WINS`;
                         } else {
-                            winner = `🏆 ${game.challenger.slice(0,6)}... WINS`;
+                            winner = `🏆 ${(game.challenger || 'Unknown').slice(0,6)}... WINS`;
                         }
                         
                         gameInfo += `
@@ -857,13 +894,24 @@
                 
                 console.log(`Displayed ${displayedCount} out of ${games.length} games`);
                 
-                if (displayedCount === 0 && games.length > 0) {
-                    lobby.innerHTML = '<div class="text-center py-20 opacity-70 text-yellow-500 uppercase">All games filtered (resolved games not shown)</div>';
+                if (displayedCount === 0) {
+                    lobby.innerHTML = '<div class="text-center py-20 opacity-30 uppercase italic">No signals detected...</div>';
                 }
             } catch (err) { 
                 console.error("Lobby Refresh Error:", err);
-                lobby.innerHTML = `<div class="text-center py-20 text-red-500">Error loading lobby</div>`;
+                lobby.innerHTML = `<div class="text-center py-20 text-red-500">Error loading lobby: ${err.message}</div>`;
             }
+        }
+
+        function setLobbyFilter(filter) {
+            currentLobbyFilter = filter;
+            
+            // Update button states
+            document.querySelectorAll('.lobby-filter').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`filter-${filter}`).classList.add('active');
+            
+            // Refresh lobby with new filter
+            refreshLobby();
         }
 
         function getActionButtons(game, isHost, isChallenger) {
