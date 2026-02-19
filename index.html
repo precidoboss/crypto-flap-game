@@ -501,127 +501,240 @@
             </div>
         </div>
 
-        <!-- BRIDGE PAGE -->
-        <div id="page-bridge" class="page-section">
-            <div class="mars-glass p-8 max-w-3xl mx-auto">
-                <h2 class="orbitron text-2xl text-orange-500 mb-2 flex items-center gap-3">
-                    <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
-                    CROSS-CHAIN BRIDGE
-                </h2>
-                <p class="text-gray-500 text-sm mb-8">Transfer $EROL from Avalanche C-Chain to Martian Chain (1:1 ratio)</p>
+// ===== BRIDGE FUNCTIONALITY =====
+        // Global bridging flag - prevents page reload during chain switch
+        window._bridging = false;
+
+        async function loadBridge() {
+            if (userAddress) {
+                await updateAvaxErolBalance();
+            } else {
+                document.getElementById('avax-erol-balance').textContent = 'Connect wallet';
+            }
+        }
+
+        async function updateAvaxErolBalance() {
+            try {
+                const avaxRPC = 'https://api.avax.network/ext/bc/C/rpc';
+                avaxProvider = new ethers.JsonRpcProvider(avaxRPC);
                 
-                <div id="bridge-content" class="space-y-6">
-                    <!-- Bridge Interface -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <!-- From Chain -->
-                        <div class="bg-black/40 border border-orange-900/30 p-6">
-                            <div class="text-[10px] text-orange-800 uppercase mb-3">From</div>
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold">
-                                    A
-                                </div>
-                                <div>
-                                    <div class="orbitron text-white">Avalanche C-Chain</div>
-                                    <div class="text-[10px] text-gray-500">Chain ID: 43114</div>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-gray-500 uppercase mb-2 block">Available Balance</label>
-                                <div id="avax-erol-balance" class="orbitron text-orange-500 text-lg">-- $EROL</div>
-                            </div>
-                        </div>
-                        
-                        <!-- To Chain -->
-                        <div class="bg-black/40 border border-orange-900/30 p-6">
-                            <div class="text-[10px] text-orange-800 uppercase mb-3">To</div>
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center text-white font-bold">
-                                    M
-                                </div>
-                                <div>
-                                    <div class="orbitron text-white">Martian Chain</div>
-                                    <div class="text-[10px] text-gray-500">Chain ID: 2027</div>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-gray-500 uppercase mb-2 block">You'll Receive</label>
-                                <div id="martian-erol-receive" class="orbitron text-orange-500 text-lg">-- $EROL</div>
-                            </div>
-                        </div>
-                    </div>
+                const erolContract = new ethers.Contract(EROL_TOKEN_ADDR, ERC20_ABI, avaxProvider);
+                const balance = await erolContract.balanceOf(userAddress);
+                avaxErolBalance = parseFloat(ethers.formatEther(balance));
+                document.getElementById('avax-erol-balance').textContent = avaxErolBalance.toFixed(4) + ' $EROL';
+                
+                // Enable/disable bridge button based on balance
+                updateBridgeEstimate();
+            } catch (err) {
+                console.error("AVAX EROL balance error:", err);
+                document.getElementById('avax-erol-balance').textContent = '-- $EROL';
+            }
+        }
 
-                    <!-- Amount Input -->
-                    <div>
-                        <label class="text-[10px] text-orange-800 uppercase mb-2 block">Amount to Bridge</label>
-                        <div class="relative">
-                            <input 
-                                id="bridge-amount" 
-                                type="number" 
-                                step="0.01" 
-                                min="1"
-                                placeholder="0.0"
-                                class="w-full bg-black border border-orange-900/50 p-4 pr-20 text-orange-500 focus:outline-none focus:border-orange-500 orbitron text-xl"
-                                oninput="updateBridgeEstimate()"
-                            >
-                            <button 
-                                onclick="setMaxBridge()" 
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] px-3 py-1 border border-orange-500/50 text-orange-500 hover:bg-orange-500/10 uppercase transition"
-                            >
-                                Max
-                            </button>
-                        </div>
-                    </div>
+        function updateBridgeEstimate() {
+            const amount = parseFloat(document.getElementById('bridge-amount').value) || 0;
+            const bridgeBtn = document.getElementById('bridge-btn');
+            
+            if (amount >= 1 && amount <= avaxErolBalance) {
+                bridgeBtn.disabled = false;
+                document.getElementById('martian-erol-receive').textContent = amount.toFixed(4) + ' $EROL';
+            } else {
+                bridgeBtn.disabled = true;
+                document.getElementById('martian-erol-receive').textContent = '-- $EROL';
+            }
+        }
 
-                    <!-- Bridge Info -->
-                    <div class="bg-orange-900/10 border border-orange-500/30 p-4 space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Exchange Rate:</span>
-                            <span class="text-orange-500">1 $EROL = 1 $EROL</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Bridge Fee:</span>
-                            <span class="text-orange-500">0 $EROL (gas only)</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Min Amount:</span>
-                            <span class="text-orange-500">1 $EROL</span>
-                        </div>
-                    </div>
+        function setMaxBridge() {
+            if (avaxErolBalance > 0) {
+                document.getElementById('bridge-amount').value = avaxErolBalance.toFixed(4);
+                updateBridgeEstimate();
+            } else {
+                showToast("INSUFFICIENT $EROL BALANCE");
+            }
+        }
 
-                    <!-- Bridge Button -->
-                    <button 
-                        id="bridge-btn" 
-                        onclick="handleBridge()" 
-                        class="btn-mars w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled
-                    >
-                        Initialize Bridge Transfer
-                    </button>
+        async function switchToAvax() {
+            const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+            if (currentChainId.toLowerCase() === AVAX_CHAIN_ID.toLowerCase()) return true;
 
-                    <!-- Bridge Status -->
-                    <div id="bridge-status" class="hidden bg-black/40 border border-orange-500/30 p-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                            <div>
-                                <div class="text-orange-500 font-bold">Processing Bridge Transaction</div>
-                                <div class="text-[11px] text-gray-500" id="bridge-status-text">Initiating transfer...</div>
-                            </div>
-                        </div>
-                    </div>
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: AVAX_CHAIN_ID }],
+                });
+                // Small delay to let the provider settle after chain switch
+                await new Promise(r => setTimeout(r, 1000));
+                return true;
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: AVAX_CHAIN_ID,
+                                chainName: 'Avalanche Network',
+                                nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+                                rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
+                                blockExplorerUrls: ['https://snowtrace.io/']
+                            }]
+                        });
+                        await new Promise(r => setTimeout(r, 1000));
+                        return true;
+                    } catch (addError) {
+                        console.error("Add chain error:", addError);
+                        showToast("FAILED TO ADD AVAX NETWORK");
+                        return false;
+                    }
+                } else if (switchError.code === 4001) {
+                    showToast("USER REJECTED NETWORK SWITCH");
+                    return false;
+                } else {
+                    console.error("Switch chain error:", switchError);
+                    showToast("NETWORK SWITCH FAILED");
+                    return false;
+                }
+            }
+        }
 
-                    <!-- Bridge Instructions -->
-                    <div class="text-center pt-6 border-t border-orange-900/20">
-                        <div class="text-[10px] text-gray-600 uppercase mb-2">Simple Cross-Chain Transfer</div>
-                        <p class="text-xs text-gray-500">Send $EROL from Avalanche C-Chain to receive $EROL on Martian Chain</p>
-                        <div class="mt-4 text-[10px] text-gray-600">
-                            <div>Bridge Contract: <span class="text-orange-600">0xF95B...1928</span></div>
-                            <div>Token Address: <span class="text-orange-600">0xCaC4...D037</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
+        async function switchBackToMartian() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: CHAIN_ID }],
+                });
+                await new Promise(r => setTimeout(r, 800));
+
+                // Re-initialize signer and contract on Martian chain
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+                updateBalance();
+            } catch (err) {
+                console.warn("Could not auto-switch back to Martian chain:", err);
+                showToast("SWITCH BACK TO MARTIAN CHAIN MANUALLY");
+            }
+        }
+
+        async function handleBridge() {
+            if (!userAddress) {
+                showToast("CONNECT WALLET FIRST");
+                return;
+            }
+
+            const amountInput = document.getElementById('bridge-amount').value;
+            const amount = parseFloat(amountInput);
+
+            if (!amount || isNaN(amount) || amount < 1) {
+                showToast("MINIMUM 1 $EROL");
+                return;
+            }
+
+            if (amount > avaxErolBalance) {
+                showToast("INSUFFICIENT BALANCE");
+                return;
+            }
+
+            // Set bridging flag BEFORE any chain switch to prevent page reload
+            window._bridging = true;
+
+            const bridgeBtn = document.getElementById('bridge-btn');
+            const bridgeStatus = document.getElementById('bridge-status');
+
+            bridgeStatus.classList.remove('hidden');
+            bridgeBtn.disabled = true;
+
+            try {
+                // Step 1: Switch to Avalanche C-Chain
+                updateBridgeStatus('Switching to Avalanche C-Chain...');
+                const switched = await switchToAvax();
+                if (!switched) {
+                    throw new Error("Failed to switch to Avalanche network");
+                }
+
+                // Step 2: Get signer on Avalanche
+                updateBridgeStatus('Connecting to Avalanche...');
+                const avaxBrowserProvider = new ethers.BrowserProvider(window.ethereum);
+                const avaxSigner = await avaxBrowserProvider.getSigner();
+
+                const erolContract = new ethers.Contract(EROL_TOKEN_ADDR, ERC20_ABI, avaxSigner);
+                const bridgeContract = new ethers.Contract(BRIDGE_CONTRACT_ADDR, BRIDGE_ABI, avaxSigner);
+
+                const amountWei = ethers.parseEther(amount.toString());
+
+                // Step 3: Check and set allowance
+                updateBridgeStatus('Checking allowance...');
+                const allowance = await erolContract.allowance(userAddress, BRIDGE_CONTRACT_ADDR);
+
+                if (allowance < amountWei) {
+                    updateBridgeStatus('Confirm approval in wallet...');
+                    const approveTx = await erolContract.approve(BRIDGE_CONTRACT_ADDR, amountWei);
+                    updateBridgeStatus('Waiting for approval confirmation...');
+                    await approveTx.wait();
+                    updateBridgeStatus('Approval confirmed ✓');
+                }
+
+                // Step 4: Execute bridge
+                updateBridgeStatus('Confirm bridge transaction in wallet...');
+                const bridgeTx = await bridgeContract.bridgeToMartian(amountWei);
+
+                updateBridgeStatus('Processing bridge transaction...');
+                const receipt = await bridgeTx.wait();
+
+                console.log("Bridge tx receipt:", receipt);
+
+                updateBridgeStatus('Bridge complete! Switching back to Martian Chain...');
+
+                // Step 5: Switch back to Martian Chain
+                window._bridging = false; // Safe to allow chain change now
+                await switchBackToMartian();
+
+                // Reset UI
+                bridgeStatus.classList.add('hidden');
+                bridgeBtn.disabled = false;
+                document.getElementById('bridge-amount').value = '';
+                document.getElementById('martian-erol-receive').textContent = '-- $EROL';
+
+                showToast('🌉 BRIDGE SUCCESSFUL');
+
+                // Refresh balance after a short delay
+                setTimeout(async () => {
+                    await updateAvaxErolBalance();
+                    await updateBalance();
+                }, 2000);
+
+            } catch (error) {
+                console.error("Bridge error:", error);
+                window._bridging = false;
+
+                let errorMsg = "BRIDGE FAILED";
+                if (error.message) {
+                    if (error.message.includes('user rejected') || error.message.includes('User denied')) {
+                        errorMsg = "TRANSACTION REJECTED";
+                    } else if (error.message.includes('insufficient funds')) {
+                        errorMsg = "INSUFFICIENT AVAX FOR GAS";
+                    } else if (error.message.includes('Failed to switch')) {
+                        errorMsg = "NETWORK SWITCH FAILED";
+                    }
+                }
+
+                showToast(errorMsg);
+                bridgeStatus.classList.add('hidden');
+                bridgeBtn.disabled = false;
+
+                // Try switching back to Martian regardless
+                try {
+                    await switchBackToMartian();
+                } catch (e) {
+                    console.warn("Could not switch back after error:", e);
+                }
+            }
+        }
+
+        function updateBridgeStatus(message) {
+            const el = document.getElementById('bridge-status-text');
+            if (el) el.textContent = message;
+            console.log("[Bridge]", message);
+        }
 
     <!-- Player Profile Modal -->
     <div id="player-modal" class="modal">
@@ -719,9 +832,11 @@
                     .subscribe();
 
                 window.ethereum.on('accountsChanged', () => window.location.reload());
-                window.ethereum.on('chainChanged', () => window.location.reload());
-            }
-        }
+                window.ethereum.on('chainChanged', (chainId) => {
+    if (!window._bridging) {
+        window.location.reload();
+    }
+});
 
         async function checkNetwork() {
             const network = await provider.getNetwork();
@@ -2004,4 +2119,5 @@
 </html>
 
 <!-- END OF PART 3 - Complete! -->
+
 
