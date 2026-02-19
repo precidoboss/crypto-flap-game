@@ -1129,16 +1129,16 @@
         // Bypasses ethers staticCall entirely — uses direct fetch to RPC
         // ===========================
 
-        // Pre-computed: keccak256("games(uint256)") first 4 bytes
-        // Verified selector — matches standard Solidity mapping/function ABI
-        const GAMES_SELECTOR = computeGamesSelector();
-        function computeGamesSelector() {
-            // We compute this at runtime using ethers keccak256 to be 100% correct
+        // Selector computed lazily on first use to avoid hoisting issues
+        let _GAMES_SELECTOR = null;
+        function getGamesSelector() {
+            if (_GAMES_SELECTOR) return _GAMES_SELECTOR;
             try {
-                return ethers.id("games(uint256)").slice(0, 10); // 0x + 8 hex chars
+                _GAMES_SELECTOR = ethers.id("games(uint256)").slice(0, 10);
             } catch(e) {
-                return "0x8b5b9ccc"; // fallback pre-computed
+                _GAMES_SELECTOR = "0x8b5b9ccc"; // fallback pre-computed keccak256
             }
+            return _GAMES_SELECTOR;
         }
 
         async function fetchWagerRaw(gameId) {
@@ -1147,7 +1147,7 @@
 
             // ABI-encode: selector + uint256(gameId) padded to 32 bytes
             const paddedId = gId.toString(16).padStart(64, '0');
-            const callData = GAMES_SELECTOR + paddedId;
+            const callData = getGamesSelector() + paddedId;
 
             // Method 1: Direct fetch to RPC (most reliable, no ethers involved)
             try {
@@ -1687,7 +1687,8 @@
                         </div>
                     `;
                     // Queue canvas animation after DOM renders
-                    setTimeout(() => initBattleAnimation(${hostMove}, ${challengerMove}, "${isDraw ? 'draw' : hostWins ? 'host' : 'challenger'}"), 120);
+                    const _hm = hostMove, _cm = challengerMove, _win = isDraw ? 'draw' : hostWins ? 'host' : 'challenger';
+                    setTimeout(() => initBattleAnimation(_hm, _cm, _win), 120);
                 }
 
                 // Timer section
