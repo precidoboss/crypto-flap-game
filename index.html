@@ -15,26 +15,31 @@
             --panel-bg: rgba(20, 20, 25, 0.95);
             --glow: rgba(255, 77, 0, 0.3);
         }
+
         body {
             background-color: var(--habitat-bg);
             color: #e0e0e0;
             font-family: 'Share Tech Mono', monospace;
-            background-image:
+            background-image: 
                 linear-gradient(rgba(255, 77, 0, 0.03) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255, 77, 0, 0.03) 1px, transparent 1px);
             background-size: 30px 30px;
             margin: 0;
         }
+
         .orbitron { font-family: 'Orbitron', sans-serif; }
+        
         .mars-glass {
             background: var(--panel-bg);
             border: 1px solid rgba(255, 77, 0, 0.2);
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         }
+
         .mars-border-glow {
             border: 1px solid var(--mars-orange);
             box-shadow: 0 0 10px var(--glow);
         }
+
         .btn-mars {
             background: var(--mars-orange);
             color: black;
@@ -43,1193 +48,2016 @@
             transition: all 0.2s;
             clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
         }
+
         .btn-mars:hover:not(:disabled) {
             filter: brightness(1.2);
             box-shadow: 0 0 15px var(--glow);
             transform: scale(1.02);
         }
-        .btn-mars:disabled { opacity: 0.5; cursor: not-allowed; }
-        .move-select { border: 1px solid #333; filter: grayscale(1); transition: all 0.3s; }
+
+        .btn-mars:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .move-select {
+            border: 1px solid #333;
+            filter: grayscale(1);
+            transition: all 0.3s;
+        }
+
         .move-select.selected {
             border-color: var(--mars-orange);
             filter: grayscale(0);
             background: rgba(255, 77, 0, 0.1);
             box-shadow: inset 0 0 10px var(--glow);
         }
+
         .scanline {
-            width: 100%; height: 2px;
+            width: 100%;
+            height: 2px;
             background: rgba(255, 77, 0, 0.1);
-            position: fixed; top: 0; z-index: 100;
+            position: fixed;
+            top: 0;
+            z-index: 100;
             pointer-events: none;
             animation: scan 4s linear infinite;
         }
-        @keyframes scan { from { top: 0; } to { top: 100%; } }
+
+        @keyframes scan {
+            from { top: 0; }
+            to { top: 100%; }
+        }
+
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: var(--habitat-bg); }
         ::-webkit-scrollbar-thumb { background: var(--mars-orange); }
-        .tab-btn { color: #666; background: transparent; }
-        .tab-btn:hover { color: var(--mars-orange); }
+
+        .tab-btn {
+            color: #666;
+            background: transparent;
+        }
+
+        .tab-btn:hover {
+            color: var(--mars-orange);
+        }
+
         .tab-btn.active {
             color: var(--mars-orange);
             background: rgba(255, 77, 0, 0.1);
             border-bottom: 2px solid var(--mars-orange);
         }
-        .lobby-filter { color: #666; background: transparent; }
-        .lobby-filter:hover { color: var(--mars-orange); }
-        .lobby-filter.active { color: var(--mars-orange); background: rgba(255, 77, 0, 0.1); }
-        .page-section { display: none; }
-        .page-section.active { display: block; }
-        .copy-btn { cursor: pointer; transition: all 0.2s; }
-        .copy-btn:hover { color: var(--mars-orange); transform: scale(1.1); }
-        .header-banner { width: 100%; height: 200px; object-fit: cover; border-bottom: 2px solid var(--mars-orange); }
-        .game-logo { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; }
-        .modal {
-            display: none; position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 1000;
-            align-items: center; justify-content: center;
+
+        .lobby-filter {
+            color: #666;
+            background: transparent;
         }
-        .modal.active { display: flex; }
-        .modal-content { max-width: 600px; max-height: 90vh; overflow-y: auto; margin: 20px; }
-        .chat-messages { height: 400px; overflow-y: auto; scroll-behavior: smooth; }
-        .activity-feed { height: 500px; overflow-y: auto; }
+
+        .lobby-filter:hover {
+            color: var(--mars-orange);
+        }
+
+        .lobby-filter.active {
+            color: var(--mars-orange);
+            background: rgba(255, 77, 0, 0.1);
+        }
+
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        .copy-btn {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            color: var(--mars-orange);
+            transform: scale(1.1);
+        }
+
+        .header-banner {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 2px solid var(--mars-orange);
+        }
+
+        .game-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 20px;
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .activity-feed {
+            height: 500px;
+            overflow-y: auto;
+        }
+
+        .lobby-row {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lobby-row:hover {
+            background: rgba(255, 77, 0, 0.05) !important;
+            border-left-color: #ff6622 !important;
+        }
+
+        /* Match Detail Subpage */
+        #page-match {
+            display: none;
+        }
+        #page-match.active {
+            display: block;
+        }
+
+        .stat-card {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,77,0,0.2);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 2rem;
+            padding-bottom: 1.5rem;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 8px;
+            bottom: 0;
+            width: 1px;
+            background: rgba(255,77,0,0.2);
+        }
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 4px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--mars-orange);
+            border: 2px solid var(--habitat-bg);
+        }
+        .timeline-item:last-child::before {
+            display: none;
+        }
+
+        /* Bridge iframe */
+        .bridge-iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 4px;
+        }
+
         @media (max-width: 768px) {
-            .header-banner { height: 120px; }
-            .game-logo { width: 45px; height: 45px; }
-            .chat-messages { height: 300px; }
+            .header-banner {
+                height: 120px;
+            }
+            .game-logo {
+                width: 45px;
+                height: 45px;
+            }
+            .chat-messages {
+                height: 300px;
+            }
+            .bridge-iframe {
+                height: 500px;
+            }
         }
     </style>
 </head>
 <body class="min-h-screen p-4">
-<div class="scanline"></div>
+    <div class="scanline"></div>
 
-<!-- Header Banner -->
-<div class="max-w-7xl mx-auto mb-4">
-    <img src="https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/photo_2026-02-01_14-21-55.jpg"
-         alt="Martian Gambit Header" class="header-banner" onerror="this.style.display='none'">
-</div>
-
-<nav class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 py-4 border-b border-orange-900/30">
-    <div class="flex items-center gap-4">
-        <img src="https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/photo_2026-02-01_14-13-33.jpg"
-             alt="Martian Gambit Logo" class="game-logo"
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="w-12 h-12 mars-border-glow hidden items-center justify-center bg-black">
-            <span class="text-orange-500 text-2xl font-bold">M</span>
-        </div>
-        <div>
-            <h1 class="orbitron text-2xl font-bold text-orange-500 tracking-widest">MARTIAN GAMBIT</h1>
-            <p class="text-[10px] text-orange-800 uppercase tracking-[0.2em]">Sector 2027 // EROL Protocol</p>
-        </div>
+    <!-- Header Banner -->
+    <div class="max-w-7xl mx-auto mb-4">
+        <img src="https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/photo_2026-02-01_14-21-55.jpg" 
+             alt="Martian Gambit Header" 
+             class="header-banner"
+             onerror="this.style.display='none'">
     </div>
-    <div class="flex items-center gap-6 mt-4 md:mt-0">
-        <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30 flex-wrap">
-            <button onclick="switchTab('lobby')" id="tab-lobby" class="tab-btn active px-4 py-2 text-[10px] uppercase transition">Lobby</button>
-            <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Leaderboard</button>
-            <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Profile</button>
-            <button onclick="switchTab('bridge')" id="tab-bridge" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Bridge</button>
-            <button onclick="switchTab('howto')" id="tab-howto" class="tab-btn px-4 py-2 text-[10px] uppercase transition">How to Play</button>
-        </div>
-        <div id="connection-interface">
-            <button id="connect-btn" class="btn-mars px-8 py-2">Initialize Uplink</button>
-            <div id="account-info" class="hidden flex items-center gap-3">
-                <div class="text-right">
-                    <div class="flex items-center gap-2">
-                        <span id="user-address" class="text-[10px] text-orange-400 opacity-70"></span>
-                        <button class="copy-btn text-orange-400 text-xs" onclick="copyAddress()" title="Copy Address">📋</button>
-                    </div>
-                    <div id="user-balance" class="orbitron text-orange-500 font-bold text-sm">0.00 $EROL</div>
-                </div>
-                <div class="h-10 w-1 bg-orange-500"></div>
+
+    <nav class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 py-4 border-b border-orange-900/30">
+        <div class="flex items-center gap-4">
+            <img src="https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/photo_2026-02-01_14-13-33.jpg" 
+                 alt="Martian Gambit Logo" 
+                 class="game-logo"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="w-12 h-12 mars-border-glow hidden items-center justify-center bg-black">
+                <span class="text-orange-500 text-2xl font-bold">M</span>
+            </div>
+            <div>
+                <h1 class="orbitron text-2xl font-bold text-orange-500 tracking-widest">MARTIAN GAMBIT</h1>
+                <p class="text-[10px] text-orange-800 uppercase tracking-[0.2em]">Sector 2027 // EROL Protocol</p>
             </div>
         </div>
-    </div>
-</nav>
 
-<main class="max-w-7xl mx-auto">
+        <div class="flex items-center gap-6 mt-4 md:mt-0">
+            <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30 flex-wrap">
+                <button onclick="switchTab('lobby')" id="tab-lobby" class="tab-btn active px-4 py-2 text-[10px] uppercase transition">Lobby</button>
+                <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Leaderboard</button>
+                <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Profile</button>
+                <button onclick="switchTab('bridge')" id="tab-bridge" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Bridge</button>
+                <button onclick="switchTab('howto')" id="tab-howto" class="tab-btn px-4 py-2 text-[10px] uppercase transition">How to Play</button>
+            </div>
 
-    <!-- LOBBY PAGE -->
-    <div id="page-lobby" class="page-section active">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <aside class="lg:col-span-4 space-y-6">
-                <div class="mars-glass p-6">
-                    <h2 class="orbitron text-sm text-orange-500 mb-6 flex items-center gap-2">
-                        <span class="w-2 h-2 bg-orange-500 animate-pulse"></span>
-                        COMMENCE SIGNAL DEPLOYMENT
-                    </h2>
-                    <div class="grid grid-cols-3 gap-3 mb-6">
-                        <button onclick="selectMove(1)" id="move-1" class="move-select p-4 bg-black flex flex-col items-center">
-                            <span class="text-3xl mb-2">☀️</span><span class="text-[9px] uppercase">Solar</span>
-                        </button>
-                        <button onclick="selectMove(2)" id="move-2" class="move-select p-4 bg-black flex flex-col items-center">
-                            <span class="text-3xl mb-2">🌬️</span><span class="text-[9px] uppercase">Oxygen</span>
-                        </button>
-                        <button onclick="selectMove(3)" id="move-3" class="move-select p-4 bg-black flex flex-col items-center">
-                            <span class="text-3xl mb-2">🌪️</span><span class="text-[9px] uppercase">Dust</span>
-                        </button>
-                    </div>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="text-[10px] text-orange-800 uppercase mb-2 block">Energy Stake ($EROL)</label>
-                            <input id="wager-amount" type="number" step="0.1" value="1.0"
-                                class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron">
+            <div id="connection-interface">
+                <button id="connect-btn" class="btn-mars px-8 py-2">Initialize Uplink</button>
+                <div id="account-info" class="hidden flex items-center gap-3">
+                    <div class="text-right">
+                        <div class="flex items-center gap-2">
+                            <span id="user-address" class="text-[10px] text-orange-400 opacity-70"></span>
+                            <button id="copy-address" class="copy-btn text-orange-400 text-xs" onclick="copyAddress()" title="Copy Address">📋</button>
                         </div>
-                        <div>
-                            <label class="text-[10px] text-orange-800 uppercase mb-2 block">Interception Timeout</label>
-                            <select id="timeout-select"
-                                class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron text-sm">
-                                <option value="300">5 Minutes</option>
-                                <option value="600">10 Minutes</option>
-                                <option value="900" selected>15 Minutes</option>
-                            </select>
-                        </div>
-                        <button id="create-btn" onclick="handleCreateGame()" class="btn-mars w-full py-4 text-lg">Deploy Signal</button>
-                        <button onclick="debugInfo()" class="w-full py-2 text-[9px] border border-orange-900/30 text-orange-700 hover:text-orange-500 uppercase">Debug Info</button>
+                        <div id="user-balance" class="orbitron text-orange-500 font-bold text-sm">0.00 $EROL</div>
                     </div>
+                    <div class="h-10 w-1 bg-orange-500"></div>
                 </div>
-                <!-- Global Chat -->
-                <div class="mars-glass p-6">
-                    <h2 class="orbitron text-sm text-orange-500 mb-4 flex items-center gap-2">
-                        <span class="w-2 h-2 bg-orange-500 animate-pulse"></span>
-                        GLOBAL COMMS
-                    </h2>
-                    <div id="chat-messages" class="chat-messages mb-4 bg-black/40 border border-orange-900/30 p-3 space-y-2"></div>
-                    <div class="flex gap-2">
-                        <input id="chat-input" type="text" placeholder="Type message..." maxlength="200"
-                            class="flex-1 bg-black border border-orange-900/50 p-2 text-sm text-orange-500 focus:outline-none focus:border-orange-500"
-                            onkeypress="if(event.key==='Enter') sendMessage()">
-                        <button onclick="sendMessage()" class="btn-mars px-4 py-2 text-xs">Send</button>
-                    </div>
-                </div>
-            </aside>
+            </div>
+        </div>
+    </nav>
 
-            <section class="lg:col-span-8 space-y-6">
-                <div class="mars-glass p-6 min-h-[500px] relative overflow-hidden">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-orange-900/20 pb-4 gap-4">
-                        <h2 class="orbitron text-lg text-white tracking-widest flex items-center gap-3">
-                            LOBBY_FREQUENCIES
-                            <span class="text-[10px] bg-orange-900/30 px-2 py-1 text-orange-500">FAST INDEX</span>
+    <main class="max-w-7xl mx-auto">
+
+        <!-- LOBBY PAGE -->
+        <div id="page-lobby" class="page-section active">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <aside class="lg:col-span-4 space-y-6">
+                    <div class="mars-glass p-6">
+                        <h2 class="orbitron text-sm text-orange-500 mb-6 flex items-center gap-2">
+                            <span class="w-2 h-2 bg-orange-500 animate-pulse"></span>
+                            COMMENCE SIGNAL DEPLOYMENT
                         </h2>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30">
-                                <button onclick="setLobbyFilter('all')" id="filter-all" class="lobby-filter active px-3 py-1 text-[9px] uppercase transition">All</button>
-                                <button onclick="setLobbyFilter('open')" id="filter-open" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Open</button>
-                                <button onclick="setLobbyFilter('intercepted')" id="filter-intercepted" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Intercepted</button>
-                                <button onclick="setLobbyFilter('resolved')" id="filter-resolved" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Resolved</button>
+
+                        <div class="grid grid-cols-3 gap-3 mb-6">
+                            <button onclick="selectMove(1)" id="move-1" class="move-select p-4 bg-black flex flex-col items-center">
+                                <span class="text-3xl mb-2">☀️</span>
+                                <span class="text-[9px] uppercase">Solar</span>
+                            </button>
+                            <button onclick="selectMove(2)" id="move-2" class="move-select p-4 bg-black flex flex-col items-center">
+                                <span class="text-3xl mb-2">🌬️</span>
+                                <span class="text-[9px] uppercase">Oxygen</span>
+                            </button>
+                            <button onclick="selectMove(3)" id="move-3" class="move-select p-4 bg-black flex flex-col items-center">
+                                <span class="text-3xl mb-2">🌪️</span>
+                                <span class="text-[9px] uppercase">Dust</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-[10px] text-orange-800 uppercase mb-2 block">Energy Stake ($EROL)</label>
+                                <input id="wager-amount" type="number" step="0.1" value="1.0" class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron">
                             </div>
-                            <button onclick="refreshLobby()" class="text-[10px] text-orange-500 hover:text-white border border-orange-500/30 px-3 py-1 uppercase transition">Sync Data</button>
+                            <div>
+                                <label class="text-[10px] text-orange-800 uppercase mb-2 block">Interception Timeout</label>
+                                <select id="timeout-select" class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron text-sm">
+                                    <option value="300">5 Minutes</option>
+                                    <option value="600">10 Minutes</option>
+                                    <option value="900" selected>15 Minutes</option>
+                                </select>
+                            </div>
+                            <button id="create-btn" onclick="handleCreateGame()" class="btn-mars w-full py-4 text-lg">Deploy Signal</button>
+                            <button onclick="debugInfo()" class="w-full py-2 text-[9px] border border-orange-900/30 text-orange-700 hover:text-orange-500 uppercase">Debug Info</button>
                         </div>
                     </div>
-                    <div id="lobby-list" class="space-y-4"></div>
-                </div>
-                <!-- Live Activity Feed -->
-                <div class="mars-glass p-6">
-                    <h2 class="orbitron text-lg text-white tracking-widest mb-6 flex items-center gap-3">
-                        LIVE ACTIVITY FEED
-                        <span class="w-2 h-2 bg-green-500 animate-pulse"></span>
-                    </h2>
-                    <div id="activity-feed" class="activity-feed space-y-2"></div>
-                </div>
-            </section>
-        </div>
-    </div>
 
-    <!-- LEADERBOARD PAGE -->
-    <div id="page-leaderboard" class="page-section">
-        <div class="mars-glass p-8">
-            <h2 class="orbitron text-2xl text-orange-500 mb-8 flex items-center gap-3">
-                <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
-                PILOT RANKINGS
-            </h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
-                    <div class="text-[10px] text-orange-800 uppercase mb-2">Total Wagered</div>
-                    <div id="global-wagered" class="orbitron text-2xl text-orange-500">--</div>
-                </div>
-                <div class="bg-black/40 border border-red-900/30 p-4 text-center">
-                    <div class="text-[10px] text-red-800 uppercase mb-2">Burnt ($EROL)</div>
-                    <div id="global-burnt" class="orbitron text-2xl text-red-500">--</div>
-                </div>
-                <div class="bg-black/40 border border-blue-900/30 p-4 text-center">
-                    <div class="text-[10px] text-blue-800 uppercase mb-2">Treasury</div>
-                    <div id="global-treasury" class="orbitron text-2xl text-blue-500">--</div>
-                </div>
-                <div class="bg-black/40 border border-green-900/30 p-4 text-center">
-                    <div class="text-[10px] text-green-800 uppercase mb-2">Games Played</div>
-                    <div id="global-games" class="orbitron text-2xl text-green-500">--</div>
-                </div>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b border-orange-900/30">
-                            <th class="text-left p-3 text-[10px] text-orange-800 uppercase">Rank</th>
-                            <th class="text-left p-3 text-[10px] text-orange-800 uppercase">Pilot</th>
-                            <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Wagered</th>
-                            <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Win Rate</th>
-                            <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Biggest Pot</th>
-                            <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Win Streak</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leaderboard-body"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- PROFILE PAGE -->
-    <div id="page-profile" class="page-section">
-        <div class="mars-glass p-8 max-w-5xl mx-auto">
-            <h2 class="orbitron text-2xl text-orange-500 mb-8 flex items-center gap-3">
-                <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
-                PILOT STATISTICS
-            </h2>
-            <div id="profile-content" class="space-y-6"></div>
-        </div>
-    </div>
-
-    <!-- HOW TO PLAY PAGE -->
-    <div id="page-howto" class="page-section">
-        <div class="mars-glass p-8 max-w-4xl mx-auto">
-            <h2 class="orbitron text-2xl text-orange-500 mb-8">MISSION BRIEFING</h2>
-            <div class="space-y-8 text-gray-300">
-                <section>
-                    <h3 class="orbitron text-orange-500 text-lg mb-3">🎯 OBJECTIVE</h3>
-                    <p class="leading-relaxed">Martian Gambit is a high-stakes Rock-Paper-Scissors style game on the Martian Chain. Players bet $EROL tokens and compete using three strategic moves. The winner takes the pot (minus a small fee).</p>
-                </section>
-                <section>
-                    <h3 class="orbitron text-orange-500 text-lg mb-3">⚔️ THE THREE MOVES</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-black/40 p-4 border border-orange-900/30">
-                            <div class="text-4xl mb-2">☀️</div>
-                            <div class="orbitron text-orange-500 mb-1">SOLAR FLARE</div>
-                            <div class="text-[11px] text-gray-400">Beats Oxygen Siphon</div>
-                        </div>
-                        <div class="bg-black/40 p-4 border border-orange-900/30">
-                            <div class="text-4xl mb-2">🌬️</div>
-                            <div class="orbitron text-orange-500 mb-1">OXYGEN SIPHON</div>
-                            <div class="text-[11px] text-gray-400">Beats Dust Storm</div>
-                        </div>
-                        <div class="bg-black/40 p-4 border border-orange-900/30">
-                            <div class="text-4xl mb-2">🌪️</div>
-                            <div class="orbitron text-orange-500 mb-1">DUST STORM</div>
-                            <div class="text-[11px] text-gray-400">Beats Solar Flare</div>
+                    <!-- Global Chat -->
+                    <div class="mars-glass p-6">
+                        <h2 class="orbitron text-sm text-orange-500 mb-4 flex items-center gap-2">
+                            <span class="w-2 h-2 bg-orange-500 animate-pulse"></span>
+                            GLOBAL COMMS
+                        </h2>
+                        <div id="chat-messages" class="chat-messages mb-4 bg-black/40 border border-orange-900/30 p-3 space-y-2"></div>
+                        <div class="flex gap-2">
+                            <input id="chat-input" type="text" placeholder="Type message..." maxlength="200" class="flex-1 bg-black border border-orange-900/50 p-2 text-sm text-orange-500 focus:outline-none focus:border-orange-500" onkeypress="if(event.key==='Enter') sendMessage()">
+                            <button onclick="sendMessage()" class="btn-mars px-4 py-2 text-xs">Send</button>
                         </div>
                     </div>
-                </section>
-                <section>
-                    <h3 class="orbitron text-orange-500 text-lg mb-3">📋 HOW TO PLAY</h3>
-                    <div class="space-y-4">
-                        <div class="flex gap-4">
-                            <div class="orbitron text-orange-500 text-xl">1.</div>
-                            <div>
-                                <div class="font-bold text-white mb-1">Deploy Signal (Host)</div>
-                                <p class="text-sm text-gray-400">Select your move, wager amount, and timeout. Your move is encrypted and stored locally. Click "Deploy Signal" to create the game.</p>
+                </aside>
+
+                <section class="lg:col-span-8 space-y-6">
+                    <div class="mars-glass p-6 min-h-[500px] relative overflow-hidden">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-orange-900/20 pb-4 gap-4">
+                            <h2 class="orbitron text-lg text-white tracking-widest flex items-center gap-3">
+                                LOBBY_FREQUENCIES
+                                <span class="text-[10px] bg-orange-900/30 px-2 py-1 text-orange-500">FAST INDEX</span>
+                            </h2>
+                            
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30">
+                                    <button onclick="setLobbyFilter('all')" id="filter-all" class="lobby-filter active px-3 py-1 text-[9px] uppercase transition">All</button>
+                                    <button onclick="setLobbyFilter('open')" id="filter-open" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Open</button>
+                                    <button onclick="setLobbyFilter('intercepted')" id="filter-intercepted" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Intercepted</button>
+                                    <button onclick="setLobbyFilter('resolved')" id="filter-resolved" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Resolved</button>
+                                </div>
+                                <button onclick="refreshLobby()" class="text-[10px] text-orange-500 hover:text-white border border-orange-500/30 px-3 py-1 uppercase transition">Sync Data</button>
                             </div>
                         </div>
-                        <div class="flex gap-4">
-                            <div class="orbitron text-orange-500 text-xl">2.</div>
-                            <div>
-                                <div class="font-bold text-white mb-1">Intercept (Challenger)</div>
-                                <p class="text-sm text-gray-400">Find an open game in the lobby and click "Intercept". Choose your move and match the wager. Games cannot be joined in the last 60 seconds.</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-4">
-                            <div class="orbitron text-orange-500 text-xl">3.</div>
-                            <div>
-                                <div class="font-bold text-white mb-1">Broadcast Reveal (Host)</div>
-                                <p class="text-sm text-gray-400">Once intercepted, click "Broadcast Reveal" to reveal your move. The smart contract determines the winner automatically.</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-4">
-                            <div class="orbitron text-orange-500 text-xl">4.</div>
-                            <div>
-                                <div class="font-bold text-white mb-1">Victory or Defeat</div>
-                                <p class="text-sm text-gray-400">Winner takes 97% of the pot. 1.5% goes to treasury, 1.5% is burned. In a draw, both players get their wager back minus fees.</p>
-                            </div>
-                        </div>
+                        <div id="lobby-list" class="space-y-4"></div>
                     </div>
-                </section>
-                <section>
-                    <h3 class="orbitron text-orange-500 text-lg mb-3">⚠️ IMPORTANT NOTES</h3>
-                    <ul class="space-y-2 text-sm text-gray-400">
-                        <li class="flex gap-2"><span class="text-orange-500">→</span> You must use the same browser/device to reveal your move (secret stored locally)</li>
-                        <li class="flex gap-2"><span class="text-orange-500">→</span> Games cannot be joined in the last 60 seconds — no late entries allowed</li>
-                        <li class="flex gap-2"><span class="text-orange-500">→</span> If host doesn't reveal within timeout, challenger can force forfeit to claim victory</li>
-                        <li class="flex gap-2"><span class="text-orange-500">→</span> If no one intercepts within timeout, host can retract their wager after it expires</li>
-                        <li class="flex gap-2"><span class="text-orange-500">→</span> All games are on-chain and provably fair via cryptographic commitments</li>
-                    </ul>
-                </section>
-                <section class="bg-orange-900/10 border border-orange-500/30 p-6">
-                    <h3 class="orbitron text-orange-500 text-lg mb-3">💰 FEES & PAYOUTS</h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between"><span>Winner Payout:</span><span class="text-orange-500">97% of pot</span></div>
-                        <div class="flex justify-between"><span>Treasury Fee:</span><span class="text-orange-500">1.5%</span></div>
-                        <div class="flex justify-between"><span>Burn Amount:</span><span class="text-orange-500">1.5%</span></div>
-                        <div class="flex justify-between"><span>Draw (each player):</span><span class="text-orange-500">Wager - 3%</span></div>
+
+                    <!-- Live Activity Feed -->
+                    <div class="mars-glass p-6">
+                        <h2 class="orbitron text-lg text-white tracking-widest mb-6 flex items-center gap-3">
+                            LIVE ACTIVITY FEED
+                            <span class="w-2 h-2 bg-green-500 animate-pulse"></span>
+                        </h2>
+                        <div id="activity-feed" class="activity-feed space-y-2"></div>
                     </div>
                 </section>
             </div>
         </div>
-    </div>
 
-    <!-- BRIDGE PAGE -->
-    <div id="page-bridge" class="page-section">
-        <div class="mars-glass p-8 max-w-3xl mx-auto">
-            <h2 class="orbitron text-2xl text-orange-500 mb-2 flex items-center gap-3">
-                <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
-                CROSS-CHAIN BRIDGE
-            </h2>
-            <p class="text-gray-500 text-sm mb-8">Transfer $EROL from Avalanche C-Chain to Martian Chain (1:1 ratio)</p>
-            <div id="bridge-content" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div class="bg-black/40 border border-orange-900/30 p-6">
-                        <div class="text-[10px] text-orange-800 uppercase mb-3">From</div>
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold">A</div>
-                            <div>
-                                <div class="orbitron text-white">Avalanche C-Chain</div>
-                                <div class="text-[10px] text-gray-500">Chain ID: 43114</div>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-gray-500 uppercase mb-2 block">Available Balance</label>
-                            <div id="avax-erol-balance" class="orbitron text-orange-500 text-lg">-- $EROL</div>
-                        </div>
-                    </div>
-                    <div class="bg-black/40 border border-orange-900/30 p-6">
-                        <div class="text-[10px] text-orange-800 uppercase mb-3">To</div>
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center text-white font-bold">M</div>
-                            <div>
-                                <div class="orbitron text-white">Martian Chain</div>
-                                <div class="text-[10px] text-gray-500">Chain ID: 2027</div>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-gray-500 uppercase mb-2 block">You'll Receive</label>
-                            <div id="martian-erol-receive" class="orbitron text-orange-500 text-lg">-- $EROL</div>
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <label class="text-[10px] text-orange-800 uppercase mb-2 block">Amount to Bridge</label>
-                    <div class="relative">
-                        <input id="bridge-amount" type="number" step="0.01" min="1" placeholder="0.0"
-                            class="w-full bg-black border border-orange-900/50 p-4 pr-20 text-orange-500 focus:outline-none focus:border-orange-500 orbitron text-xl"
-                            oninput="updateBridgeEstimate()">
-                        <button onclick="setMaxBridge()"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] px-3 py-1 border border-orange-500/50 text-orange-500 hover:bg-orange-500/10 uppercase transition">
-                            Max
-                        </button>
-                    </div>
-                </div>
-                <div class="bg-orange-900/10 border border-orange-500/30 p-4 space-y-2 text-sm">
-                    <div class="flex justify-between"><span class="text-gray-400">Exchange Rate:</span><span class="text-orange-500">1 $EROL = 1 $EROL</span></div>
-                    <div class="flex justify-between"><span class="text-gray-400">Bridge Fee:</span><span class="text-orange-500">0 $EROL (gas only)</span></div>
-                    <div class="flex justify-between"><span class="text-gray-400">Min Amount:</span><span class="text-orange-500">1 $EROL</span></div>
-                </div>
-                <button id="bridge-btn" onclick="handleBridge()"
-                    class="btn-mars w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    Initialize Bridge Transfer
+        <!-- MATCH DETAIL PAGE -->
+        <div id="page-match" class="page-section">
+            <div class="mb-4">
+                <button onclick="goBackToLobby()" class="flex items-center gap-2 text-orange-500 hover:text-white text-sm uppercase transition border border-orange-900/30 px-4 py-2 hover:border-orange-500/50">
+                    ← Back to Lobby
                 </button>
-                <div id="bridge-status" class="hidden bg-black/40 border border-orange-500/30 p-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                        <div>
-                            <div class="text-orange-500 font-bold">Processing Bridge Transaction</div>
-                            <div class="text-[11px] text-gray-500" id="bridge-status-text">Initiating transfer...</div>
+            </div>
+            <div id="match-detail-content"></div>
+        </div>
+
+        <!-- LEADERBOARD PAGE -->
+        <div id="page-leaderboard" class="page-section">
+            <div class="mars-glass p-8">
+                <h2 class="orbitron text-2xl text-orange-500 mb-8 flex items-center gap-3">
+                    <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
+                    PILOT RANKINGS
+                </h2>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                        <div class="text-[10px] text-orange-800 uppercase mb-2">Total Wagered</div>
+                        <div id="global-wagered" class="orbitron text-2xl text-orange-500">--</div>
+                    </div>
+                    <div class="bg-black/40 border border-red-900/30 p-4 text-center">
+                        <div class="text-[10px] text-red-800 uppercase mb-2">Burnt ($EROL)</div>
+                        <div id="global-burnt" class="orbitron text-2xl text-red-500">--</div>
+                    </div>
+                    <div class="bg-black/40 border border-blue-900/30 p-4 text-center">
+                        <div class="text-[10px] text-blue-800 uppercase mb-2">Treasury</div>
+                        <div id="global-treasury" class="orbitron text-2xl text-blue-500">--</div>
+                    </div>
+                    <div class="bg-black/40 border border-green-900/30 p-4 text-center">
+                        <div class="text-[10px] text-green-800 uppercase mb-2">Games Played</div>
+                        <div id="global-games" class="orbitron text-2xl text-green-500">--</div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-orange-900/30">
+                                <th class="text-left p-3 text-[10px] text-orange-800 uppercase">Rank</th>
+                                <th class="text-left p-3 text-[10px] text-orange-800 uppercase">Pilot</th>
+                                <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Wagered</th>
+                                <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Win Rate</th>
+                                <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Biggest Pot</th>
+                                <th class="text-right p-3 text-[10px] text-orange-800 uppercase">Win Streak</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROFILE PAGE -->
+        <div id="page-profile" class="page-section">
+            <div class="mars-glass p-8 max-w-5xl mx-auto">
+                <h2 class="orbitron text-2xl text-orange-500 mb-8 flex items-center gap-3">
+                    <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
+                    PILOT STATISTICS
+                </h2>
+                <div id="profile-content" class="space-y-6"></div>
+            </div>
+        </div>
+
+        <!-- HOW TO PLAY PAGE -->
+        <div id="page-howto" class="page-section">
+            <div class="mars-glass p-8 max-w-4xl mx-auto">
+                <h2 class="orbitron text-2xl text-orange-500 mb-8">MISSION BRIEFING</h2>
+                
+                <div class="space-y-8 text-gray-300">
+                    <section>
+                        <h3 class="orbitron text-orange-500 text-lg mb-3">🎯 OBJECTIVE</h3>
+                        <p class="leading-relaxed">Martian Gambit is a high-stakes Rock-Paper-Scissors style game on the Martian Chain. Players bet $EROL tokens and compete using three strategic moves. The winner takes the pot (minus a small fee).</p>
+                    </section>
+
+                    <section>
+                        <h3 class="orbitron text-orange-500 text-lg mb-3">⚔️ THE THREE MOVES</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-black/40 p-4 border border-orange-900/30">
+                                <div class="text-4xl mb-2">☀️</div>
+                                <div class="orbitron text-orange-500 mb-1">SOLAR FLARE</div>
+                                <div class="text-[11px] text-gray-400">Beats Oxygen Siphon</div>
+                            </div>
+                            <div class="bg-black/40 p-4 border border-orange-900/30">
+                                <div class="text-4xl mb-2">🌬️</div>
+                                <div class="orbitron text-orange-500 mb-1">OXYGEN SIPHON</div>
+                                <div class="text-[11px] text-gray-400">Beats Dust Storm</div>
+                            </div>
+                            <div class="bg-black/40 p-4 border border-orange-900/30">
+                                <div class="text-4xl mb-2">🌪️</div>
+                                <div class="orbitron text-orange-500 mb-1">DUST STORM</div>
+                                <div class="text-[11px] text-gray-400">Beats Solar Flare</div>
+                            </div>
                         </div>
+                    </section>
+
+                    <section>
+                        <h3 class="orbitron text-orange-500 text-lg mb-3">📋 HOW TO PLAY</h3>
+                        <div class="space-y-4">
+                            <div class="flex gap-4">
+                                <div class="orbitron text-orange-500 text-xl">1.</div>
+                                <div>
+                                    <div class="font-bold text-white mb-1">Deploy Signal (Host)</div>
+                                    <p class="text-sm text-gray-400">Select your move, wager amount, and timeout. Your move is encrypted and stored locally. Click "Deploy Signal" to create the game.</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="orbitron text-orange-500 text-xl">2.</div>
+                                <div>
+                                    <div class="font-bold text-white mb-1">Intercept (Challenger)</div>
+                                    <p class="text-sm text-gray-400">Find an open game in the lobby and click "Intercept". Choose your move and match the wager amount.</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="orbitron text-orange-500 text-xl">3.</div>
+                                <div>
+                                    <div class="font-bold text-white mb-1">Broadcast Reveal (Host)</div>
+                                    <p class="text-sm text-gray-400">Once intercepted, click "Broadcast Reveal" to reveal your move. The smart contract determines the winner automatically.</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="orbitron text-orange-500 text-xl">4.</div>
+                                <div>
+                                    <div class="font-bold text-white mb-1">Victory or Defeat</div>
+                                    <p class="text-sm text-gray-400">Winner takes 97% of the pot. 1.5% goes to treasury, 1.5% is burned. In case of a draw, both players get their wager back minus fees.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 class="orbitron text-orange-500 text-lg mb-3">⚠️ IMPORTANT NOTES</h3>
+                        <ul class="space-y-2 text-sm text-gray-400">
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> You must use the same browser/device to reveal your move (secret is stored locally)</li>
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> If host doesn't reveal within the timeout, challenger can force forfeit to claim victory</li>
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> If no one intercepts within the timeout, host can retract their wager</li>
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> Matches cannot be joined in the last 60 seconds before timeout</li>
+                            <li class="flex gap-2"><span class="text-orange-500">→</span> All games are on-chain and provably fair via cryptographic commitments</li>
+                        </ul>
+                    </section>
+
+                    <section class="bg-orange-900/10 border border-orange-500/30 p-6">
+                        <h3 class="orbitron text-orange-500 text-lg mb-3">💰 FEES & PAYOUTS</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between"><span>Winner Payout:</span><span class="text-orange-500">97% of pot</span></div>
+                            <div class="flex justify-between"><span>Treasury Fee:</span><span class="text-orange-500">1.5%</span></div>
+                            <div class="flex justify-between"><span>Burn Amount:</span><span class="text-orange-500">1.5%</span></div>
+                            <div class="flex justify-between"><span>Draw (each player):</span><span class="text-orange-500">Wager - 3%</span></div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- BRIDGE PAGE -->
+        <div id="page-bridge" class="page-section">
+            <div class="mars-glass p-8 max-w-5xl mx-auto">
+                <h2 class="orbitron text-2xl text-orange-500 mb-2 flex items-center gap-3">
+                    <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
+                    CROSS-CHAIN BRIDGE
+                </h2>
+                <p class="text-gray-500 text-sm mb-6">Transfer $EROL from Avalanche C-Chain to Martian Chain (1:1 ratio)</p>
+
+                <!-- Info cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                        <div class="text-[10px] text-orange-800 uppercase mb-1">Exchange Rate</div>
+                        <div class="orbitron text-orange-500">1:1 $EROL</div>
+                    </div>
+                    <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                        <div class="text-[10px] text-orange-800 uppercase mb-1">Bridge Fee</div>
+                        <div class="orbitron text-orange-500">Gas Only</div>
+                    </div>
+                    <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                        <div class="text-[10px] text-orange-800 uppercase mb-1">Min Amount</div>
+                        <div class="orbitron text-orange-500">1 $EROL</div>
                     </div>
                 </div>
-                <div class="text-center pt-6 border-t border-orange-900/20">
-                    <div class="text-[10px] text-gray-600 uppercase mb-2">Simple Cross-Chain Transfer</div>
-                    <p class="text-xs text-gray-500">Send $EROL from Avalanche C-Chain to receive $EROL on Martian Chain</p>
-                    <div class="mt-4 text-[10px] text-gray-600">
-                        <div>Bridge Contract: <span class="text-orange-600">0x8726...B21c</span></div>
-                        <div>Token Address: <span class="text-orange-600">0xCaC4...D037</span></div>
-                    </div>
+
+                <!-- Contract addresses -->
+                <div class="bg-black/40 border border-orange-900/20 p-4 mb-6 text-[11px] text-gray-600 flex flex-wrap gap-6">
+                    <div>Bridge Contract: <span class="text-orange-600">0xF95B...1928</span></div>
+                    <div>Token Address (AVAX): <span class="text-orange-600">0xCaC4...D037</span></div>
+                    <div>Chain ID (Martian): <span class="text-orange-600">2027</span></div>
                 </div>
+
+                <!-- Bridge iframe -->
+                <div class="border border-orange-900/30 overflow-hidden" style="border-radius:4px;">
+                    <div class="bg-black/60 border-b border-orange-900/30 px-4 py-2 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+                        <span class="text-[10px] text-orange-700 uppercase tracking-widest">Martian Chain Bridge — Powered by martianchain.com</span>
+                        <a href="https://bridge.martianchain.com/swap/0x43845e182504d95bbd509d4dbc594dc85c94af45291ce71be2357b734f9f0557/43114" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           class="ml-auto text-[9px] text-orange-700 hover:text-orange-500 border border-orange-900/30 px-2 py-1 uppercase transition"
+                           onclick="event.stopPropagation()">
+                            Open in New Tab ↗
+                        </a>
+                    </div>
+                    <iframe 
+                        id="bridge-iframe"
+                        src="https://bridge.martianchain.com/swap/0x43845e182504d95bbd509d4dbc594dc85c94af45291ce71be2357b734f9f0557/43114"
+                        class="bridge-iframe"
+                        title="Martian Chain Bridge"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals"
+                        loading="lazy"
+                    ></iframe>
+                </div>
+
+                <div class="mt-4 text-center text-[10px] text-gray-700">
+                    If the bridge doesn't load, <a href="https://bridge.martianchain.com/swap/0x43845e182504d95bbd509d4dbc594dc85c94af45291ce71be2357b734f9f0557/43114" target="_blank" rel="noopener noreferrer" class="text-orange-700 hover:text-orange-500 underline">open it directly ↗</a>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Player Profile Modal -->
+    <div id="player-modal" class="modal">
+        <div class="modal-content mars-glass p-8 w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="orbitron text-xl text-orange-500">PILOT PROFILE</h2>
+                <button onclick="closePlayerModal()" class="text-2xl text-gray-500 hover:text-orange-500">&times;</button>
+            </div>
+            <div id="player-modal-content"></div>
+        </div>
+    </div>
+
+    <!-- Challenge Move Modal -->
+    <div id="challenge-modal" class="modal">
+        <div class="modal-content mars-glass p-8 w-full" style="max-width:400px;">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="orbitron text-xl text-orange-500">SELECT YOUR MOVE</h2>
+                <button onclick="closeChallengeModal()" class="text-2xl text-gray-500 hover:text-orange-500">&times;</button>
+            </div>
+            <div id="challenge-modal-content">
+                <p class="text-gray-400 text-sm mb-6">Choose your interception move carefully, Commander.</p>
+                <div class="grid grid-cols-3 gap-3 mb-6">
+                    <button onclick="selectChallengeMove(1)" id="cmove-1" class="move-select p-4 bg-black flex flex-col items-center">
+                        <span class="text-3xl mb-2">☀️</span>
+                        <span class="text-[9px] uppercase">Solar</span>
+                    </button>
+                    <button onclick="selectChallengeMove(2)" id="cmove-2" class="move-select p-4 bg-black flex flex-col items-center">
+                        <span class="text-3xl mb-2">🌬️</span>
+                        <span class="text-[9px] uppercase">Oxygen</span>
+                    </button>
+                    <button onclick="selectChallengeMove(3)" id="cmove-3" class="move-select p-4 bg-black flex flex-col items-center">
+                        <span class="text-3xl mb-2">🌪️</span>
+                        <span class="text-[9px] uppercase">Dust</span>
+                    </button>
+                </div>
+                <div id="challenge-wager-info" class="bg-black/40 border border-orange-900/30 p-3 mb-4 text-sm text-center">
+                    <span class="text-gray-400">Wager required:</span>
+                    <span id="challenge-wager-display" class="orbitron text-orange-500 ml-2">--</span>
+                </div>
+                <button onclick="confirmChallenge()" id="confirm-challenge-btn" class="btn-mars w-full py-3 text-sm" disabled>Confirm Interception</button>
             </div>
         </div>
     </div>
 
-</main>
-
-<!-- Player Profile Modal -->
-<div id="player-modal" class="modal">
-    <div class="modal-content mars-glass p-8 w-full">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="orbitron text-xl text-orange-500">PILOT PROFILE</h2>
-            <button onclick="closePlayerModal()" class="text-2xl text-gray-500 hover:text-orange-500">&times;</button>
-        </div>
-        <div id="player-modal-content"></div>
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 mars-glass border-orange-500 px-8 py-4 text-orange-500 orbitron text-sm transform translate-y-32 transition-all duration-300 z-[200]">
+        SYSTEM MESSAGE
     </div>
-</div>
 
-<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 mars-glass border-orange-500 px-8 py-4 text-orange-500 orbitron text-sm transform translate-y-32 transition-all duration-300 z-[200]">
-    SYSTEM MESSAGE
-</div>
+    <script>
+        const CHAIN_ID = "0x7EB"; 
+        const RPC_URL = "https://martian-rpc1.amichain.org/";
+        const CONTRACT_ADDR = "0x395E368045315062b26AC950690f384c98fDEEe2";
+        
+        const SB_URL = "https://tvckbtgggsuwxtlgilcl.supabase.co"; 
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y2tidGdnZ3N1d3h0bGdpbGNsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDY2NDY0NSwiZXhwIjoyMDg2MjQwNjQ1fQ.DhvGNo3seKoRtDmeRod0gAP48yFZw_0-kAvY3eT_554"; 
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-<script>
-    // ── CONFIG ──────────────────────────────────────────────────────────────────
-    const CHAIN_ID = "0x7EB";
-    const RPC_URL  = "https://martian-rpc1.amichain.org/";
-    const CONTRACT_ADDR = "0x395E368045315062b26AC950690f384c98fDEEe2";
+        const ABI = [
+            "function createGame(bytes32 _hash, uint256 _timeout) external payable",
+            "function challengeGame(uint256 _gameId, uint8 _move) external payable",
+            "function resolveGame(uint256 _gameId, uint8 _move, string calldata _salt) external",
+            "function forceForfeit(uint256 _gameId) external",
+            "function refundUnchallenged(uint256 _gameId) external",
+            "function gameCounter() public view returns (uint256)",
+            "function games(uint256) public view returns (address host, address challenger, bytes32 commitHash, uint8 hostMove, uint8 challengerMove, uint256 wager, uint256 timeout, uint256 timestamp, uint8 status)",
+            "function getTimeRemaining(uint256 _gameId) external view returns (uint256)",
+            "function canForfeit(uint256 _gameId) external view returns (bool)",
+            "function canRefund(uint256 _gameId) external view returns (bool)",
+            "event GameCreated(uint256 indexed gameId, address indexed host, uint256 wager, uint256 timeout, bytes32 commitHash)",
+            "event GameChallenged(uint256 indexed gameId, address indexed challenger)",
+            "event GameResolved(uint256 indexed gameId, address winner, uint256 payout)"
+        ];
 
-    const SB_URL = "https://tvckbtgggsuwxtlgilcl.supabase.co";
-    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y2tidGdnZ3N1d3h0bGdpbGNsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDY2NDY0NSwiZXhwIjoyMDg2MjQwNjQ1fQ.DhvGNo3seKoRtDmeRod0gAP48yFZw_0-kAvY3eT_554";
-    const _supabase = supabase.createClient(SB_URL, SB_KEY);
+        let provider, signer, contract, userAddress;
+        let selectedMoveIdx = 0;
+        let lobbyRefreshInterval, activityRefreshInterval, chatRefreshInterval;
+        let currentLobbyFilter = 'all';
 
-    const BRIDGE_CONTRACT_ADDR = "0x87260775905e83689958a1491bc0c47396b2b21c";
-    const EROL_TOKEN_ADDR      = "0xCaC4904E1DB1589Aa17A2Ec742F5a6bCF4c4D037";
-    const AVAX_CHAIN_ID        = "0xa86a";
+        // Challenge modal state
+        let pendingChallengeId = null;
+        let pendingChallengeWager = null;
+        let selectedChallengeMove = 0;
 
-    const ERC20_ABI = [
-        "function balanceOf(address owner) view returns (uint256)",
-        "function approve(address spender, uint256 amount) returns (bool)",
-        "function allowance(address owner, address spender) view returns (uint256)"
-    ];
-    const BRIDGE_ABI = [
-        "function bridgeToMartian(uint256 amount) external",
-        "event BridgeInitiated(address indexed sender, uint256 amount, uint256 timestamp)"
-    ];
-    const ABI = [
-        "function createGame(bytes32 _hash, uint256 _timeout) external payable",
-        "function challengeGame(uint256 _gameId, uint8 _move) external payable",
-        "function resolveGame(uint256 _gameId, uint8 _move, string calldata _salt) external",
-        "function forceForfeit(uint256 _gameId) external",
-        "function refundUnchallenged(uint256 _gameId) external",
-        "function gameCounter() public view returns (uint256)",
-        "function games(uint256) public view returns (address host, address challenger, bytes32 commitHash, uint8 hostMove, uint8 challengerMove, uint256 wager, uint256 timeout, uint256 timestamp, uint8 status)",
-        "function getTimeRemaining(uint256 _gameId) external view returns (uint256)",
-        "function canForfeit(uint256 _gameId) external view returns (bool)",
-        "function canRefund(uint256 _gameId) external view returns (bool)",
-        "event GameCreated(uint256 indexed gameId, address indexed host, uint256 wager, uint256 timeout, bytes32 commitHash)",
-        "event GameChallenged(uint256 indexed gameId, address indexed challenger)",
-        "event GameResolved(uint256 indexed gameId, address winner, uint256 payout)"
-    ];
+        // ===========================
+        // UTILITY: Time helpers
+        // ===========================
+        function getTimeRemaining(game) {
+            const createdAt = new Date(game.created_at).getTime() / 1000;
+            const timeout = game.timeout || 900;
+            const deadline = createdAt + timeout;
+            const now = Math.floor(Date.now() / 1000);
+            return deadline - now;
+        }
 
-    // ── STATE ───────────────────────────────────────────────────────────────────
-    let provider, signer, contract, userAddress;
-    let selectedMoveIdx = 0;
-    let avaxProvider, avaxErolBalance = 0;
-    let lobbyRefreshInterval, activityRefreshInterval, chatRefreshInterval;
-    let currentLobbyFilter = 'all';
-    window._bridging = false;
+        function isExpired(game) {
+            return getTimeRemaining(game) <= 0;
+        }
 
-    // ── UTILS ───────────────────────────────────────────────────────────────────
-    function getTimeRemaining(game) {
-        const created = new Date(game.created_at).getTime() / 1000;
-        return (created + (game.timeout || 900)) - Math.floor(Date.now() / 1000);
-    }
-    function isTimedOut(game)  { return getTimeRemaining(game) <= 0; }
-    function isJoinable(game)  { return getTimeRemaining(game) > 60; }
-    function getStatusText(s)  { return ["Open","Intercepted","Resolved","Refunded","Forfeited"][s]; }
-    function getTimeAgo(date) {
-        const s = Math.floor((new Date() - date) / 1000);
-        if (s < 60) return s + "s ago";
-        const m = Math.floor(s/60); if (m < 60) return m + "m ago";
-        const h = Math.floor(m/60); if (h < 24) return h + "h ago";
-        return Math.floor(h/24) + "d ago";
-    }
-    function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.classList.remove('translate-y-32');
-        setTimeout(() => t.classList.add('translate-y-32'), 4000);
-    }
+        function isNearExpiry(game) {
+            // Less than 60 seconds remaining — too late to join
+            return getTimeRemaining(game) < 60;
+        }
 
-    // ── INIT ────────────────────────────────────────────────────────────────────
-    async function init() {
-        if (!window.ethereum) return;
-        provider = new ethers.BrowserProvider(window.ethereum);
-        document.getElementById('connect-btn').addEventListener('click', connectWallet);
+        function formatCountdown(seconds) {
+            if (seconds <= 0) return null;
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}m ${s}s`;
+        }
 
-        await refreshLobby();
-        await refreshActivityFeed();
-        await refreshChat();
+        // ===========================
+        // INIT
+        // ===========================
+        async function init() {
+            if (window.ethereum) {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                document.getElementById('connect-btn').addEventListener('click', connectWallet);
+                
+                await refreshLobby();
+                await refreshActivityFeed();
+                await refreshChat();
+                
+                lobbyRefreshInterval = setInterval(refreshLobby, 10000);
+                activityRefreshInterval = setInterval(refreshActivityFeed, 5000);
+                chatRefreshInterval = setInterval(refreshChat, 3000);
+                
+                _supabase.channel('game_updates')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'games' }, () => {
+                        refreshLobby();
+                        refreshActivityFeed();
+                    })
+                    .subscribe();
 
-        lobbyRefreshInterval    = setInterval(refreshLobby, 10000);
-        activityRefreshInterval = setInterval(refreshActivityFeed, 5000);
-        chatRefreshInterval     = setInterval(refreshChat, 3000);
+                _supabase.channel('chat_updates')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, () => {
+                        refreshChat();
+                    })
+                    .subscribe();
 
-        _supabase.channel('game_updates')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'games' }, () => {
-                refreshLobby(); refreshActivityFeed();
-            }).subscribe();
-
-        _supabase.channel('chat_updates')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, () => {
-                refreshChat();
-            }).subscribe();
-
-        window.ethereum.on('accountsChanged', () => window.location.reload());
-        window.ethereum.on('chainChanged', () => { if (!window._bridging) window.location.reload(); });
-    }
-
-    async function checkNetwork() {
-        const net = await provider.getNetwork();
-        if (("0x" + net.chainId.toString(16)).toLowerCase() !== CHAIN_ID.toLowerCase()) {
-            try {
-                await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID }] });
-            } catch (e) {
-                if (e.code === 4902) {
-                    try {
-                        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{
-                            chainId: CHAIN_ID, chainName: 'Martian Chain',
-                            nativeCurrency: { name: 'EROL', symbol: 'EROL', decimals: 18 },
-                            rpcUrls: [RPC_URL], blockExplorerUrls: ['https://explorer.martian.com']
-                        }]});
-                    } catch { showToast("FAILED TO ADD MARTIAN NETWORK"); return false; }
-                } else { showToast("SWITCH TO MARTIAN NETWORK"); return false; }
+                window.ethereum.on('accountsChanged', () => window.location.reload());
+                window.ethereum.on('chainChanged', () => window.location.reload());
             }
         }
-        return true;
-    }
 
-    async function connectWallet() {
-        try {
-            const accounts = await provider.send("eth_requestAccounts", []);
-            userAddress = accounts[0];
-            signer = await provider.getSigner();
-            if (!(await checkNetwork())) return;
-            contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
-            document.getElementById('connect-btn').classList.add('hidden');
-            document.getElementById('account-info').classList.remove('hidden');
-            document.getElementById('user-address').innerText = userAddress.slice(0,6) + '...' + userAddress.slice(-4);
-            updateBalance();
-            refreshLobby();
-        } catch (err) { console.error(err); showToast("UPLINK FAILED"); }
-    }
-
-    function copyAddress() {
-        if (userAddress) navigator.clipboard.writeText(userAddress)
-            .then(() => showToast("ADDRESS COPIED")).catch(() => showToast("COPY FAILED"));
-    }
-
-    async function updateBalance() {
-        if (!userAddress || !provider) return;
-        try {
-            const bal = await provider.getBalance(userAddress);
-            document.getElementById('user-balance').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " $EROL";
-        } catch(e) {}
-    }
-
-    function selectMove(idx) {
-        selectedMoveIdx = idx;
-        document.querySelectorAll('.move-select').forEach(b => b.classList.remove('selected'));
-        document.getElementById('move-' + idx).classList.add('selected');
-    }
-
-    // ── GAME ACTIONS ────────────────────────────────────────────────────────────
-    async function handleCreateGame() {
-        if (!signer) return showToast("CONNECT UPLINK FIRST");
-        if (!selectedMoveIdx) return showToast("SELECT TACTICAL MOVE");
-        if (!(await checkNetwork())) return;
-
-        const btn = document.getElementById('create-btn');
-        btn.disabled = true;
-        const wagerInput = document.getElementById('wager-amount').value;
-        const timeoutVal = document.getElementById('timeout-select').value;
-        const salt = ethers.hexlify(ethers.randomBytes(32));
-
-        try {
-            const nextId = (await contract.gameCounter()) + BigInt(1);
-            const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
-                ["uint8","string","address","uint256"], [selectedMoveIdx, salt, userAddress, nextId]);
-            const hash = ethers.keccak256(encoded);
-
-            showToast("ENCRYPTING SIGNAL...");
-            const tx = await contract.createGame(hash, timeoutVal, { value: ethers.parseEther(wagerInput) });
-            showToast("WAITING FOR CONFIRMATION...");
-            const receipt = await tx.wait();
-
-            const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
-            secrets[hash] = { move: selectedMoveIdx, salt, gameId: nextId.toString(), address: userAddress.toLowerCase() };
-            localStorage.setItem('martian_gambits', JSON.stringify(secrets));
-
-            let gameId = Number(nextId);
-            for (const log of receipt.logs) {
+        async function checkNetwork() {
+            const network = await provider.getNetwork();
+            if ("0x" + network.chainId.toString(16).toUpperCase() !== CHAIN_ID.toUpperCase()) {
                 try {
-                    if (log.address.toLowerCase() !== CONTRACT_ADDR.toLowerCase()) continue;
-                    const parsed = contract.interface.parseLog({ topics: log.topics, data: log.data });
-                    if (parsed?.name === 'GameCreated') { gameId = Number(parsed.args.gameId); break; }
-                } catch {}
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: CHAIN_ID }],
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: CHAIN_ID,
+                                    chainName: 'Martian Chain',
+                                    nativeCurrency: { name: 'EROL', symbol: 'EROL', decimals: 18 },
+                                    rpcUrls: [RPC_URL],
+                                    blockExplorerUrls: ['https://explorer.martian.com']
+                                }]
+                            });
+                        } catch (addError) {
+                            showToast("FAILED TO ADD MARTIAN NETWORK");
+                            return false;
+                        }
+                    } else {
+                        showToast("SWITCH TO MARTIAN NETWORK");
+                        return false;
+                    }
+                }
             }
-
-            const { error } = await _supabase.from('games').upsert([{
-                game_id: gameId, host: userAddress.toLowerCase(),
-                wager: wagerInput, timeout: parseInt(timeoutVal), status: 0, commit_hash: hash
-            }], { onConflict: 'game_id' });
-
-            showToast(error ? "⚠️ GAME CREATED BUT INDEX FAILED" : "✓ SIGNAL DEPLOYED");
-            setTimeout(async () => { await refreshLobby(); btn.disabled = false; }, 2000);
-        } catch (err) { console.error(err); showToast("DEPLOYMENT ABORTED"); btn.disabled = false; }
-    }
-
-    async function handleChallenge(id, wager) {
-        if (!signer) return showToast("CONNECT UPLINK FIRST");
-        if (!(await checkNetwork())) return;
-        const move = prompt("Select your move:\n1 - Solar Flare ☀️\n2 - Oxygen Siphon 🌬️\n3 - Dust Storm 🌪️");
-        if (!move || move < 1 || move > 3) return showToast("INVALID MOVE");
-        try {
-            showToast("INTERCEPTING...");
-            const gd = await contract.games(id);
-            const tx = await contract.challengeGame(id, move, { value: gd.wager });
-            showToast("CONFIRMING TRANSACTION...");
-            await tx.wait();
-            const { error } = await _supabase.from('games')
-                .update({ status: 1, challenger: userAddress.toLowerCase(), challenger_move: parseInt(move) })
-                .eq('game_id', id);
-            showToast(error ? "⚠️ INTERCEPTED BUT DB UPDATE FAILED" : "✓ SIGNAL INTERCEPTED");
-            setTimeout(refreshLobby, 1500);
-        } catch (err) { console.error(err); showToast("INTERCEPTION FAILED"); }
-    }
-
-    async function handleResolve(id, hash) {
-        if (!signer) return showToast("CONNECT UPLINK FIRST");
-        if (!(await checkNetwork())) return;
-        const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
-        let secret = secrets[hash];
-        if (!secret) {
-            if (!confirm("Secret not found. Enter manually?")) return showToast("⚠️ SECRET NOT FOUND");
-            const move = prompt("Enter your move (1-3):"), salt = prompt("Enter your salt:");
-            if (!move || !salt) return showToast("CANCELLED");
-            const enc = ethers.AbiCoder.defaultAbiCoder().encode(["uint8","string","address","uint256"],[parseInt(move),salt,userAddress,BigInt(id)]);
-            if (ethers.keccak256(enc).toLowerCase() !== hash.toLowerCase()) return showToast("⚠️ HASH MISMATCH");
-            secret = { move: parseInt(move), salt, gameId: id.toString() };
-        }
-        const enc = ethers.AbiCoder.defaultAbiCoder().encode(["uint8","string","address","uint256"],[secret.move,secret.salt,userAddress,BigInt(secret.gameId||id)]);
-        if (ethers.keccak256(enc).toLowerCase() !== hash.toLowerCase()) return showToast("⚠️ HASH VERIFICATION FAILED");
-        try {
-            showToast("BROADCASTING REVEAL...");
-            const tx = await contract.resolveGame(id, secret.move, secret.salt);
-            showToast("CONFIRMING...");
-            await tx.wait();
-            const gd = await contract.games(id);
-            const hm = Number(gd.hostMove), cm = Number(gd.challengerMove);
-            const msg = hm===cm ? "⚖️ DRAW" : ((hm===1&&cm===2)||(hm===2&&cm===3)||(hm===3&&cm===1)) ? "🏆 VICTORY!" : "💥 DEFEAT";
-            await _supabase.from('games').update({ status:2, host_move:hm, challenger_move:cm }).eq('game_id', id);
-            setTimeout(refreshLobby, 1000);
-            updateBalance();
-            showToast(msg);
-        } catch (err) { console.error(err); showToast("RESOLVE FAILED"); }
-    }
-
-    async function handleRefund(id) {
-        if (!signer) return showToast("CONNECT UPLINK FIRST");
-        if (!(await checkNetwork())) return;
-        try {
-            showToast("RETRACTING...");
-            await (await contract.refundUnchallenged(id)).wait();
-            await _supabase.from('games').update({ status: 3 }).eq('game_id', id);
-            refreshLobby(); updateBalance(); showToast("FUNDS RETRACTED");
-        } catch (err) { console.error(err); showToast("REFUND FAILED"); }
-    }
-
-    async function handleForceForfeit(gameId) {
-        if (!signer) return showToast("CONNECT UPLINK FIRST");
-        if (!(await checkNetwork())) return;
-        try {
-            showToast("CLAIMING VICTORY...");
-            await (await contract.forceForfeit(gameId)).wait();
-            await _supabase.from('games').update({ status: 4 }).eq('game_id', gameId);
-            refreshLobby(); updateBalance(); showToast("🏆 VICTORY BY FORFEIT!");
-        } catch (err) { console.error(err); showToast("FORFEIT FAILED"); }
-    }
-
-    // ── LOBBY ───────────────────────────────────────────────────────────────────
-    function getActionButtons(game, isHost, isChallenger) {
-        const status   = Number(game.status);
-        const timedOut = isTimedOut(game);
-        const joinable = isJoinable(game);
-
-        if (status === 0) {
-            if (isHost) {
-                // Retract only appears AFTER timeout — nothing shown while live
-                return timedOut
-                    ? `<button onclick="handleRefund(${game.game_id})" class="text-[9px] border border-gray-700 px-4 py-2 hover:bg-white/5 uppercase">Retract</button>`
-                    : `<span class="text-[9px] text-orange-600 uppercase italic">⏳ Awaiting Challenger...</span>`;
-            }
-            if (timedOut)  return `<span class="text-[9px] text-red-600 uppercase">⏱ Expired</span>`;
-            if (!joinable) return `<span class="text-[9px] text-red-500 uppercase animate-pulse">🔒 Closing Soon</span>`;
-            return `<button onclick="handleChallenge(${game.game_id},'${game.wager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
+            return true;
         }
 
-        if (status === 1) {
-            if (isHost) return `<button onclick="handleResolve(${game.game_id},'${game.commit_hash}')" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Broadcast Reveal</button>`;
-            if (isChallenger) {
-                const deadline = new Date(game.created_at).getTime()/1000 + (game.timeout||900);
-                return Math.floor(Date.now()/1000) >= deadline
-                    ? `<button onclick="handleForceForfeit(${game.game_id})" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Claim Victory</button>`
-                    : `<span class="text-[9px] text-orange-500 uppercase italic">⚔️ Awaiting Host Reveal...</span>`;
+        async function connectWallet() {
+            try {
+                const accounts = await provider.send("eth_requestAccounts", []);
+                userAddress = accounts[0];
+                signer = await provider.getSigner();
+                
+                if (!(await checkNetwork())) return;
+
+                contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+                document.getElementById('connect-btn').classList.add('hidden');
+                document.getElementById('account-info').classList.remove('hidden');
+                
+                const shortened = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+                document.getElementById('user-address').innerText = shortened;
+                
+                updateBalance();
+                refreshLobby();
+            } catch (err) { 
+                console.error(err);
+                showToast("UPLINK FAILED"); 
             }
-            return `<span class="text-[9px] text-orange-900 uppercase italic">Combat Active</span>`;
         }
-        if (status === 2) return `<span class="text-[9px] text-green-500 uppercase">✓ Resolved</span>`;
-        if (status === 3) return `<span class="text-[9px] text-gray-600 uppercase">Refunded</span>`;
-        if (status === 4) return `<span class="text-[9px] text-red-600 uppercase">⚡ Forfeited</span>`;
-        return `<span class="text-[9px] text-gray-700 uppercase">Inactive</span>`;
-    }
 
-    async function refreshLobby() {
-        const lobby = document.getElementById('lobby-list');
-        try {
-            const { data: games, error } = await _supabase.from('games')
-                .select('*').order('game_id', { ascending: false }).limit(100);
-            if (error) { lobby.innerHTML = `<div class="text-center py-20 text-red-500">Error: ${error.message}</div>`; return; }
+        function copyAddress() {
+            if (userAddress) {
+                navigator.clipboard.writeText(userAddress).then(() => {
+                    showToast("ADDRESS COPIED");
+                }).catch(() => showToast("COPY FAILED"));
+            }
+        }
 
-            lobby.innerHTML = '';
-            let count = 0;
+        async function updateBalance() {
+            if (!userAddress || !provider) return;
+            try {
+                const balance = await provider.getBalance(userAddress);
+                document.getElementById('user-balance').innerText = `${parseFloat(ethers.formatEther(balance)).toFixed(2)} $EROL`;
+            } catch (e) { console.error("Balance fetch error", e); }
+        }
 
-            games.forEach(game => {
+        function selectMove(idx) {
+            selectedMoveIdx = idx;
+            document.querySelectorAll('.move-select').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById(`move-${idx}`).classList.add('selected');
+        }
+
+        // ===========================
+        // CREATE GAME
+        // ===========================
+        async function handleCreateGame() {
+            if (!signer) return showToast("CONNECT UPLINK FIRST");
+            if (selectedMoveIdx === 0) return showToast("SELECT TACTICAL MOVE");
+            if (!(await checkNetwork())) return;
+            
+            const createBtn = document.getElementById('create-btn');
+            createBtn.disabled = true;
+            
+            const wagerInput = document.getElementById('wager-amount').value;
+            const wagerValue = ethers.parseEther(wagerInput);
+            const timeoutValue = document.getElementById('timeout-select').value;
+            const salt = ethers.hexlify(ethers.randomBytes(32));
+            
+            try {
+                const nextGameId = (await contract.gameCounter()) + BigInt(1);
+                
+                const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+                    ["uint8", "string", "address", "uint256"],
+                    [selectedMoveIdx, salt, userAddress, nextGameId]
+                );
+                const hash = ethers.keccak256(encoded);
+
+                showToast("ENCRYPTING SIGNAL...");
+                const tx = await contract.createGame(hash, timeoutValue, { value: wagerValue });
+                
+                showToast("WAITING FOR CONFIRMATION...");
+                const receipt = await tx.wait();
+                
+                const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
+                secrets[hash] = { 
+                    move: selectedMoveIdx, 
+                    salt: salt,
+                    gameId: nextGameId.toString(),
+                    address: userAddress.toLowerCase()
+                };
+                localStorage.setItem('martian_gambits', JSON.stringify(secrets));
+
+                let gameId = Number(nextGameId);
+
+                try {
+                    for (const log of receipt.logs) {
+                        try {
+                            if (log.address.toLowerCase() !== CONTRACT_ADDR.toLowerCase()) continue;
+                            const parsed = contract.interface.parseLog({ topics: log.topics, data: log.data });
+                            if (parsed && parsed.name === 'GameCreated') {
+                                gameId = Number(parsed.args.gameId);
+                                break;
+                            }
+                        } catch(e) { continue; }
+                    }
+                } catch (e) { console.warn("Log parsing failed:", e); }
+
+                const { error: sbError } = await _supabase.from('games')
+                    .upsert([{
+                        game_id: gameId,
+                        host: userAddress.toLowerCase(),
+                        wager: wagerInput,
+                        timeout: parseInt(timeoutValue),
+                        status: 0,
+                        commit_hash: hash
+                    }], { onConflict: 'game_id' })
+                    .select();
+
+                if (sbError) {
+                    console.error("Supabase upsert error:", sbError);
+                    showToast("⚠️ GAME CREATED BUT INDEX FAILED");
+                } else {
+                    showToast("✓ SIGNAL DEPLOYED");
+                }
+
+                setTimeout(async () => {
+                    await refreshLobby();
+                    createBtn.disabled = false;
+                }, 2000);
+                
+            } catch (err) { 
+                console.error("Game Creation Error:", err);
+                showToast("DEPLOYMENT ABORTED");
+                createBtn.disabled = false;
+            }
+        }
+
+        // ===========================
+        // LOBBY
+        // ===========================
+        async function refreshLobby() {
+            const lobby = document.getElementById('lobby-list');
+            try {
+                const { data: games, error } = await _supabase.from('games')
+                    .select('*')
+                    .order('game_id', { ascending: false })
+                    .limit(100);
+
+                if (error) {
+                    lobby.innerHTML = `<div class="text-center py-20 text-red-500 uppercase">Indexing Error: ${error.message}</div>`;
+                    return;
+                }
+
+                lobby.innerHTML = '';
+                let displayedCount = 0;
+
+                games.forEach(game => {
+                    const status = Number(game.status);
+                    const isHost = userAddress && game.host === userAddress.toLowerCase();
+                    const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
+                    
+                    if (currentLobbyFilter === 'open' && status !== 0) return;
+                    if (currentLobbyFilter === 'intercepted' && status !== 1) return;
+                    if (currentLobbyFilter === 'resolved' && status !== 2) return;
+                    
+                    // In "all" filter, hide resolved/refunded/forfeited games unless you participated
+                    if (status > 1 && !isHost && !isChallenger && currentLobbyFilter === 'all') return;
+
+                    displayedCount++;
+
+                    const remaining = getTimeRemaining(game);
+                    const expired = remaining <= 0;
+                    const nearExpiry = remaining > 0 && remaining < 60;
+
+                    let countdownHTML = '';
+                    if (status === 0 || status === 1) {
+                        if (!expired) {
+                            const timeColor = nearExpiry ? 'text-red-400 animate-pulse' : (remaining < 300 ? 'text-yellow-500' : 'text-orange-500');
+                            countdownHTML = `<span class="text-[10px] ${timeColor} ml-2">⏱ ${formatCountdown(remaining)}</span>`;
+                        } else {
+                            countdownHTML = `<span class="text-[10px] text-red-500 ml-2 animate-pulse">⏱ TIMEOUT</span>`;
+                        }
+                    }
+
+                    if (status === 0 && nearExpiry && !isHost) {
+                        countdownHTML += `<span class="text-[10px] text-red-500 ml-2">🔒 CLOSING SOON</span>`;
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = "lobby-row p-4 bg-black/40 border-l-2 flex flex-col md:flex-row justify-between items-center gap-4 " + 
+                        (status == 0 ? "border-orange-500" : 
+                         status == 1 ? "border-yellow-500" : 
+                         status == 2 ? "border-green-700" : 
+                         "border-gray-800");
+                    
+                    // Click handler to open detail page
+                    div.setAttribute('data-game-id', game.game_id);
+                    div.onclick = (e) => {
+                        // Don't navigate if clicking a button
+                        if (e.target.closest('button')) return;
+                        openMatchDetail(game.game_id);
+                    };
+                    
+                    let gameInfo = `
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="text-[9px] px-2 py-0.5 border ${
+                                    status == 0 ? 'border-orange-500 text-orange-500' : 
+                                    status == 1 ? 'border-yellow-500 text-yellow-500' : 
+                                    status == 2 ? 'border-green-500 text-green-500' : 
+                                    'border-gray-700 text-gray-500'
+                                } uppercase">${getStatusText(status)}</span>
+                                <span class="text-[9px] text-orange-900/40">ID: ${game.game_id}</span>
+                                ${countdownHTML}
+                            </div>
+                            <div class="orbitron text-white text-sm">
+                                <span class="text-orange-500">${game.wager} $EROL</span> 
+                                <span class="text-gray-600 text-[10px] ml-2">FROM ${game.host.slice(0,6)}...</span>`;
+                    
+                    if (status == 2 && game.host_move && game.challenger_move) {
+                        const moves = ['', '☀️ Solar', '🌬️ Oxygen', '🌪️ Dust'];
+                        const hostMove = Number(game.host_move);
+                        const challengerMove = Number(game.challenger_move);
+                        let winner = '';
+                        if (hostMove === challengerMove) {
+                            winner = '⚖️ DRAW';
+                        } else if (
+                            (hostMove === 1 && challengerMove === 2) ||
+                            (hostMove === 2 && challengerMove === 3) ||
+                            (hostMove === 3 && challengerMove === 1)
+                        ) {
+                            winner = `🏆 ${game.host.slice(0,6)}... WINS`;
+                        } else {
+                            winner = `🏆 ${(game.challenger || 'Unknown').slice(0,6)}... WINS`;
+                        }
+                        gameInfo += `
+                            <div class="text-[10px] mt-1 text-gray-400">
+                                Host: ${moves[hostMove]} vs Challenger: ${moves[challengerMove]}
+                            </div>
+                            <div class="text-[11px] mt-1 font-bold ${hostMove === challengerMove ? 'text-yellow-500' : 'text-green-500'}">
+                                ${winner}
+                            </div>`;
+                    }
+                    
+                    gameInfo += `
+                            </div>
+                            <div class="text-[9px] text-gray-700 mt-1">Click row for details</div>
+                        </div>
+                        <div class="flex gap-2 shrink-0" onclick="event.stopPropagation()">${getActionButtons(game, isHost, isChallenger)}</div>`;
+                    
+                    div.innerHTML = gameInfo;
+                    lobby.appendChild(div);
+                });
+                
+                if (displayedCount === 0) {
+                    lobby.innerHTML = '<div class="text-center py-20 opacity-30 uppercase italic">No signals detected...</div>';
+                }
+            } catch (err) { 
+                console.error("Lobby Refresh Error:", err);
+                lobby.innerHTML = `<div class="text-center py-20 text-red-500">Error loading lobby: ${err.message}</div>`;
+            }
+        }
+
+        function setLobbyFilter(filter) {
+            currentLobbyFilter = filter;
+            document.querySelectorAll('.lobby-filter').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`filter-${filter}`).classList.add('active');
+            refreshLobby();
+        }
+
+        function getActionButtons(game, isHost, isChallenger) {
+            const status = Number(game.status);
+            const expired = isExpired(game);
+            const nearExpiry = isNearExpiry(game);
+
+            if (status === 0) {
+                if (isHost) {
+                    // HOST: only show Retract button
+                    return `<button onclick="handleRefund(${game.game_id})" class="text-[9px] border border-gray-700 px-4 py-2 hover:bg-white/5 uppercase transition">Retract</button>`;
+                }
+                // Non-host: show Intercept only if not expired and not near expiry
+                if (expired) {
+                    return `<span class="text-[9px] text-red-700 uppercase italic">Timed Out</span>`;
+                }
+                if (nearExpiry) {
+                    return `<span class="text-[9px] text-red-500 uppercase italic">🔒 Closing...</span>`;
+                }
+                return `<button onclick="openChallengeModal(${game.game_id}, '${game.wager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
+            }
+
+            if (status === 1) {
+                if (isHost) {
+                    return `<button onclick="handleResolve(${game.game_id}, '${game.commit_hash}')" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Broadcast Reveal</button>`;
+                }
+                if (isChallenger) {
+                    if (expired) {
+                        return `<button onclick="handleForceForfeit(${game.game_id})" class="btn-mars text-[10px] px-6 py-2 animate-pulse">Claim Victory</button>`;
+                    }
+                    return `<span class="text-[9px] text-orange-500 uppercase italic">⚔️ Awaiting Reveal...</span>`;
+                }
+                return `<span class="text-[9px] text-orange-900 uppercase italic">Combat Active</span>`;
+            }
+
+            if (status === 2) return `<span class="text-[9px] text-green-500 uppercase">✓ Resolved</span>`;
+            if (status === 3) return `<span class="text-[9px] text-gray-600 uppercase">Refunded</span>`;
+            if (status === 4) return `<span class="text-[9px] text-red-600 uppercase">⚡ Forfeited</span>`;
+            return `<span class="text-[9px] text-gray-700 uppercase">Inactive</span>`;
+        }
+
+        // ===========================
+        // MATCH DETAIL PAGE
+        // ===========================
+        async function openMatchDetail(gameId) {
+            // Switch to match detail tab
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('page-match').classList.add('active');
+
+            const content = document.getElementById('match-detail-content');
+            content.innerHTML = `<div class="text-center py-20 text-orange-500 animate-pulse orbitron">Loading match data...</div>`;
+
+            try {
+                const { data: games, error } = await _supabase
+                    .from('games')
+                    .select('*')
+                    .eq('game_id', gameId)
+                    .single();
+
+                if (error || !games) throw new Error("Game not found");
+
+                const game = games;
                 const status = Number(game.status);
                 const isHost = userAddress && game.host === userAddress.toLowerCase();
                 const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
+                const moves = ['', '☀️ Solar Flare', '🌬️ Oxygen Siphon', '🌪️ Dust Storm'];
+                const moveIcons = ['', '☀️', '🌬️', '🌪️'];
+                const remaining = getTimeRemaining(game);
+                const expired = remaining <= 0;
+                const nearExpiry = remaining > 0 && remaining < 60;
 
-                if (currentLobbyFilter === 'open' && status !== 0) return;
-                if (currentLobbyFilter === 'intercepted' && status !== 1) return;
-                if (currentLobbyFilter === 'resolved' && status !== 2) return;
-                if (status > 1 && !isHost && !isChallenger && currentLobbyFilter === 'all') return;
+                const pot = parseFloat(game.wager) * 2;
+                const winnerPayout = (pot * 0.97).toFixed(4);
+                const treasury = (pot * 0.015).toFixed(4);
+                const burnt = (pot * 0.015).toFixed(4);
 
-                count++;
-                const rem       = getTimeRemaining(game);
-                const timedOut  = rem <= 0;
-                const closing   = rem > 0 && rem <= 60;
+                // Determine result
+                let resultSection = '';
+                let hostMove = Number(game.host_move);
+                let challengerMove = Number(game.challenger_move);
 
-                let countdown = '';
-                if (status === 0 || status === 1) {
-                    if (timedOut)    countdown = `<span class="text-[10px] text-red-500 ml-2 animate-pulse">⏱ TIMEOUT</span>`;
-                    else if (closing) countdown = `<span class="text-[10px] text-red-400 ml-2 animate-pulse">⏱ ${Math.floor(rem)}s — CLOSING</span>`;
-                    else             countdown = `<span class="text-[10px] text-orange-500 ml-2">⏱ ${Math.floor(rem/60)}m ${Math.floor(rem%60)}s</span>`;
-                }
+                if (status === 2 && game.host_move && game.challenger_move) {
+                    let winnerAddr = '';
+                    let resultLabel = '';
+                    let resultColor = '';
 
-                const border = status==0?"border-orange-500":status==1?"border-yellow-500":status==2?"border-green-700":"border-gray-800";
-                const badge  = status==0?"border-orange-500 text-orange-500":status==1?"border-yellow-500 text-yellow-500":status==2?"border-green-500 text-green-500":"border-gray-700 text-gray-500";
+                    if (hostMove === challengerMove) {
+                        resultLabel = '⚖️ DRAW — Both pilots return to base';
+                        resultColor = 'text-yellow-500';
+                        winnerAddr = 'Draw';
+                    } else if (
+                        (hostMove === 1 && challengerMove === 2) ||
+                        (hostMove === 2 && challengerMove === 3) ||
+                        (hostMove === 3 && challengerMove === 1)
+                    ) {
+                        resultLabel = `🏆 HOST WINS`;
+                        winnerAddr = game.host;
+                        resultColor = 'text-green-500';
+                    } else {
+                        resultLabel = `🏆 CHALLENGER WINS`;
+                        winnerAddr = game.challenger;
+                        resultColor = 'text-green-500';
+                    }
 
-                let html = `<div class="p-4 bg-black/40 border-l-2 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:bg-black/60 ${border}">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-1 flex-wrap">
-                            <span class="text-[9px] px-2 py-0.5 border ${badge} uppercase">${getStatusText(status)}</span>
-                            <span class="text-[9px] text-orange-900/40">ID: ${game.game_id}</span>
-                            ${countdown}
-                            ${closing && status===0 ? '<span class="text-[9px] text-red-400 border border-red-400/40 px-1 ml-1">NO NEW ENTRIES</span>' : ''}
+                    resultSection = `
+                        <div class="mars-glass p-6 mb-6 border border-orange-500/30">
+                            <h3 class="orbitron text-sm text-orange-500 mb-4 uppercase">⚔️ Battle Outcome</h3>
+                            <div class="${resultColor} orbitron text-2xl font-bold text-center mb-6">${resultLabel}</div>
+                            <div class="grid grid-cols-2 gap-6 text-center">
+                                <div class="bg-black/40 p-4 ${isHost && resultLabel.includes('HOST') ? 'border border-green-500/30' : ''}">
+                                    <div class="text-[10px] text-gray-500 uppercase mb-2">HOST</div>
+                                    <div class="text-4xl mb-2">${moveIcons[hostMove]}</div>
+                                    <div class="orbitron text-orange-500 text-sm">${moves[hostMove]}</div>
+                                    <div class="text-[10px] text-gray-600 mt-1">${game.host.slice(0,10)}...</div>
+                                </div>
+                                <div class="bg-black/40 p-4 ${isChallenger && resultLabel.includes('CHALLENGER') ? 'border border-green-500/30' : ''}">
+                                    <div class="text-[10px] text-gray-500 uppercase mb-2">CHALLENGER</div>
+                                    <div class="text-4xl mb-2">${moveIcons[challengerMove]}</div>
+                                    <div class="orbitron text-orange-500 text-sm">${moves[challengerMove]}</div>
+                                    <div class="text-[10px] text-gray-600 mt-1">${(game.challenger || 'Unknown').slice(0,10)}...</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="orbitron text-white text-sm">
-                            <span class="text-orange-500">${game.wager} $EROL</span>
-                            <span class="text-gray-600 text-[10px] ml-2">FROM ${game.host.slice(0,6)}...</span>
-                        </div>`;
-
-                if (status==2 && game.host_move && game.challenger_move) {
-                    const mv = ['','☀️ Solar','🌬️ Oxygen','🌪️ Dust'];
-                    const hm = Number(game.host_move), cm = Number(game.challenger_move);
-                    const w  = hm===cm ? '⚖️ DRAW' : ((hm===1&&cm===2)||(hm===2&&cm===3)||(hm===3&&cm===1))
-                        ? `🏆 ${game.host.slice(0,6)}... WINS` : `🏆 ${(game.challenger||'?').slice(0,6)}... WINS`;
-                    html += `<div class="text-[10px] mt-1 text-gray-400">Host: ${mv[hm]} vs Challenger: ${mv[cm]}</div>
-                             <div class="text-[11px] mt-1 font-bold ${hm===cm?'text-yellow-500':'text-green-500'}">${w}</div>`;
+                    `;
                 }
 
-                html += `</div><div class="flex gap-2">${getActionButtons(game,isHost,isChallenger)}</div></div>`;
-                lobby.innerHTML += html;
-            });
+                // Timer section
+                let timerSection = '';
+                if (status === 0 || status === 1) {
+                    const timeColor = expired ? 'text-red-500' : (nearExpiry ? 'text-red-400' : 'text-orange-500');
+                    const timeDisplay = expired ? 'TIMED OUT' : formatCountdown(remaining);
+                    timerSection = `
+                        <div class="stat-card mb-4">
+                            <div class="text-[10px] text-gray-500 uppercase mb-2">Time Remaining</div>
+                            <div class="orbitron text-3xl ${timeColor} ${expired ? 'animate-pulse' : ''}">${timeDisplay}</div>
+                            ${nearExpiry && !expired ? `<div class="text-[10px] text-red-500 mt-2 animate-pulse">🔒 Cannot be joined in final 60 seconds</div>` : ''}
+                        </div>
+                    `;
+                }
 
-            if (count === 0) lobby.innerHTML = '<div class="text-center py-20 opacity-30 uppercase italic">No signals detected...</div>';
-        } catch (err) { console.error(err); lobby.innerHTML = `<div class="text-center py-20 text-red-500">Error: ${err.message}</div>`; }
-    }
+                // Action buttons for this player
+                const actionButtons = getActionButtons(game, isHost, isChallenger);
 
-    function setLobbyFilter(filter) {
-        currentLobbyFilter = filter;
-        document.querySelectorAll('.lobby-filter').forEach(b => b.classList.remove('active'));
-        document.getElementById('filter-' + filter).classList.add('active');
-        refreshLobby();
-    }
+                // Timeline / History
+                const createdTime = new Date(game.created_at);
+                let timelineHTML = `
+                    <div class="timeline-item">
+                        <div class="text-sm text-white font-bold">Game Created</div>
+                        <div class="text-[10px] text-gray-500">${createdTime.toLocaleString()}</div>
+                        <div class="text-[10px] text-gray-600 mt-1">Host: ${game.host.slice(0,10)}...${game.host.slice(-6)}</div>
+                    </div>
+                `;
 
-    // ── ACTIVITY FEED ───────────────────────────────────────────────────────────
-    async function refreshActivityFeed() {
-        const feed = document.getElementById('activity-feed');
-        try {
-            const { data: games, error } = await _supabase.from('games')
-                .select('*').eq('status',2).order('updated_at',{ascending:false}).limit(50);
-            if (error) return;
-            const mv = ['','☀️','🌬️','🌪️'];
-            feed.innerHTML = games.map(g => {
-                const hm=Number(g.host_move), cm=Number(g.challenger_move);
-                let res='', col='';
-                if (hm===cm) { res='DRAW'; col='text-yellow-500'; }
-                else if ((hm===1&&cm===2)||(hm===2&&cm===3)||(hm===3&&cm===1)) { res=g.host.slice(0,6)+'... WINS'; col='text-green-500'; }
-                else { res=(g.challenger||'?').slice(0,6)+'... WINS'; col='text-green-500'; }
-                return `<div class="bg-black/40 border-l-2 border-green-700 p-3 flex justify-between items-center hover:bg-black/60 transition">
-                    <div class="flex-1"><div class="text-sm ${col} font-bold">${res}</div>
-                    <div class="text-[10px] text-gray-500 mt-1">${mv[hm]} vs ${mv[cm]} • ${g.wager} $EROL • ${getTimeAgo(new Date(g.updated_at||g.created_at))}</div></div>
-                    <div class="text-2xl">${res.includes('DRAW')?'⚖️':'🏆'}</div></div>`;
-            }).join('') || '<div class="text-center text-gray-600 py-8">No recent activity</div>';
-        } catch(err) { console.error(err); }
-    }
+                if (status >= 1 && game.challenger) {
+                    timelineHTML += `
+                        <div class="timeline-item">
+                            <div class="text-sm text-yellow-400 font-bold">Signal Intercepted</div>
+                            <div class="text-[10px] text-gray-600 mt-1">Challenger: ${game.challenger.slice(0,10)}...${game.challenger.slice(-6)}</div>
+                        </div>
+                    `;
+                }
 
-    // ── CHAT ────────────────────────────────────────────────────────────────────
-    async function refreshChat() {
-        const box = document.getElementById('chat-messages');
-        try {
-            const { data: msgs, error } = await _supabase.from('chat_messages')
-                .select('*').order('created_at',{ascending:false}).limit(50);
-            if (error) return;
-            const atBottom = box.scrollHeight - box.scrollTop === box.clientHeight;
-            box.innerHTML = msgs.reverse().map(m => {
-                const own = userAddress && m.sender.toLowerCase()===userAddress.toLowerCase();
-                return `<div class="${own?'text-right':'text-left'}">
-                    <div class="inline-block max-w-[80%] ${own?'bg-orange-900/30':'bg-gray-900/50'} px-3 py-2 rounded">
-                        <div class="text-[9px] text-orange-700 mb-1">${m.sender.slice(0,6)}...${m.sender.slice(-4)}</div>
-                        <div class="text-sm text-gray-200">${escapeHtml(m.message)}</div>
-                    </div></div>`;
-            }).join('');
-            if (atBottom) box.scrollTop = box.scrollHeight;
-        } catch(err) { console.error(err); }
-    }
+                if (status === 2) {
+                    timelineHTML += `
+                        <div class="timeline-item">
+                            <div class="text-sm text-green-400 font-bold">Battle Resolved</div>
+                            <div class="text-[10px] text-gray-500">${game.updated_at ? new Date(game.updated_at).toLocaleString() : 'Unknown time'}</div>
+                        </div>
+                    `;
+                }
 
-    async function sendMessage() {
-        const input = document.getElementById('chat-input');
-        const msg = input.value.trim();
-        if (!msg || !userAddress) return;
-        try {
-            const { error } = await _supabase.from('chat_messages').insert([{ sender: userAddress.toLowerCase(), message: msg }]);
-            if (error) showToast("MESSAGE FAILED");
-            else { input.value = ''; refreshChat(); }
-        } catch { showToast("MESSAGE FAILED"); }
-    }
+                if (status === 3) {
+                    timelineHTML += `<div class="timeline-item"><div class="text-sm text-gray-400 font-bold">Wager Refunded</div></div>`;
+                }
 
-    // ── LEADERBOARD ─────────────────────────────────────────────────────────────
-    async function loadLeaderboard() {
-        try {
-            const { data: games, error } = await _supabase.from('games').select('*').eq('status',2);
-            if (error) return;
-            const stats = {};
-            let tw=0, tb=0, tt=0;
+                if (status === 4) {
+                    timelineHTML += `<div class="timeline-item"><div class="text-sm text-red-400 font-bold">Game Forfeited</div></div>`;
+                }
 
-            games.forEach(g => {
-                const w = parseFloat(g.wager);
-                tw += w*2; tb += w*2*0.015; tt += w*2*0.015;
-                const hm=Number(g.host_move), cm=Number(g.challenger_move);
-                [g.host, g.challenger].forEach(addr => {
-                    if (!addr) return;
-                    if (!stats[addr]) stats[addr]={address:addr,totalWagered:0,wins:0,losses:0,draws:0,games:0,biggestPot:0,currentStreak:0,longestStreak:0};
-                    stats[addr].totalWagered+=w; stats[addr].games++;
-                    if (w*2>stats[addr].biggestPot) stats[addr].biggestPot=w*2;
-                });
-                if (hm===cm) {
-                    if(stats[g.host]){stats[g.host].draws++;stats[g.host].currentStreak=0;}
-                    if(g.challenger&&stats[g.challenger]){stats[g.challenger].draws++;stats[g.challenger].currentStreak=0;}
+                content.innerHTML = `
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Main Info -->
+                        <div class="lg:col-span-2 space-y-6">
+                            <!-- Header -->
+                            <div class="mars-glass p-6">
+                                <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
+                                    <div>
+                                        <div class="text-[10px] text-gray-600 mb-1">MATCH ID</div>
+                                        <div class="orbitron text-3xl text-orange-500">#${game.game_id}</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-[9px] px-3 py-1 border ${
+                                            status == 0 ? 'border-orange-500 text-orange-500' : 
+                                            status == 1 ? 'border-yellow-500 text-yellow-500' : 
+                                            status == 2 ? 'border-green-500 text-green-500' : 
+                                            'border-gray-700 text-gray-500'
+                                        } uppercase">${getStatusText(status)}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Stats row -->
+                                <div class="grid grid-cols-3 gap-3 mb-6">
+                                    <div class="stat-card">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Wager</div>
+                                        <div class="orbitron text-orange-500 text-lg">${game.wager}</div>
+                                        <div class="text-[9px] text-gray-600">$EROL each</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Total Pot</div>
+                                        <div class="orbitron text-orange-500 text-lg">${pot.toFixed(4)}</div>
+                                        <div class="text-[9px] text-gray-600">$EROL</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Timeout</div>
+                                        <div class="orbitron text-orange-500 text-lg">${Math.floor(game.timeout / 60)}m</div>
+                                        <div class="text-[9px] text-gray-600">window</div>
+                                    </div>
+                                </div>
+
+                                ${timerSection}
+                            </div>
+
+                            ${resultSection}
+
+                            <!-- Players -->
+                            <div class="mars-glass p-6">
+                                <h3 class="orbitron text-sm text-orange-500 mb-4 uppercase">Combatants</h3>
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between bg-black/40 p-4 border border-orange-900/20">
+                                        <div>
+                                            <div class="text-[9px] text-orange-700 uppercase mb-1">Host ${isHost ? '(You)' : ''}</div>
+                                            <div class="text-sm text-white font-mono">${game.host}</div>
+                                        </div>
+                                        <div class="text-right">
+                                            ${status === 2 && game.host_move ? `<div class="text-2xl">${moveIcons[Number(game.host_move)]}</div>` : `<div class="text-[10px] text-gray-600">Move Hidden</div>`}
+                                        </div>
+                                    </div>
+                                    ${game.challenger ? `
+                                    <div class="flex items-center justify-between bg-black/40 p-4 border border-yellow-900/20">
+                                        <div>
+                                            <div class="text-[9px] text-yellow-700 uppercase mb-1">Challenger ${isChallenger ? '(You)' : ''}</div>
+                                            <div class="text-sm text-white font-mono">${game.challenger}</div>
+                                        </div>
+                                        <div class="text-right">
+                                            ${status === 2 && game.challenger_move ? `<div class="text-2xl">${moveIcons[Number(game.challenger_move)]}</div>` : `<div class="text-[10px] text-gray-600">${status === 1 ? 'Move Locked In' : 'No Challenger Yet'}</div>`}
+                                        </div>
+                                    </div>` : `
+                                    <div class="bg-black/40 p-4 border border-gray-900/20 text-center text-gray-600 text-sm italic">
+                                        Awaiting challenger...
+                                    </div>`}
+                                </div>
+                            </div>
+
+                            <!-- Payout Breakdown -->
+                            <div class="mars-glass p-6">
+                                <h3 class="orbitron text-sm text-orange-500 mb-4 uppercase">Payout Structure</h3>
+                                <div class="space-y-3 text-sm">
+                                    <div class="flex justify-between items-center py-2 border-b border-orange-900/10">
+                                        <span class="text-gray-400">Total Pot</span>
+                                        <span class="orbitron text-white">${pot.toFixed(4)} $EROL</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2 border-b border-orange-900/10">
+                                        <span class="text-gray-400">Winner Receives (97%)</span>
+                                        <span class="orbitron text-green-500">${winnerPayout} $EROL</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2 border-b border-orange-900/10">
+                                        <span class="text-gray-400">Treasury (1.5%)</span>
+                                        <span class="orbitron text-blue-500">${treasury} $EROL</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2">
+                                        <span class="text-gray-400">Burned (1.5%)</span>
+                                        <span class="orbitron text-red-500">${burnt} $EROL</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar -->
+                        <div class="space-y-6">
+                            <!-- Action Panel -->
+                            ${(isHost || isChallenger) || (status === 0 && !expired && !nearExpiry) ? `
+                            <div class="mars-glass p-6">
+                                <h3 class="orbitron text-sm text-orange-500 mb-4 uppercase">Your Actions</h3>
+                                <div class="space-y-2">
+                                    ${getActionButtons(game, isHost, isChallenger)}
+                                </div>
+                            </div>` : ''}
+
+                            <!-- Match Timeline -->
+                            <div class="mars-glass p-6">
+                                <h3 class="orbitron text-sm text-orange-500 mb-4 uppercase">Mission Log</h3>
+                                <div class="text-sm">
+                                    ${timelineHTML}
+                                </div>
+                            </div>
+
+                            <!-- Commit Hash -->
+                            <div class="mars-glass p-6">
+                                <h3 class="orbitron text-sm text-orange-500 mb-4 uppercase">On-Chain Proof</h3>
+                                <div class="space-y-3 text-[10px]">
+                                    <div>
+                                        <div class="text-gray-600 mb-1">Commit Hash</div>
+                                        <div class="text-orange-800 break-all font-mono text-[9px]">${game.commit_hash || 'N/A'}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-600 mb-1">Contract</div>
+                                        <div class="text-orange-800 break-all font-mono text-[9px]">${CONTRACT_ADDR}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- How to win reminder -->
+                            <div class="mars-glass p-6 bg-orange-900/5">
+                                <h3 class="orbitron text-sm text-orange-500 mb-3 uppercase">Move Rules</h3>
+                                <div class="space-y-2 text-[10px] text-gray-500">
+                                    <div>☀️ Solar <span class="text-orange-800">beats</span> 🌬️ Oxygen</div>
+                                    <div>🌬️ Oxygen <span class="text-orange-800">beats</span> 🌪️ Dust</div>
+                                    <div>🌪️ Dust <span class="text-orange-800">beats</span> ☀️ Solar</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            } catch (err) {
+                console.error("Match detail error:", err);
+                content.innerHTML = `<div class="text-center py-20 text-red-500">Error loading match: ${err.message}</div>`;
+            }
+        }
+
+        function goBackToLobby() {
+            switchTab('lobby');
+        }
+
+        // ===========================
+        // CHALLENGE MODAL
+        // ===========================
+        function openChallengeModal(gameId, wager) {
+            if (!userAddress) {
+                showToast("CONNECT UPLINK FIRST");
+                return;
+            }
+            pendingChallengeId = gameId;
+            pendingChallengeWager = wager;
+            selectedChallengeMove = 0;
+
+            document.querySelectorAll('[id^="cmove-"]').forEach(b => b.classList.remove('selected'));
+            document.getElementById('confirm-challenge-btn').disabled = true;
+            document.getElementById('challenge-wager-display').textContent = `${wager} $EROL`;
+            document.getElementById('challenge-modal').classList.add('active');
+        }
+
+        function closeChallengeModal() {
+            document.getElementById('challenge-modal').classList.remove('active');
+            pendingChallengeId = null;
+            pendingChallengeWager = null;
+            selectedChallengeMove = 0;
+        }
+
+        function selectChallengeMove(idx) {
+            selectedChallengeMove = idx;
+            document.querySelectorAll('[id^="cmove-"]').forEach(b => b.classList.remove('selected'));
+            document.getElementById(`cmove-${idx}`).classList.add('selected');
+            document.getElementById('confirm-challenge-btn').disabled = false;
+        }
+
+        async function confirmChallenge() {
+            if (!pendingChallengeId || selectedChallengeMove === 0) return;
+            closeChallengeModal();
+            await handleChallenge(pendingChallengeId, pendingChallengeWager, selectedChallengeMove);
+        }
+
+        // ===========================
+        // CHALLENGE GAME
+        // ===========================
+        async function handleChallenge(id, wager, move) {
+            if (!signer) return showToast("CONNECT UPLINK FIRST");
+            if (!(await checkNetwork())) return;
+            
+            try {
+                // Re-check timer on-chain before submitting
+                const { data: gameRow } = await _supabase.from('games').select('*').eq('game_id', id).single();
+                if (gameRow) {
+                    if (isExpired(gameRow)) return showToast("⛔ MATCH HAS TIMED OUT");
+                    if (isNearExpiry(gameRow)) return showToast("⛔ TOO CLOSE TO TIMEOUT — CANNOT JOIN");
+                }
+
+                showToast("INTERCEPTING...");
+                
+                const gameData = await contract.games(id);
+                const actualWager = gameData.wager;
+                
+                const tx = await contract.challengeGame(id, move, { value: actualWager });
+                showToast("CONFIRMING TRANSACTION...");
+                const receipt = await tx.wait();
+                
+                const { error: updateError } = await _supabase
+                    .from('games')
+                    .update({ 
+                        status: 1, 
+                        challenger: userAddress.toLowerCase(),
+                        challenger_move: parseInt(move)
+                    })
+                    .eq('game_id', id);
+                
+                if (updateError) {
+                    showToast("⚠️ INTERCEPTED BUT DB UPDATE FAILED");
                 } else {
-                    const hw=(hm===1&&cm===2)||(hm===2&&cm===3)||(hm===3&&cm===1);
-                    const win=hw?g.host:g.challenger, los=hw?g.challenger:g.host;
-                    if(win&&stats[win]){stats[win].wins++;stats[win].currentStreak++;if(stats[win].currentStreak>stats[win].longestStreak)stats[win].longestStreak=stats[win].currentStreak;}
-                    if(los&&stats[los]){stats[los].losses++;stats[los].currentStreak=0;}
+                    showToast("✓ SIGNAL INTERCEPTED");
                 }
-            });
+                
+                setTimeout(refreshLobby, 1500);
+            } catch (err) { 
+                console.error("Challenge error:", err);
+                showToast("INTERCEPTION FAILED"); 
+            }
+        }
 
-            document.getElementById('global-wagered').textContent = tw.toFixed(2);
-            document.getElementById('global-burnt').textContent   = tb.toFixed(2);
-            document.getElementById('global-treasury').textContent= tt.toFixed(2);
-            document.getElementById('global-games').textContent   = games.length;
+        // ===========================
+        // RESOLVE GAME
+        // ===========================
+        async function handleResolve(id, hash) {
+            if (!signer) return showToast("CONNECT UPLINK FIRST");
+            if (!(await checkNetwork())) return;
+            
+            const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
+            let secret = secrets[hash];
+            
+            if (!secret) {
+                const manualReveal = confirm("Secret not found in this browser. Enter manually?");
+                if (manualReveal) {
+                    const move = prompt("Enter your move (1-3):");
+                    const salt = prompt("Enter your salt (hex string):");
+                    if (!move || !salt) return showToast("CANCELLED");
+                    
+                    const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+                        ["uint8", "string", "address", "uint256"],
+                        [parseInt(move), salt, userAddress, BigInt(id)]
+                    );
+                    const testHash = ethers.keccak256(encoded);
+                    if (testHash.toLowerCase() !== hash.toLowerCase()) return showToast("⚠️ HASH MISMATCH");
+                    
+                    secret = { move: parseInt(move), salt: salt, gameId: id.toString() };
+                } else {
+                    return showToast("⚠️ SECRET NOT FOUND");
+                }
+            }
+            
+            const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+                ["uint8", "string", "address", "uint256"],
+                [secret.move, secret.salt, userAddress, BigInt(secret.gameId || id)]
+            );
+            const verifyHash = ethers.keccak256(encoded);
+            
+            if (verifyHash.toLowerCase() !== hash.toLowerCase()) return showToast("⚠️ HASH VERIFICATION FAILED");
+            
+            try {
+                showToast("BROADCASTING REVEAL...");
+                const tx = await contract.resolveGame(id, secret.move, secret.salt);
+                showToast("CONFIRMING...");
+                await tx.wait();
+                
+                const gameData = await contract.games(id);
+                const hostMove = Number(gameData.hostMove);
+                const challengerMove = Number(gameData.challengerMove);
+                
+                let resultMsg = "COMBAT RESOLVED";
+                if (hostMove === challengerMove) {
+                    resultMsg = "⚖️ DRAW";
+                } else if (
+                    (hostMove === 1 && challengerMove === 2) ||
+                    (hostMove === 2 && challengerMove === 3) ||
+                    (hostMove === 3 && challengerMove === 1)
+                ) {
+                    resultMsg = "🏆 VICTORY!";
+                } else {
+                    resultMsg = "💥 DEFEAT";
+                }
+                
+                await _supabase.from('games').update({ 
+                    status: 2,
+                    host_move: hostMove,
+                    challenger_move: challengerMove
+                }).eq('game_id', id);
+                
+                setTimeout(refreshLobby, 1000);
+                updateBalance();
+                showToast(resultMsg);
+            } catch (err) { 
+                console.error("Resolve error:", err);
+                showToast("RESOLVE FAILED"); 
+            }
+        }
 
-            document.getElementById('leaderboard-body').innerHTML =
-                Object.values(stats).sort((a,b)=>b.totalWagered-a.totalWagered).slice(0,50).map((p,i) => {
-                    const wr = p.games>0?((p.wins/p.games)*100).toFixed(1):0;
-                    return `<tr class="border-b border-gray-900/30 hover:bg-orange-900/10 cursor-pointer transition" onclick="showPlayerProfile('${p.address}')">
-                        <td class="p-3 text-orange-500 orbitron">#${i+1}</td>
-                        <td class="p-3"><div class="text-sm text-white">${p.address.slice(0,8)}...${p.address.slice(-6)}</div>
-                            <div class="text-[10px] text-gray-600">${p.games} games</div></td>
-                        <td class="p-3 text-right orbitron text-orange-500">${p.totalWagered.toFixed(2)}</td>
-                        <td class="p-3 text-right orbitron ${parseFloat(wr)>=50?'text-green-500':'text-red-500'}">${wr}%</td>
-                        <td class="p-3 text-right orbitron text-orange-500">${p.biggestPot.toFixed(2)}</td>
-                        <td class="p-3 text-right orbitron text-yellow-500">${p.longestStreak}</td></tr>`;
+        async function handleRefund(id) {
+            if (!signer) return showToast("CONNECT UPLINK FIRST");
+            if (!(await checkNetwork())) return;
+            try {
+                showToast("RETRACTING...");
+                const tx = await contract.refundUnchallenged(id);
+                await tx.wait();
+                await _supabase.from('games').update({ status: 3 }).eq('game_id', id);
+                refreshLobby();
+                updateBalance();
+                showToast("FUNDS RETRACTED");
+            } catch (err) { 
+                console.error(err);
+                showToast("REFUND FAILED"); 
+            }
+        }
+
+        async function handleForceForfeit(gameId) {
+            if (!signer) return showToast("CONNECT UPLINK FIRST");
+            if (!(await checkNetwork())) return;
+            try {
+                showToast("CLAIMING VICTORY...");
+                const tx = await contract.forceForfeit(gameId);
+                await tx.wait();
+                await _supabase.from('games').update({ status: 4 }).eq('game_id', gameId);
+                refreshLobby();
+                updateBalance();
+                showToast("🏆 VICTORY BY FORFEIT!");
+            } catch (err) {
+                console.error("Forfeit error:", err);
+                showToast("FORFEIT FAILED");
+            }
+        }
+
+        // ===========================
+        // ACTIVITY FEED
+        // ===========================
+        async function refreshActivityFeed() {
+            const feed = document.getElementById('activity-feed');
+            try {
+                const { data: games, error } = await _supabase
+                    .from('games')
+                    .select('*')
+                    .eq('status', 2)
+                    .order('updated_at', { ascending: false })
+                    .limit(50);
+
+                if (error) return;
+
+                feed.innerHTML = games.map(game => {
+                    const moves = ['', '☀️', '🌬️', '🌪️'];
+                    const hostMove = Number(game.host_move);
+                    const challengerMove = Number(game.challenger_move);
+                    
+                    let result = '', resultColor = '';
+                    if (hostMove === challengerMove) {
+                        result = 'DRAW'; resultColor = 'text-yellow-500';
+                    } else if (
+                        (hostMove === 1 && challengerMove === 2) ||
+                        (hostMove === 2 && challengerMove === 3) ||
+                        (hostMove === 3 && challengerMove === 1)
+                    ) {
+                        result = `${game.host.slice(0,6)}... WINS`; resultColor = 'text-green-500';
+                    } else {
+                        result = `${(game.challenger || 'Unknown').slice(0,6)}... WINS`; resultColor = 'text-green-500';
+                    }
+                    
+                    const timeAgo = getTimeAgo(new Date(game.updated_at || game.created_at));
+                    
+                    return `
+                        <div class="lobby-row bg-black/40 border-l-2 border-green-700 p-3 flex justify-between items-center transition" onclick="openMatchDetail(${game.game_id})">
+                            <div class="flex-1">
+                                <div class="text-sm ${resultColor} font-bold">${result}</div>
+                                <div class="text-[10px] text-gray-500 mt-1">
+                                    ${moves[hostMove]} vs ${moves[challengerMove]} • ${game.wager} $EROL • ${timeAgo}
+                                </div>
+                            </div>
+                            <div class="text-2xl">${result.includes('DRAW') ? '⚖️' : '🏆'}</div>
+                        </div>`;
+                }).join('') || '<div class="text-center text-gray-600 py-8">No recent activity</div>';
+            } catch (err) {
+                console.error("Activity feed error:", err);
+            }
+        }
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return `${seconds}s ago`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            return `${Math.floor(hours / 24)}d ago`;
+        }
+
+        // ===========================
+        // CHAT
+        // ===========================
+        async function refreshChat() {
+            const chatMessages = document.getElementById('chat-messages');
+            try {
+                const { data: messages, error } = await _supabase
+                    .from('chat_messages')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (error) return;
+
+                const shouldScroll = chatMessages.scrollHeight - chatMessages.scrollTop === chatMessages.clientHeight;
+
+                chatMessages.innerHTML = messages.reverse().map(msg => {
+                    const isOwn = userAddress && msg.sender.toLowerCase() === userAddress.toLowerCase();
+                    return `
+                        <div class="${isOwn ? 'text-right' : 'text-left'}">
+                            <div class="inline-block max-w-[80%] ${isOwn ? 'bg-orange-900/30' : 'bg-gray-900/50'} px-3 py-2 rounded">
+                                <div class="text-[9px] text-orange-700 mb-1">${msg.sender.slice(0,6)}...${msg.sender.slice(-4)}</div>
+                                <div class="text-sm text-gray-200">${escapeHtml(msg.message)}</div>
+                            </div>
+                        </div>`;
                 }).join('');
-        } catch(err) { console.error(err); }
-    }
 
-    async function showPlayerProfile(address) {
-        const modal   = document.getElementById('player-modal');
-        const content = document.getElementById('player-modal-content');
-        modal.classList.add('active');
-        content.innerHTML = '<div class="text-center py-8 text-orange-500">Loading...</div>';
-        try {
-            const { data: games, error } = await _supabase.from('games').select('*').eq('status',2)
-                .or(`host.eq.${address.toLowerCase()},challenger.eq.${address.toLowerCase()}`)
-                .order('game_id',{ascending:false});
-            if (error) throw error;
-            let wins=0,losses=0,draws=0,tw=0,bp=0,ls=0,cs=0;
-            const recent=[];
-            games.forEach(g => {
-                const isH=g.host===address.toLowerCase(), w=parseFloat(g.wager);
-                tw+=w; if(w*2>bp) bp=w*2;
-                const hm=Number(g.host_move), cm=Number(g.challenger_move);
-                let res='';
-                if(hm===cm){draws++;res='DRAW';cs=0;}
-                else{const hw=(hm===1&&cm===2)||(hm===2&&cm===3)||(hm===3&&cm===1);
-                    if((isH&&hw)||(!isH&&!hw)){wins++;res='WIN';cs++;if(cs>ls)ls=cs;}
-                    else{losses++;res='LOSS';cs=0;}}
-                recent.push({...g,result:res,isHost:isH});
+                if (shouldScroll) chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (err) {
+                console.error("Chat refresh error:", err);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message || !userAddress) return;
+            try {
+                const { error } = await _supabase
+                    .from('chat_messages')
+                    .insert([{ sender: userAddress.toLowerCase(), message: message }]);
+                if (!error) { input.value = ''; refreshChat(); }
+            } catch (err) { showToast("MESSAGE FAILED"); }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ===========================
+        // LEADERBOARD
+        // ===========================
+        async function loadLeaderboard() {
+            try {
+                const { data: games, error } = await _supabase.from('games').select('*').eq('status', 2);
+                if (error) return;
+
+                const playerStats = {};
+                let totalWagered = 0, totalBurnt = 0, totalTreasury = 0;
+
+                games.forEach(game => {
+                    const wager = parseFloat(game.wager);
+                    totalWagered += wager * 2;
+                    const pot = wager * 2;
+                    totalBurnt += pot * 0.015;
+                    totalTreasury += pot * 0.015;
+
+                    const hostMove = Number(game.host_move);
+                    const challengerMove = Number(game.challenger_move);
+                    
+                    [game.host, game.challenger].filter(Boolean).forEach((addr, idx) => {
+                        if (!playerStats[addr]) {
+                            playerStats[addr] = { address: addr, totalWagered: 0, wins: 0, losses: 0, draws: 0, games: 0, biggestPot: 0, currentStreak: 0, longestStreak: 0 };
+                        }
+                        playerStats[addr].totalWagered += wager;
+                        playerStats[addr].games++;
+                        if (wager * 2 > playerStats[addr].biggestPot) playerStats[addr].biggestPot = wager * 2;
+                    });
+
+                    const hostWins = (
+                        (hostMove === 1 && challengerMove === 2) ||
+                        (hostMove === 2 && challengerMove === 3) ||
+                        (hostMove === 3 && challengerMove === 1)
+                    );
+
+                    if (hostMove === challengerMove) {
+                        [game.host, game.challenger].filter(Boolean).forEach(addr => {
+                            playerStats[addr].draws++;
+                            playerStats[addr].currentStreak = 0;
+                        });
+                    } else {
+                        const winner = hostWins ? game.host : game.challenger;
+                        const loser = hostWins ? game.challenger : game.host;
+                        if (winner && playerStats[winner]) {
+                            playerStats[winner].wins++;
+                            playerStats[winner].currentStreak++;
+                            if (playerStats[winner].currentStreak > playerStats[winner].longestStreak) {
+                                playerStats[winner].longestStreak = playerStats[winner].currentStreak;
+                            }
+                        }
+                        if (loser && playerStats[loser]) {
+                            playerStats[loser].losses++;
+                            playerStats[loser].currentStreak = 0;
+                        }
+                    }
+                });
+
+                document.getElementById('global-wagered').textContent = totalWagered.toFixed(2);
+                document.getElementById('global-burnt').textContent = totalBurnt.toFixed(2);
+                document.getElementById('global-treasury').textContent = totalTreasury.toFixed(2);
+                document.getElementById('global-games').textContent = games.length;
+
+                const leaderboard = Object.values(playerStats).sort((a, b) => b.totalWagered - a.totalWagered).slice(0, 50);
+
+                document.getElementById('leaderboard-body').innerHTML = leaderboard.map((player, index) => {
+                    const winRate = player.games > 0 ? ((player.wins / player.games) * 100).toFixed(1) : 0;
+                    return `
+                        <tr class="border-b border-gray-900/30 hover:bg-orange-900/10 cursor-pointer transition" onclick="showPlayerProfile('${player.address}')">
+                            <td class="p-3 text-orange-500 orbitron">#${index + 1}</td>
+                            <td class="p-3">
+                                <div class="text-sm text-white">${player.address.slice(0,8)}...${player.address.slice(-6)}</div>
+                                <div class="text-[10px] text-gray-600">${player.games} games</div>
+                            </td>
+                            <td class="p-3 text-right orbitron text-orange-500">${player.totalWagered.toFixed(2)}</td>
+                            <td class="p-3 text-right orbitron ${winRate >= 50 ? 'text-green-500' : 'text-red-500'}">${winRate}%</td>
+                            <td class="p-3 text-right orbitron text-orange-500">${player.biggestPot.toFixed(2)}</td>
+                            <td class="p-3 text-right orbitron text-yellow-500">${player.longestStreak}</td>
+                        </tr>`;
+                }).join('');
+            } catch (err) {
+                console.error("Leaderboard error:", err);
+            }
+        }
+
+        async function showPlayerProfile(address) {
+            const modal = document.getElementById('player-modal');
+            const content = document.getElementById('player-modal-content');
+            modal.classList.add('active');
+            content.innerHTML = '<div class="text-center py-8 text-orange-500">Loading...</div>';
+
+            try {
+                const { data: games, error } = await _supabase
+                    .from('games')
+                    .select('*')
+                    .eq('status', 2)
+                    .or(`host.eq.${address.toLowerCase()},challenger.eq.${address.toLowerCase()}`)
+                    .order('game_id', { ascending: false });
+
+                if (error) throw error;
+
+                let wins = 0, losses = 0, draws = 0, totalWagered = 0, biggestPot = 0, longestStreak = 0, currentStreak = 0;
+                const recentGames = [];
+
+                games.forEach(game => {
+                    const isHost = game.host === address.toLowerCase();
+                    const wager = parseFloat(game.wager);
+                    totalWagered += wager;
+                    if (wager * 2 > biggestPot) biggestPot = wager * 2;
+                    const hostMove = Number(game.host_move);
+                    const challengerMove = Number(game.challenger_move);
+                    let result = '';
+
+                    if (hostMove === challengerMove) {
+                        draws++; result = 'DRAW'; currentStreak = 0;
+                    } else {
+                        const hostWins = (
+                            (hostMove === 1 && challengerMove === 2) ||
+                            (hostMove === 2 && challengerMove === 3) ||
+                            (hostMove === 3 && challengerMove === 1)
+                        );
+                        if ((isHost && hostWins) || (!isHost && !hostWins)) {
+                            wins++; result = 'WIN'; currentStreak++;
+                            if (currentStreak > longestStreak) longestStreak = currentStreak;
+                        } else {
+                            losses++; result = 'LOSS'; currentStreak = 0;
+                        }
+                    }
+                    recentGames.push({ ...game, result, isHost });
+                });
+
+                const totalGames = games.length;
+                const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
+                const moveIcons = ['', '☀️', '🌬️', '🌪️'];
+
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="text-center pb-4 border-b border-orange-900/30">
+                            <div class="text-sm text-gray-500 mb-2">ADDRESS</div>
+                            <div class="orbitron text-orange-500 text-sm break-all">${address}</div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="bg-black/40 border border-green-900/30 p-4 text-center">
+                                <div class="text-[10px] text-green-800 uppercase mb-2">Wins</div>
+                                <div class="orbitron text-2xl text-green-500">${wins}</div>
+                            </div>
+                            <div class="bg-black/40 border border-red-900/30 p-4 text-center">
+                                <div class="text-[10px] text-red-800 uppercase mb-2">Losses</div>
+                                <div class="orbitron text-2xl text-red-500">${losses}</div>
+                            </div>
+                            <div class="bg-black/40 border border-yellow-900/30 p-4 text-center">
+                                <div class="text-[10px] text-yellow-800 uppercase mb-2">Draws</div>
+                                <div class="orbitron text-2xl text-yellow-500">${draws}</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                                <div class="text-[10px] text-orange-800 uppercase mb-2">Win Rate</div>
+                                <div class="orbitron text-2xl text-orange-500">${winRate}%</div>
+                            </div>
+                            <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                                <div class="text-[10px] text-orange-800 uppercase mb-2">Total Wagered</div>
+                                <div class="orbitron text-xl text-orange-500">${totalWagered.toFixed(2)}</div>
+                            </div>
+                            <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
+                                <div class="text-[10px] text-orange-800 uppercase mb-2">Biggest Pot</div>
+                                <div class="orbitron text-xl text-orange-500">${biggestPot.toFixed(2)}</div>
+                            </div>
+                            <div class="bg-black/40 border border-yellow-900/30 p-4 text-center">
+                                <div class="text-[10px] text-yellow-800 uppercase mb-2">Longest Streak</div>
+                                <div class="orbitron text-xl text-yellow-500">${longestStreak}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="orbitron text-orange-500 mb-3 text-sm">RECENT BATTLES</h3>
+                            <div class="space-y-2 max-h-60 overflow-y-auto">
+                                ${recentGames.slice(0, 10).map(game => `
+                                    <div class="bg-black/40 border-l-2 border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-700 p-3 flex justify-between items-center cursor-pointer hover:bg-black/60" onclick="closePlayerModal(); openMatchDetail(${game.game_id})">
+                                        <div>
+                                            <span class="text-[10px] px-2 py-0.5 border border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 text-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500">${game.result}</span>
+                                            <div class="text-sm mt-1"><span class="text-orange-500">${game.wager} $EROL</span><span class="text-gray-600 text-[10px] ml-2">Game #${game.game_id}</span></div>
+                                        </div>
+                                        <div class="text-2xl">${game.isHost ? moveIcons[game.host_move] : moveIcons[game.challenger_move]}</div>
+                                    </div>`).join('') || '<div class="text-center text-gray-600 py-4">No battles yet</div>'}
+                            </div>
+                        </div>
+                    </div>`;
+            } catch (err) {
+                content.innerHTML = '<div class="text-center text-red-500 py-8">Error loading profile</div>';
+            }
+        }
+
+        function closePlayerModal() {
+            document.getElementById('player-modal').classList.remove('active');
+        }
+
+        // ===========================
+        // PROFILE PAGE
+        // ===========================
+        async function loadProfile() {
+            const profileContent = document.getElementById('profile-content');
+            if (!userAddress) {
+                profileContent.innerHTML = `
+                    <div class="text-center py-20">
+                        <div class="text-orange-900 text-6xl mb-4">🔒</div>
+                        <div class="text-orange-500 orbitron text-lg mb-2">UPLINK REQUIRED</div>
+                        <div class="text-gray-500 text-sm">Connect your wallet to view pilot statistics</div>
+                    </div>`;
+                return;
+            }
+            
+            profileContent.innerHTML = `<div class="text-center py-20"><div class="text-orange-500 animate-pulse">Loading pilot data...</div></div>`;
+            
+            try {
+                const { data: games, error } = await _supabase
+                    .from('games')
+                    .select('*')
+                    .or(`host.eq.${userAddress.toLowerCase()},challenger.eq.${userAddress.toLowerCase()}`)
+                    .order('game_id', { ascending: false });
+                
+                if (error) { profileContent.innerHTML = `<div class="text-red-500">Error loading profile</div>`; return; }
+                
+                let totalGames = 0, wins = 0, losses = 0, draws = 0, totalWagered = 0, totalWon = 0;
+                const recentGames = [];
+                
+                games.forEach(game => {
+                    const isHost = game.host === userAddress.toLowerCase();
+                    const wager = parseFloat(game.wager);
+                    if (game.status === 2 && game.host_move && game.challenger_move) {
+                        totalGames++;
+                        totalWagered += wager;
+                        const hostMove = Number(game.host_move);
+                        const challengerMove = Number(game.challenger_move);
+                        let result = '';
+                        if (hostMove === challengerMove) {
+                            draws++; result = 'DRAW'; totalWon += wager * 0.97;
+                        } else {
+                            const hostWins = (
+                                (hostMove === 1 && challengerMove === 2) ||
+                                (hostMove === 2 && challengerMove === 3) ||
+                                (hostMove === 3 && challengerMove === 1)
+                            );
+                            if ((isHost && hostWins) || (!isHost && !hostWins)) {
+                                wins++; result = 'WIN'; totalWon += wager * 2 * 0.97;
+                            } else {
+                                losses++; result = 'LOSS';
+                            }
+                        }
+                        recentGames.push({ ...game, result, isHost });
+                    }
+                });
+                
+                const netPnL = totalWon - totalWagered;
+                const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
+                const moveIcons = ['', '☀️', '🌬️', '🌪️'];
+                
+                profileContent.innerHTML = `
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-black/40 border border-orange-900/30 p-6 text-center">
+                            <div class="text-[10px] text-orange-800 uppercase mb-2">Games</div>
+                            <div class="orbitron text-3xl text-orange-500">${totalGames}</div>
+                        </div>
+                        <div class="bg-black/40 border border-green-900/30 p-6 text-center">
+                            <div class="text-[10px] text-green-800 uppercase mb-2">Wins</div>
+                            <div class="orbitron text-3xl text-green-500">${wins}</div>
+                        </div>
+                        <div class="bg-black/40 border border-red-900/30 p-6 text-center">
+                            <div class="text-[10px] text-red-800 uppercase mb-2">Losses</div>
+                            <div class="orbitron text-3xl text-red-500">${losses}</div>
+                        </div>
+                        <div class="bg-black/40 border border-yellow-900/30 p-6 text-center">
+                            <div class="text-[10px] text-yellow-800 uppercase mb-2">Draws</div>
+                            <div class="orbitron text-3xl text-yellow-500">${draws}</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="bg-black/40 border border-orange-900/30 p-6">
+                            <div class="text-[10px] text-orange-800 uppercase mb-2">Win Rate</div>
+                            <div class="orbitron text-2xl text-orange-500">${winRate}%</div>
+                        </div>
+                        <div class="bg-black/40 border border-orange-900/30 p-6">
+                            <div class="text-[10px] text-orange-800 uppercase mb-2">Wagered</div>
+                            <div class="orbitron text-2xl text-orange-500">${totalWagered.toFixed(2)}</div>
+                        </div>
+                        <div class="bg-black/40 border border-${netPnL >= 0 ? 'green' : 'red'}-900/30 p-6">
+                            <div class="text-[10px] text-${netPnL >= 0 ? 'green' : 'red'}-800 uppercase mb-2">Net P&L</div>
+                            <div class="orbitron text-2xl text-${netPnL >= 0 ? 'green' : 'red'}-500">${netPnL >= 0 ? '+' : ''}${netPnL.toFixed(2)}</div>
+                        </div>
+                    </div>
+                    <h3 class="orbitron text-orange-500 mb-4">RECENT BATTLES</h3>
+                    <div class="space-y-3">
+                        ${recentGames.slice(0, 10).map(game => `
+                            <div class="lobby-row bg-black/40 border-l-2 border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-700 p-4 flex justify-between cursor-pointer" onclick="openMatchDetail(${game.game_id})">
+                                <div>
+                                    <span class="text-[10px] px-2 py-0.5 border border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 text-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500">${game.result}</span>
+                                    <div class="text-sm mt-1"><span class="text-orange-500">${game.wager} $EROL</span><span class="text-gray-600 text-[10px] ml-2">Game #${game.game_id}</span></div>
+                                </div>
+                                <div class="text-2xl">${game.isHost ? moveIcons[game.host_move] : moveIcons[game.challenger_move]}</div>
+                            </div>`).join('') || '<div class="text-center text-gray-600 py-8">No battles yet</div>'}
+                    </div>`;
+            } catch (err) {
+                profileContent.innerHTML = `<div class="text-red-500">Error: ${err.message}</div>`;
+            }
+        }
+
+        // ===========================
+        // TAB SWITCHING
+        // ===========================
+        function getStatusText(s) { 
+            return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s] || "Unknown"; 
+        }
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const tabBtn = document.getElementById(`tab-${tab}`);
+            if (tabBtn) tabBtn.classList.add('active');
+            
+            document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active'));
+            document.getElementById(`page-${tab}`).classList.add('active');
+            
+            if (tab === 'profile') loadProfile();
+            if (tab === 'leaderboard') loadLeaderboard();
+        }
+        
+        function debugInfo() {
+            const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
+            console.log("=== DEBUG INFO ===");
+            console.log("Address:", userAddress);
+            console.log("Contract:", CONTRACT_ADDR);
+            console.log("Secrets:", Object.keys(secrets).length);
+            Object.entries(secrets).forEach(([hash, data]) => {
+                console.log(`Hash: ${hash}`, data);
             });
-            const total=games.length, wr=total>0?((wins/total)*100).toFixed(1):0;
-            content.innerHTML=`<div class="space-y-6">
-                <div class="text-center pb-4 border-b border-orange-900/30">
-                    <div class="text-sm text-gray-500 mb-2">ADDRESS</div>
-                    <div class="orbitron text-orange-500">${address.slice(0,12)}...${address.slice(-10)}</div>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    ${[['Games',total,'orange'],['Wins',wins,'green'],['Losses',losses,'red'],['Draws',draws,'yellow'],['Win Rate',wr+'%','orange'],['Wagered',tw.toFixed(2),'orange']].map(([l,v,c])=>
-                    `<div class="bg-black/40 border border-${c}-900/30 p-4 text-center">
-                        <div class="text-[10px] text-${c}-800 uppercase mb-2">${l}</div>
-                        <div class="orbitron text-2xl text-${c}-500">${v}</div></div>`).join('')}
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-black/40 border border-orange-900/30 p-4 text-center">
-                        <div class="text-[10px] text-orange-800 uppercase mb-2">Biggest Pot</div>
-                        <div class="orbitron text-xl text-orange-500">${bp.toFixed(2)}</div></div>
-                    <div class="bg-black/40 border border-yellow-900/30 p-4 text-center">
-                        <div class="text-[10px] text-yellow-800 uppercase mb-2">Longest Streak</div>
-                        <div class="orbitron text-xl text-yellow-500">${ls}</div></div>
-                </div>
-                <div><h3 class="orbitron text-orange-500 mb-3">RECENT BATTLES</h3>
-                <div class="space-y-2 max-h-60 overflow-y-auto">
-                    ${recent.slice(0,10).map(g=>{
-                        const mv=['','☀️','🌬️','🌪️'], c=g.result==='WIN'?'green':g.result==='LOSS'?'red':'yellow';
-                        return `<div class="bg-black/40 border-l-2 border-${c}-700 p-3 flex justify-between items-center">
-                            <div><span class="text-[10px] px-2 py-0.5 border border-${c}-500 text-${c}-500">${g.result}</span>
-                            <div class="text-sm mt-1"><span class="text-orange-500">${g.wager} $EROL</span>
-                            <span class="text-gray-600 text-[10px] ml-2">Game #${g.game_id}</span></div></div>
-                            <div class="text-2xl">${g.isHost?mv[g.host_move]:mv[g.challenger_move]}</div></div>`;
-                    }).join('')||'<div class="text-center text-gray-600 py-4">No battles yet</div>'}
-                </div></div></div>`;
-        } catch(err) { content.innerHTML='<div class="text-center text-red-500 py-8">Error loading profile</div>'; }
-    }
-
-    function closePlayerModal() { document.getElementById('player-modal').classList.remove('active'); }
-
-    // ── PROFILE ─────────────────────────────────────────────────────────────────
-    async function loadProfile() {
-        const el = document.getElementById('profile-content');
-        if (!userAddress) {
-            el.innerHTML=`<div class="text-center py-20">
-                <div class="text-orange-900 text-6xl mb-4">🔒</div>
-                <div class="text-orange-500 orbitron text-lg mb-2">UPLINK REQUIRED</div>
-                <div class="text-gray-500 text-sm">Connect your wallet to view pilot statistics</div></div>`; return;
+            alert(`Debug info in console (F12)\nSecrets stored: ${Object.keys(secrets).length}`);
         }
-        el.innerHTML='<div class="text-center py-20"><div class="text-orange-500 animate-pulse">Loading pilot data...</div></div>';
-        try {
-            const { data: games, error } = await _supabase.from('games').select('*')
-                .or(`host.eq.${userAddress.toLowerCase()},challenger.eq.${userAddress.toLowerCase()}`)
-                .order('game_id',{ascending:false});
-            if (error) { el.innerHTML='<div class="text-red-500">Error loading profile</div>'; return; }
-            let tg=0,wins=0,losses=0,draws=0,tw=0,twon=0;
-            const recent=[];
-            games.forEach(g=>{
-                const isH=g.host===userAddress.toLowerCase(), w=parseFloat(g.wager);
-                if(g.status===2&&g.host_move&&g.challenger_move){
-                    tg++;tw+=w;
-                    const hm=Number(g.host_move),cm=Number(g.challenger_move);
-                    let res='';
-                    if(hm===cm){draws++;res='DRAW';twon+=w*0.97;}
-                    else{const hw=(hm===1&&cm===2)||(hm===2&&cm===3)||(hm===3&&cm===1);
-                        if((isH&&hw)||(!isH&&!hw)){wins++;res='WIN';twon+=w*2*0.97;}
-                        else{losses++;res='LOSS';}}
-                    recent.push({...g,result:res,isHost:isH});
-                }
-            });
-            const pnl=twon-tw, wr=tg>0?((wins/tg)*100).toFixed(1):0;
-            el.innerHTML=`
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    ${[['Games',tg,'orange'],['Wins',wins,'green'],['Losses',losses,'red'],['Draws',draws,'yellow']].map(([l,v,c])=>
-                    `<div class="bg-black/40 border border-${c}-900/30 p-6 text-center">
-                        <div class="text-[10px] text-${c}-800 uppercase mb-2">${l}</div>
-                        <div class="orbitron text-3xl text-${c}-500">${v}</div></div>`).join('')}
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div class="bg-black/40 border border-orange-900/30 p-6">
-                        <div class="text-[10px] text-orange-800 uppercase mb-2">Win Rate</div>
-                        <div class="orbitron text-2xl text-orange-500">${wr}%</div></div>
-                    <div class="bg-black/40 border border-orange-900/30 p-6">
-                        <div class="text-[10px] text-orange-800 uppercase mb-2">Wagered</div>
-                        <div class="orbitron text-2xl text-orange-500">${tw.toFixed(2)}</div></div>
-                    <div class="bg-black/40 border border-${pnl>=0?'green':'red'}-900/30 p-6">
-                        <div class="text-[10px] text-${pnl>=0?'green':'red'}-800 uppercase mb-2">Net P&L</div>
-                        <div class="orbitron text-2xl text-${pnl>=0?'green':'red'}-500">${pnl>=0?'+':''}${pnl.toFixed(2)}</div></div>
-                </div>
-                <h3 class="orbitron text-orange-500 mb-4">RECENT BATTLES</h3>
-                <div class="space-y-3">${recent.slice(0,10).map(g=>{
-                    const mv=['','☀️','🌬️','🌪️'],c=g.result==='WIN'?'green':g.result==='LOSS'?'red':'yellow';
-                    return `<div class="bg-black/40 border-l-2 border-${c}-700 p-4 flex justify-between">
-                        <div><span class="text-[10px] px-2 py-0.5 border border-${c}-500 text-${c}-500">${g.result}</span>
-                        <div class="text-sm mt-1"><span class="text-orange-500">${g.wager} $EROL</span>
-                        <span class="text-gray-600 text-[10px] ml-2">Game #${g.game_id}</span></div></div>
-                        <div class="text-2xl">${g.isHost?mv[g.host_move]:mv[g.challenger_move]}</div></div>`;
-                }).join('')||'<div class="text-center text-gray-600 py-8">No battles yet</div>'}</div>`;
-        } catch(err) { el.innerHTML=`<div class="text-red-500">Error: ${err.message}</div>`; }
-    }
-
-    // ── BRIDGE ──────────────────────────────────────────────────────────────────
-    async function loadBridge() {
-        if (userAddress) await updateAvaxErolBalance();
-        else document.getElementById('avax-erol-balance').textContent = 'Connect wallet';
-    }
-
-    async function updateAvaxErolBalance() {
-        try {
-            avaxProvider = new ethers.JsonRpcProvider('https://api.avax.network/ext/bc/C/rpc');
-            const erol = new ethers.Contract(EROL_TOKEN_ADDR, ERC20_ABI, avaxProvider);
-            const bal  = await erol.balanceOf(userAddress);
-            avaxErolBalance = parseFloat(ethers.formatEther(bal));
-            document.getElementById('avax-erol-balance').textContent = avaxErolBalance.toFixed(4) + ' $EROL';
-            updateBridgeEstimate();
-        } catch { document.getElementById('avax-erol-balance').textContent = '-- $EROL'; }
-    }
-
-    function updateBridgeEstimate() {
-        const amt = parseFloat(document.getElementById('bridge-amount').value) || 0;
-        const btn = document.getElementById('bridge-btn');
-        if (amt >= 1 && amt <= avaxErolBalance) {
-            btn.disabled = false;
-            document.getElementById('martian-erol-receive').textContent = amt.toFixed(4) + ' $EROL';
-        } else {
-            btn.disabled = true;
-            document.getElementById('martian-erol-receive').textContent = '-- $EROL';
+        
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('translate-y-32');
+            setTimeout(() => t.classList.add('translate-y-32'), 4000);
         }
-    }
-
-    function setMaxBridge() {
-        if (avaxErolBalance > 0) { document.getElementById('bridge-amount').value = avaxErolBalance.toFixed(4); updateBridgeEstimate(); }
-        else showToast("INSUFFICIENT $EROL BALANCE");
-    }
-
-    async function switchToAvax() {
-        const cur = await window.ethereum.request({ method: 'eth_chainId' });
-        if (cur.toLowerCase() === AVAX_CHAIN_ID.toLowerCase()) return true;
-        try {
-            await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: AVAX_CHAIN_ID }] });
-            await new Promise(r => setTimeout(r, 1000));
-            return true;
-        } catch (e) {
-            if (e.code === 4902) {
-                try {
-                    await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{
-                        chainId: AVAX_CHAIN_ID, chainName: 'Avalanche Network',
-                        nativeCurrency: { name:'AVAX', symbol:'AVAX', decimals:18 },
-                        rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
-                        blockExplorerUrls: ['https://snowtrace.io/']
-                    }]});
-                    await new Promise(r => setTimeout(r, 1000));
-                    return true;
-                } catch { showToast("FAILED TO ADD AVAX NETWORK"); return false; }
-            }
-            if (e.code === 4001) { showToast("USER REJECTED NETWORK SWITCH"); return false; }
-            showToast("NETWORK SWITCH FAILED"); return false;
-        }
-    }
-
-    async function switchBackToMartian() {
-        try {
-            await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID }] });
-            await new Promise(r => setTimeout(r, 800));
-            provider = new ethers.BrowserProvider(window.ethereum);
-            signer   = await provider.getSigner();
-            contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
-            updateBalance();
-        } catch { showToast("PLEASE SWITCH BACK TO MARTIAN CHAIN MANUALLY"); }
-    }
-
-    async function handleBridge() {
-        if (!userAddress) return showToast("CONNECT WALLET FIRST");
-        const amt = parseFloat(document.getElementById('bridge-amount').value);
-        if (!amt || isNaN(amt) || amt < 1) return showToast("MINIMUM 1 $EROL");
-        if (amt > avaxErolBalance) return showToast("INSUFFICIENT BALANCE");
-
-        window._bridging = true;
-        const btn = document.getElementById('bridge-btn');
-        const statusDiv = document.getElementById('bridge-status');
-        statusDiv.classList.remove('hidden');
-        btn.disabled = true;
-
-        try {
-            updateBridgeStatus('Switching to Avalanche C-Chain...');
-            if (!(await switchToAvax())) throw new Error("Network switch failed");
-
-            updateBridgeStatus('Connecting to Avalanche...');
-            const avaxSigner = await (new ethers.BrowserProvider(window.ethereum)).getSigner();
-            const erolC  = new ethers.Contract(EROL_TOKEN_ADDR, ERC20_ABI, avaxSigner);
-            const bridgeC = new ethers.Contract(BRIDGE_CONTRACT_ADDR, BRIDGE_ABI, avaxSigner);
-            const amtWei  = ethers.parseEther(amt.toString());
-
-            updateBridgeStatus('Checking allowance...');
-            const allowance = await erolC.allowance(userAddress, BRIDGE_CONTRACT_ADDR);
-            if (allowance < amtWei) {
-                updateBridgeStatus('Confirm approval in wallet...');
-                await (await erolC.approve(BRIDGE_CONTRACT_ADDR, amtWei)).wait();
-                updateBridgeStatus('Approval confirmed ✓');
-            }
-
-            updateBridgeStatus('Confirm bridge transaction in wallet...');
-            await (await bridgeC.bridgeToMartian(amtWei)).wait();
-            updateBridgeStatus('Bridge complete! Switching back...');
-
-            window._bridging = false;
-            await switchBackToMartian();
-
-            statusDiv.classList.add('hidden');
-            btn.disabled = false;
-            document.getElementById('bridge-amount').value = '';
-            document.getElementById('martian-erol-receive').textContent = '-- $EROL';
-            showToast('🌉 BRIDGE SUCCESSFUL');
-            setTimeout(async () => { await updateAvaxErolBalance(); await updateBalance(); }, 2000);
-
-        } catch (err) {
-            console.error("Bridge error:", err);
-            window._bridging = false;
-            let msg = "BRIDGE FAILED";
-            if (err.message) {
-                if (err.message.includes('user rejected')||err.message.includes('User denied')) msg="TRANSACTION REJECTED";
-                else if (err.message.includes('insufficient funds')) msg="INSUFFICIENT AVAX FOR GAS";
-            }
-            showToast(msg);
-            statusDiv.classList.add('hidden');
-            btn.disabled = false;
-            try { await switchBackToMartian(); } catch {}
-        }
-    }
-
-    function updateBridgeStatus(msg) {
-        const el = document.getElementById('bridge-status-text');
-        if (el) el.textContent = msg;
-        console.log("[Bridge]", msg);
-    }
-
-    // ── TABS & DEBUG ────────────────────────────────────────────────────────────
-    function switchTab(tab) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('tab-' + tab).classList.add('active');
-        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-        document.getElementById('page-' + tab).classList.add('active');
-        if (tab === 'profile')     loadProfile();
-        if (tab === 'bridge')      loadBridge();
-        if (tab === 'leaderboard') loadLeaderboard();
-    }
-
-    function debugInfo() {
-        const s = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
-        console.log("=== DEBUG INFO ===");
-        console.log("Address:", userAddress);
-        console.log("Contract:", CONTRACT_ADDR);
-        Object.entries(s).forEach(([h,d]) => console.log(`Hash: ${h} | Move: ${d.move} | GameID: ${d.gameId}`));
-        alert("Debug info printed to console (F12)");
-    }
-
-    // ── BOOT ────────────────────────────────────────────────────────────────────
-    window.onload = init;
-    window.onbeforeunload = () => {
-        clearInterval(lobbyRefreshInterval);
-        clearInterval(activityRefreshInterval);
-        clearInterval(chatRefreshInterval);
-    };
-</script>
+        
+        window.onload = init;
+        
+        window.onbeforeunload = () => {
+            if (lobbyRefreshInterval) clearInterval(lobbyRefreshInterval);
+            if (activityRefreshInterval) clearInterval(activityRefreshInterval);
+            if (chatRefreshInterval) clearInterval(chatRefreshInterval);
+        };
+    </script>
 </body>
 </html>
