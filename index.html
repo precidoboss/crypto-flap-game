@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Erol's Martian Gambit | Mission Control</title>
+    <link rel="icon" type="image/jpeg" href="https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/photo_1_2026-02-19_21-50-03.jpg">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -286,6 +287,45 @@
             }
         }
     </style>
+<script>
+// Safety stubs — prevent "not defined" if main script loads slowly
+// Real implementations override these once main script loads
+(function(){
+    var _queue = {};
+    function makeStub(name, fn) {
+        window[name] = function() {
+            if (window['__real_' + name]) return window['__real_' + name].apply(this, arguments);
+            console.log('[stub]', name, arguments);
+            if (fn) fn.apply(this, arguments);
+        };
+    }
+    // switchTab stub — switches pages immediately using CSS classes
+    makeStub('switchTab', function(tab) {
+        document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+        var tb = document.getElementById('tab-' + tab);
+        if (tb) tb.classList.add('active');
+        document.querySelectorAll('.page-section').forEach(function(s){ s.classList.remove('active'); });
+        var pg = document.getElementById('page-' + tab);
+        if (pg) pg.classList.add('active');
+    });
+    makeStub('connectWallet', null);
+    makeStub('openChallengeModal', null);
+    makeStub('openTipModal', null);
+    makeStub('openMatchDetail', null);
+    makeStub('openBridgeOverlay', null);
+    makeStub('closeBridgeOverlay', null);
+    makeStub('replayBattle', null);
+    makeStub('sendMessage', null);
+    makeStub('copyAddress', null);
+    makeStub('closePlayerModal', null);
+    makeStub('closeTipModal', null);
+    makeStub('confirmTip', null);
+    makeStub('setTipAmount', null);
+    makeStub('confirmChallenge', null);
+    makeStub('closeChallengeModal', null);
+    makeStub('selectChallengeMove', null);
+})();
+</script>
 </head>
 <body class="min-h-screen p-4">
     <div class="scanline"></div>
@@ -315,22 +355,33 @@
 
         <div class="flex items-center gap-6 mt-4 md:mt-0">
             <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30 flex-wrap">
-                <button onclick="switchTab('lobby')" id="tab-lobby" class="tab-btn active px-4 py-2 text-[10px] uppercase transition">Lobby</button>
-                <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Leaderboard</button>
+                <button onclick="switchChainTab('martian')" id="tab-lobby-martian" class="tab-btn active px-4 py-2 text-[10px] uppercase transition">🔴 Martian</button>
+                <button onclick="switchChainTab('avax')" id="tab-lobby-avax" class="tab-btn px-4 py-2 text-[10px] uppercase transition">🔺 AVAX</button>
+                <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Rankings</button>
                 <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Profile</button>
                 <button onclick="switchTab('bridge')" id="tab-bridge" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Bridge</button>
                 <button onclick="switchTab('howto')" id="tab-howto" class="tab-btn px-4 py-2 text-[10px] uppercase transition">How to Play</button>
             </div>
 
             <div id="connection-interface">
-                <button id="connect-btn" class="btn-mars px-8 py-2">Initialize Uplink</button>
+                <button id="connect-btn" class="btn-mars px-8 py-2" onclick="connectWallet()">Initialize Uplink</button>
                 <div id="account-info" class="hidden flex items-center gap-3">
                     <div class="text-right">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 mb-1">
                             <span id="user-address" class="text-[10px] text-orange-400 opacity-70"></span>
                             <button id="copy-address" class="copy-btn text-orange-400 text-xs" onclick="copyAddress()" title="Copy Address">📋</button>
+                            <button onclick="refreshAllBalances()" title="Refresh balances" class="text-orange-700 hover:text-orange-400 text-xs transition leading-none">↻</button>
                         </div>
-                        <div id="user-balance" class="orbitron text-orange-500 font-bold text-sm">0.00 $EROL</div>
+                        <div class="flex gap-3">
+                            <div class="text-center">
+                                <div class="text-[8px] text-gray-600 uppercase">Martian</div>
+                                <div id="balance-martian" class="orbitron text-orange-500 font-bold text-[11px]">— EROL</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-[8px] text-gray-600 uppercase">AVAX</div>
+                                <div id="balance-avax" class="orbitron text-blue-400 font-bold text-[11px]">— AVAX</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="h-10 w-1 bg-orange-500"></div>
                 </div>
@@ -399,12 +450,26 @@
 
                 <section class="lg:col-span-8 space-y-6">
                     <div class="mars-glass p-6 min-h-[500px] relative overflow-hidden">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-orange-900/20 pb-4 gap-4">
+                        <!-- Chain banner -->
+                        <div id="chain-banner" class="flex items-center justify-between mb-4 px-3 py-2 border border-orange-900/30 bg-black/40">
+                            <div class="flex items-center gap-2">
+                                <span id="chain-banner-icon" class="text-lg">🔴</span>
+                                <div>
+                                    <div id="chain-banner-name" class="orbitron text-orange-500 text-xs uppercase">Martian Chain</div>
+                                    <div id="chain-banner-sub" class="text-[9px] text-gray-600">Betting with native $EROL</div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="switchChainTab('martian')" id="chain-pill-martian" class="px-3 py-1 text-[9px] uppercase border border-orange-500 text-orange-500 orbitron">Martian</button>
+                                <button onclick="switchChainTab('avax')" id="chain-pill-avax" class="px-3 py-1 text-[9px] uppercase border border-gray-700 text-gray-600 orbitron">AVAX</button>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-orange-900/20 pb-4 gap-4">
                             <h2 class="orbitron text-lg text-white tracking-widest flex items-center gap-3">
                                 LOBBY_FREQUENCIES
-                                <span class="text-[10px] bg-orange-900/30 px-2 py-1 text-orange-500">FAST INDEX</span>
+                                <span class="text-[10px] bg-orange-900/30 px-2 py-1 text-orange-500">LIVE · 5 LATEST</span>
                             </h2>
-                            
                             <div class="flex items-center gap-2 flex-wrap">
                                 <div class="flex gap-1 bg-black/40 p-1 border border-orange-900/30">
                                     <button onclick="setLobbyFilter('all')" id="filter-all" class="lobby-filter active px-3 py-1 text-[9px] uppercase transition">All</button>
@@ -412,7 +477,7 @@
                                     <button onclick="setLobbyFilter('intercepted')" id="filter-intercepted" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Intercepted</button>
                                     <button onclick="setLobbyFilter('resolved')" id="filter-resolved" class="lobby-filter px-3 py-1 text-[9px] uppercase transition">Resolved</button>
                                 </div>
-                                <button onclick="refreshLobby()" class="text-[10px] text-orange-500 hover:text-white border border-orange-500/30 px-3 py-1 uppercase transition">Sync Data</button>
+                                <button onclick="refreshLobby()" class="text-[10px] text-orange-500 hover:text-white border border-orange-500/30 px-3 py-1 uppercase transition">↻ Sync</button>
                             </div>
                         </div>
                         <div id="lobby-list" class="space-y-4"></div>
@@ -487,12 +552,49 @@
 
         <!-- PROFILE PAGE -->
         <div id="page-profile" class="page-section">
-            <div class="mars-glass p-8 max-w-5xl mx-auto">
-                <h2 class="orbitron text-2xl text-orange-500 mb-8 flex items-center gap-3">
-                    <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
-                    PILOT STATISTICS
-                </h2>
-                <div id="profile-content" class="space-y-6"></div>
+            <div class="max-w-5xl mx-auto space-y-6">
+                <!-- Username Card -->
+                <div class="mars-glass p-6">
+                    <h2 class="orbitron text-sm text-orange-500 mb-4 uppercase flex items-center gap-2">
+                        <span class="w-2 h-2 bg-orange-500 animate-pulse"></span>
+                        PILOT IDENTITY
+                    </h2>
+                    <div class="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                        <img src="https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/photo_1_2026-02-19_21-50-03.jpg"
+                             class="w-16 h-16 rounded-full border-2 border-orange-500/40 object-cover" alt="Pilot">
+                        <div class="flex-1">
+                            <div id="username-display" class="orbitron text-2xl text-white mb-1">—</div>
+                            <div id="profile-address-display" class="text-[10px] text-gray-600 font-mono"></div>
+                        </div>
+                        <div class="flex gap-2 items-center">
+                            <input id="username-input" type="text" maxlength="20" placeholder="Set callsign..."
+                                class="bg-black border border-orange-900/50 px-3 py-2 text-orange-500 text-sm focus:outline-none focus:border-orange-500 orbitron w-40"
+                                oninput="this.value=this.value.replace(/[^a-zA-Z0-9_]/g,'')">
+                            <button onclick="saveUsername()" class="btn-mars px-4 py-2 text-xs">Save</button>
+                        </div>
+                    </div>
+                    <div class="text-[9px] text-gray-600 mt-2">Callsign: letters, numbers, underscores only. Max 20 chars. Shown in chat and leaderboard.</div>
+                </div>
+
+                <!-- Stats -->
+                <div class="mars-glass p-8">
+                    <h2 class="orbitron text-2xl text-orange-500 mb-6 flex items-center gap-3">
+                        <span class="w-3 h-3 bg-orange-500 animate-pulse"></span>
+                        PILOT STATISTICS
+                    </h2>
+
+                    <!-- Chain tabs for stats -->
+                    <div class="flex gap-2 mb-6">
+                        <button onclick="setProfileChain('martian')" id="profile-tab-martian"
+                            class="px-4 py-2 text-[10px] uppercase orbitron border border-orange-500 text-orange-500 transition">🔴 Martian</button>
+                        <button onclick="setProfileChain('avax')" id="profile-tab-avax"
+                            class="px-4 py-2 text-[10px] uppercase orbitron border border-gray-700 text-gray-600 transition">🔺 AVAX</button>
+                        <button onclick="setProfileChain('all')" id="profile-tab-all"
+                            class="px-4 py-2 text-[10px] uppercase orbitron border border-gray-700 text-gray-600 transition">📊 Combined</button>
+                    </div>
+
+                    <div id="profile-content" class="space-y-6"></div>
+                </div>
             </div>
         </div>
 
@@ -503,7 +605,17 @@
                 <!-- Header -->
                 <div class="mars-glass p-8">
                     <h2 class="orbitron text-2xl text-orange-500 mb-2">MISSION BRIEFING</h2>
-                    <p class="text-gray-500 text-sm">Everything you need to know to survive the Martian arena.</p>
+                    <p class="text-gray-500 text-sm">Everything you need to know to survive the Martian arena — now live on two chains.</p>
+
+                    <!-- Chain badges -->
+                    <div class="flex gap-3 mt-4 mb-5">
+                        <div class="flex items-center gap-2 px-3 py-1.5 border border-orange-900/40 text-[10px] uppercase">
+                            <span>🔴</span> <span class="text-orange-500 orbitron">Martian Chain</span> <span class="text-gray-600">· native $EROL</span>
+                        </div>
+                        <div class="flex items-center gap-2 px-3 py-1.5 border border-blue-900/40 text-[10px] uppercase">
+                            <span>🔺</span> <span class="text-blue-400 orbitron">Avalanche C-Chain</span> <span class="text-gray-600">· native AVAX</span>
+                        </div>
+                    </div>
 
                     <!-- Social Links -->
                     <div class="flex flex-wrap gap-3 mt-5 pt-5 border-t border-orange-900/20">
@@ -1063,13 +1175,47 @@
     </div>
 
     <script>
-        const CHAIN_ID = "0x7EB"; 
-        const RPC_URL = "https://martian-rpc1.amichain.org/";
-        const CONTRACT_ADDR = "0x395E368045315062b26AC950690f384c98fDEEe2";
+        // ── Chain configs ──────────────────────────────────────────
+        const CHAINS = {
+            martian: {
+                id: "0x7EB",
+                name: "Martian Chain",
+                rpc: "https://martian-rpc1.amichain.org/",
+                contract: "0x395E368045315062b26AC950690f384c98fDEEe2",
+                symbol: "EROL",
+                explorer: "https://martian-explorer.amichain.org",
+                dbValue: "martian"
+            },
+            avax: {
+                id: "0xA86A",
+                name: "Avalanche C-Chain",
+                rpc: "https://api.avax.network/ext/bc/C/rpc",
+                contract: "0x19f62Da65ed64791C186131a2846080afb789DDb",
+                symbol: "AVAX",
+                explorer: "https://snowtrace.io",
+                dbValue: "avax"
+            }
+        };
+        let activeChain = "martian"; // current chain tab
+        // Convenience aliases (updated when chain switches)
+        let CHAIN_ID    = CHAINS.martian.id;
+        let RPC_URL     = CHAINS.martian.rpc;
+        let CONTRACT_ADDR = CHAINS.martian.contract;
         
         const SB_URL = "https://tvckbtgggsuwxtlgilcl.supabase.co"; 
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y2tidGdnZ3N1d3h0bGdpbGNsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDY2NDY0NSwiZXhwIjoyMDg2MjQwNjQ1fQ.DhvGNo3seKoRtDmeRod0gAP48yFZw_0-kAvY3eT_554"; 
-        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+        // Lazy supabase client — avoids crash if CDN loads slow
+        let _supabaseClient = null;
+        const _supabase = new Proxy({}, {
+            get(_, prop) {
+                if (!_supabaseClient) {
+                    if (typeof supabase === 'undefined') throw new Error('Supabase CDN not loaded');
+                    _supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+                }
+                const val = _supabaseClient[prop];
+                return typeof val === 'function' ? val.bind(_supabaseClient) : val;
+            }
+        });
 
         const ABI = [
             "function createGame(bytes32 _hash, uint256 _timeout) external payable",
@@ -1209,7 +1355,7 @@
         async function init() {
             if (window.ethereum) {
                 provider = new ethers.BrowserProvider(window.ethereum);
-                document.getElementById('connect-btn').addEventListener('click', connectWallet);
+                // connect-btn already has onclick="connectWallet()" in HTML
                 
                 await refreshLobby();
                 await refreshActivityFeed();
@@ -1288,6 +1434,12 @@
                 
                 updateBalance();
                 refreshLobby();
+                // Load username cache
+                loadUsername().then(() => {
+                    const name = cachedUsernames[userAddress.toLowerCase()];
+                    if (name) document.getElementById('user-address').innerText = name;
+                    else document.getElementById('user-address').innerText = userAddress.slice(0,6)+'...'+userAddress.slice(-4);
+                });
             } catch (err) { 
                 console.error(err);
                 showToast("UPLINK FAILED"); 
@@ -1303,11 +1455,37 @@
         }
 
         async function updateBalance() {
-            if (!userAddress || !provider) return;
+            // Alias — always refresh both
+            await refreshAllBalances();
+        }
+
+        async function refreshAllBalances() {
+            if (!userAddress) return;
+            // Martian balance via Martian RPC
             try {
-                const balance = await provider.getBalance(userAddress);
-                document.getElementById('user-balance').innerText = `${parseFloat(ethers.formatEther(balance)).toFixed(2)} $EROL`;
-            } catch (e) { console.error("Balance fetch error", e); }
+                const payload = { jsonrpc:"2.0", method:"eth_getBalance", params:[userAddress,"latest"], id:1 };
+                const res = await fetch(CHAINS.martian.rpc, {
+                    method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.result) {
+                    const bal = parseFloat(ethers.formatEther(BigInt(json.result))).toFixed(4);
+                    document.getElementById('balance-martian').textContent = bal + " EROL";
+                }
+            } catch(e) { console.error("Martian balance error:", e); }
+
+            // AVAX balance via AVAX public RPC
+            try {
+                const payload = { jsonrpc:"2.0", method:"eth_getBalance", params:[userAddress,"latest"], id:2 };
+                const res = await fetch(CHAINS.avax.rpc, {
+                    method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.result) {
+                    const bal = parseFloat(ethers.formatEther(BigInt(json.result))).toFixed(4);
+                    document.getElementById('balance-avax').textContent = bal + " AVAX";
+                }
+            } catch(e) { console.error("AVAX balance error:", e); }
         }
 
         function selectMove(idx) {
@@ -1378,7 +1556,8 @@
                         wager: wagerInput,
                         timeout: parseInt(timeoutValue),
                         status: 0,
-                        commit_hash: hash
+                        commit_hash: hash,
+                        chain: CHAINS[activeChain].dbValue
                     }], { onConflict: 'game_id' })
                     .select();
 
@@ -1407,10 +1586,25 @@
         async function refreshLobby() {
             const lobby = document.getElementById('lobby-list');
             try {
-                const { data: games, error } = await _supabase.from('games')
+                // Filter by active chain
+                let query = _supabase.from('games')
                     .select('*')
                     .order('game_id', { ascending: false })
                     .limit(100);
+
+                // Filter by chain column if it exists; fall back gracefully
+                const chainVal = CHAINS[activeChain].dbValue;
+                query = query.or(`chain.eq.${chainVal},chain.is.null`);
+                // If chain is null, only show martian chain games (legacy rows)
+                if (activeChain !== 'martian') {
+                    query = _supabase.from('games')
+                        .select('*')
+                        .eq('chain', chainVal)
+                        .order('game_id', { ascending: false })
+                        .limit(100);
+                }
+
+                const { data: games, error } = await query;
 
                 if (error) {
                     lobby.innerHTML = `<div class="text-center py-20 text-red-500 uppercase">Indexing Error: ${error.message}</div>`;
@@ -1419,23 +1613,31 @@
 
                 lobby.innerHTML = '';
                 let displayedCount = 0;
+                let openCount = 0; // Track open games — cap at 5
 
                 games.forEach(game => {
                     const status = Number(game.status);
                     const isHost = userAddress && game.host === userAddress.toLowerCase();
                     const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
-                    
+                    const remaining = getTimeRemaining(game);
+                    const expired = remaining <= 0;
+
+                    // OPEN games: hide timed-out ones from lobby (they go to profile pending actions)
+                    if (status === 0 && expired && !isHost) return;
+                    // Cap open games at 5 for non-participants
+                    if (status === 0 && !isHost) {
+                        openCount++;
+                        if (openCount > 5) return;
+                    }
+
                     if (currentLobbyFilter === 'open' && status !== 0) return;
                     if (currentLobbyFilter === 'intercepted' && status !== 1) return;
                     if (currentLobbyFilter === 'resolved' && status !== 2) return;
                     
-                    // In "all" filter, hide resolved/refunded/forfeited games unless you participated
                     if (status > 1 && !isHost && !isChallenger && currentLobbyFilter === 'all') return;
 
                     displayedCount++;
 
-                    const remaining = getTimeRemaining(game);
-                    const expired = remaining <= 0;
                     const nearExpiry = remaining > 0 && remaining < 60;
 
                     let countdownHTML = '';
@@ -2242,7 +2444,8 @@
 
                 chatMessages.innerHTML = messages.reverse().map(msg => {
                     const isOwn = userAddress && msg.sender.toLowerCase() === userAddress.toLowerCase();
-                    const addrDisplay = `${msg.sender.slice(0,6)}...${msg.sender.slice(-4)}`;
+                    const cached = cachedUsernames[msg.sender.toLowerCase()];
+                    const addrDisplay = cached || `${msg.sender.slice(0,6)}...${msg.sender.slice(-4)}`;
                     const addrEl = isOwn
                         ? `<span class="text-[9px] text-orange-700">${addrDisplay} (you)</span>`
                         : `<button onclick="openTipModal('${msg.sender}')" title="Tip this pilot ⚡" class="text-[9px] text-orange-700 hover:text-orange-400 transition flex items-center gap-1"><span>${addrDisplay}</span><span class="text-orange-900 hover:text-orange-500">⚡</span></button>`;
@@ -2489,131 +2692,296 @@
                     </div>`;
                 return;
             }
-            
+
+            // Load username into identity card
+            document.getElementById('profile-address-display').textContent = userAddress;
+            loadUsername();
+
             profileContent.innerHTML = `<div class="text-center py-20"><div class="text-orange-500 animate-pulse">Loading pilot data...</div></div>`;
-            
+
             try {
-                const { data: games, error } = await _supabase
+                // Fetch ALL games for this player across both chains
+                const { data: allGames, error } = await _supabase
                     .from('games')
                     .select('*')
                     .or(`host.eq.${userAddress.toLowerCase()},challenger.eq.${userAddress.toLowerCase()}`)
                     .order('game_id', { ascending: false });
-                
-                if (error) { profileContent.innerHTML = `<div class="text-red-500">Error loading profile</div>`; return; }
-                
-                let totalGames = 0, wins = 0, losses = 0, draws = 0, totalWagered = 0, totalWon = 0;
-                const recentGames = [];
-                
-                games.forEach(game => {
+
+                if (error) { profileContent.innerHTML = `<div class="text-red-500">Error: ${error.message}</div>`; return; }
+
+                // ── Pending Actions ───────────────────────────────────────────
+                const pendingActions = [];
+                const now = Math.floor(Date.now() / 1000);
+                allGames.forEach(game => {
+                    const status = Number(game.status);
                     const isHost = game.host === userAddress.toLowerCase();
-                    const wager = parseFloat(game.wager);
-                    if (game.status === 2 && game.host_move && game.challenger_move) {
-                        totalGames++;
-                        totalWagered += wager;
-                        const hostMove = Number(game.host_move);
-                        const challengerMove = Number(game.challenger_move);
-                        let result = '';
-                        if (hostMove === challengerMove) {
-                            draws++; result = 'DRAW'; totalWon += wager * 0.97;
-                        } else {
-                            const hostWins = (
-                                (hostMove === 1 && challengerMove === 2) ||
-                                (hostMove === 2 && challengerMove === 3) ||
-                                (hostMove === 3 && challengerMove === 1)
-                            );
-                            if ((isHost && hostWins) || (!isHost && !hostWins)) {
-                                wins++; result = 'WIN'; totalWon += wager * 2 * 0.97;
-                            } else {
-                                losses++; result = 'LOSS';
-                            }
-                        }
-                        recentGames.push({ ...game, result, isHost });
+                    const isChallenger = game.challenger === userAddress.toLowerCase();
+                    const createdAt = Math.floor(new Date(game.created_at).getTime() / 1000);
+                    const deadline = createdAt + (game.timeout || 900);
+                    const expired = now >= deadline;
+                    const chainLabel = game.chain === 'avax' ? '🔺 AVAX' : '🔴 Martian';
+                    if (status === 0 && isHost && expired) {
+                        pendingActions.push({ game, type: 'retract', label: 'Retract Wager', chainLabel });
+                    }
+                    if (status === 1 && isChallenger && expired) {
+                        pendingActions.push({ game, type: 'forfeit', label: 'Claim Victory', chainLabel });
                     }
                 });
-                
-                const netPnL = totalWon - totalWagered;
-                const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
-                const moveIcons = ['', '☀️', '🌬️', '🌪️'];
 
-                // Load tip stats in parallel
+                // ── Filter games by chain tab ────────────────────────────────
+                const chainFilter = profileChainFilter;
+                const filteredGames = allGames.filter(game => {
+                    if (chainFilter === 'all') return true;
+                    if (chainFilter === 'martian') return !game.chain || game.chain === 'martian';
+                    return game.chain === chainFilter;
+                });
+
+                // ── Compute stats ────────────────────────────────────────────
+                const moveIcons = ['', '☀️', '🌬️', '🌪️'];
+                let totalGames = 0, wins = 0, losses = 0, draws = 0, totalWagered = 0, totalWon = 0;
+                const recentGames = [];
+
+                filteredGames.forEach(game => {
+                    const status = Number(game.status);
+                    if (status !== 2) return;
+                    const isHost = game.host === userAddress.toLowerCase();
+                    const isChallenger = game.challenger === userAddress.toLowerCase();
+                    if (!isHost && !isChallenger) return;
+
+                    const hm = Number(game.host_move), cm = Number(game.challenger_move);
+                    const wager = parseFloat(game.wager) || 0;
+                    totalWagered += wager;
+                    totalGames++;
+
+                    let result = 'DRAW';
+                    if (hm !== cm) {
+                        const hostWins =
+                            (hm === 1 && cm === 2) || (hm === 2 && cm === 3) || (hm === 3 && cm === 1);
+                        const iWin = (isHost && hostWins) || (isChallenger && !hostWins);
+                        result = iWin ? 'WIN' : 'LOSS';
+                    }
+                    if (result === 'WIN')  { wins++;   totalWon += wager * 2 * 0.97; }
+                    if (result === 'LOSS') { losses++; }
+                    if (result === 'DRAW') { draws++;  totalWon += wager * 0.97; }
+                    recentGames.push({ ...game, result, isHost });
+                });
+
+                const netPnL   = totalWon - totalWagered;
+                const winRate  = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
                 const tipStats = await loadTipStats(userAddress);
+                const chainName = chainFilter === 'all' ? 'All Chains'
+                                : chainFilter === 'avax' ? '🔺 Avalanche C-Chain' : '🔴 Martian Chain';
+                const tokenSymbol = chainFilter === 'avax' ? 'AVAX' : chainFilter === 'all' ? 'mixed' : 'EROL';
+
+                // ── Pending actions HTML ─────────────────────────────────────
+                const pendingHTML = pendingActions.length > 0 ? `
+                    <div class="bg-red-950/30 border border-red-900/40 p-5 mb-6">
+                        <div class="orbitron text-red-400 text-sm mb-3 flex items-center gap-2">
+                            <span class="animate-pulse">⚠️</span> PENDING ACTIONS REQUIRED
+                        </div>
+                        <div class="space-y-2">
+                            ${pendingActions.map(pa => `
+                            <div class="flex justify-between items-center bg-black/40 p-3 border border-red-900/20">
+                                <div>
+                                    <span class="text-[9px] text-gray-500">${pa.chainLabel}</span>
+                                    <div class="text-sm text-white">Game #${pa.game.game_id} — ${pa.game.wager} ${pa.game.chain === 'avax' ? 'AVAX' : 'EROL'}</div>
+                                    <div class="text-[9px] text-red-400 uppercase">${pa.label === 'Retract Wager' ? 'No one challenged — you can retract your wager' : 'Host failed to reveal — you can claim the pot'}</div>
+                                </div>
+                                <button onclick="pendingAction(${pa.game.game_id}, '${pa.type}', '${pa.game.chain || 'martian'}')"
+                                    class="btn-mars text-[10px] px-4 py-2 uppercase">${pa.label}</button>
+                            </div>`).join('')}
+                        </div>
+                    </div>` : '';
+
+                // ── Tip history HTML ──────────────────────────────────────────
                 const recentTipsHTML = tipStats.recentTips.length > 0
                     ? tipStats.recentTips.map(t => `
                         <div class="flex justify-between items-center py-2 border-b border-orange-900/10 text-sm">
-                            <div class="text-gray-400">
-                                <span class="text-[9px] text-gray-600">FROM </span>
-                                <span class="text-orange-700 text-[10px]">${t.sender.slice(0,8)}...${t.sender.slice(-4)}</span>
-                            </div>
-                            <div class="orbitron text-orange-500">+${parseFloat(t.amount).toFixed(4)} $EROL</div>
+                            <div class="text-[9px] text-gray-600">FROM <span class="text-orange-700">${formatAddr(t.sender)}</span></div>
+                            <div class="orbitron text-orange-500">+${parseFloat(t.amount).toFixed(4)}</div>
                         </div>`).join('')
                     : '<div class="text-center text-gray-600 py-3 text-sm">No tips received yet</div>';
-                
+
                 profileContent.innerHTML = `
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <div class="bg-black/40 border border-orange-900/30 p-6 text-center">
+                    ${pendingHTML}
+
+                    <div class="text-[10px] text-gray-600 mb-4 orbitron">${chainName} — Resolved games only</div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-black/40 border border-orange-900/30 p-5 text-center">
                             <div class="text-[10px] text-orange-800 uppercase mb-2">Games</div>
                             <div class="orbitron text-3xl text-orange-500">${totalGames}</div>
                         </div>
-                        <div class="bg-black/40 border border-green-900/30 p-6 text-center">
+                        <div class="bg-black/40 border border-green-900/30 p-5 text-center">
                             <div class="text-[10px] text-green-800 uppercase mb-2">Wins</div>
                             <div class="orbitron text-3xl text-green-500">${wins}</div>
                         </div>
-                        <div class="bg-black/40 border border-red-900/30 p-6 text-center">
+                        <div class="bg-black/40 border border-red-900/30 p-5 text-center">
                             <div class="text-[10px] text-red-800 uppercase mb-2">Losses</div>
                             <div class="orbitron text-3xl text-red-500">${losses}</div>
                         </div>
-                        <div class="bg-black/40 border border-yellow-900/30 p-6 text-center">
+                        <div class="bg-black/40 border border-yellow-900/30 p-5 text-center">
                             <div class="text-[10px] text-yellow-800 uppercase mb-2">Draws</div>
                             <div class="orbitron text-3xl text-yellow-500">${draws}</div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <div class="bg-black/40 border border-orange-900/30 p-6">
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-black/40 border border-orange-900/30 p-5">
                             <div class="text-[10px] text-orange-800 uppercase mb-2">Win Rate</div>
                             <div class="orbitron text-2xl text-orange-500">${winRate}%</div>
                         </div>
-                        <div class="bg-black/40 border border-orange-900/30 p-6">
-                            <div class="text-[10px] text-orange-800 uppercase mb-2">Wagered</div>
-                            <div class="orbitron text-2xl text-orange-500">${totalWagered.toFixed(2)}</div>
+                        <div class="bg-black/40 border border-orange-900/30 p-5">
+                            <div class="text-[10px] text-orange-800 uppercase mb-2">Total Wagered</div>
+                            <div class="orbitron text-xl text-orange-500">${totalWagered.toFixed(2)}</div>
                         </div>
-                        <div class="bg-black/40 border border-${netPnL >= 0 ? 'green' : 'red'}-900/30 p-6">
+                        <div class="bg-black/40 border border-${netPnL >= 0 ? 'green' : 'red'}-900/30 p-5">
                             <div class="text-[10px] text-${netPnL >= 0 ? 'green' : 'red'}-800 uppercase mb-2">Net P&L</div>
                             <div class="orbitron text-2xl text-${netPnL >= 0 ? 'green' : 'red'}-500">${netPnL >= 0 ? '+' : ''}${netPnL.toFixed(2)}</div>
                         </div>
-                        <div class="bg-black/40 border border-yellow-900/30 p-6">
+                        <div class="bg-black/40 border border-yellow-900/30 p-5">
                             <div class="text-[10px] text-yellow-800 uppercase mb-2">Tips Received</div>
                             <div class="orbitron text-2xl text-yellow-500">+${tipStats.totalReceived.toFixed(2)}</div>
                         </div>
                     </div>
 
-                    <!-- Tips Section -->
-                    <div class="bg-black/40 border border-yellow-900/20 p-6 mb-8">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="orbitron text-yellow-500 text-sm uppercase flex items-center gap-2">
-                                <span>⚡ TIP HISTORY</span>
-                            </h3>
-                            <div class="flex gap-6 text-[10px]">
-                                <span class="text-gray-500">Received: <span class="text-yellow-500 orbitron">${tipStats.totalReceived.toFixed(4)} $EROL</span></span>
-                                <span class="text-gray-500">Sent: <span class="text-orange-700 orbitron">${tipStats.totalSent.toFixed(4)} $EROL</span></span>
+                    <div class="bg-black/40 border border-yellow-900/20 p-5 mb-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="orbitron text-yellow-500 text-xs uppercase">⚡ Tip History</h3>
+                            <div class="flex gap-4 text-[10px]">
+                                <span class="text-gray-500">Received: <span class="text-yellow-500 orbitron">${tipStats.totalReceived.toFixed(4)}</span></span>
+                                <span class="text-gray-500">Sent: <span class="text-orange-700 orbitron">${tipStats.totalSent.toFixed(4)}</span></span>
                             </div>
                         </div>
                         <div>${recentTipsHTML}</div>
                     </div>
 
-                    <h3 class="orbitron text-orange-500 mb-4">RECENT BATTLES</h3>
+                    <h3 class="orbitron text-orange-500 mb-4 text-sm uppercase">Recent Battles</h3>
                     <div class="space-y-3">
                         ${recentGames.slice(0, 10).map(game => `
-                            <div class="lobby-row bg-black/40 border-l-2 border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-700 p-4 flex justify-between cursor-pointer" data-gameid="${game.game_id || ''}" onclick="if(this.dataset.gameid && this.dataset.gameid !== 'null') openMatchDetail(this.dataset.gameid)">
+                            <div class="lobby-row bg-black/40 border-l-2 border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-700 p-4 flex justify-between cursor-pointer"
+                                data-gameid="${game.game_id || ''}" onclick="if(this.dataset.gameid && this.dataset.gameid !== 'null') openMatchDetail(this.dataset.gameid)">
                                 <div>
-                                    <span class="text-[10px] px-2 py-0.5 border border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 text-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500">${game.result}</span>
-                                    <div class="text-sm mt-1"><span class="text-orange-500">${game.wager || '?'} $EROL</span><span class="text-gray-600 text-[10px] ml-2">Game #${game.game_id}</span></div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-[10px] px-2 py-0.5 border border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 text-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500">${game.result}</span>
+                                        <span class="text-[9px] text-gray-600">${game.chain === 'avax' ? '🔺 AVAX' : '🔴 Martian'}</span>
+                                    </div>
+                                    <div class="text-sm"><span class="text-orange-500">${game.wager || '?'} ${game.chain === 'avax' ? 'AVAX' : 'EROL'}</span><span class="text-gray-600 text-[10px] ml-2">Game #${game.game_id}</span></div>
                                 </div>
                                 <div class="text-2xl">${game.isHost ? moveIcons[game.host_move] : moveIcons[game.challenger_move]}</div>
-                            </div>`).join('') || '<div class="text-center text-gray-600 py-8">No battles yet</div>'}
+                            </div>`).join('') || '<div class="text-center text-gray-600 py-8">No battles yet on this chain</div>'}
                     </div>`;
             } catch (err) {
                 profileContent.innerHTML = `<div class="text-red-500">Error: ${err.message}</div>`;
             }
+        }
+
+        // ── Pending action handler (retract / forfeit from profile) ──────────
+        async function pendingAction(gameId, type, chainStr) {
+            if (!signer) return showToast('CONNECT WALLET FIRST');
+            // Switch to correct chain first
+            const targetChain = chainStr === 'avax' ? 'avax' : 'martian';
+            if (activeChain !== targetChain) {
+                showToast('SWITCHING CHAIN...');
+                // Update chain globals
+                activeChain   = targetChain;
+                CHAIN_ID      = CHAINS[targetChain].id;
+                RPC_URL       = CHAINS[targetChain].rpc;
+                CONTRACT_ADDR = CHAINS[targetChain].contract;
+            }
+            if (!(await checkNetwork())) return;
+            contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+            try {
+                showToast(type === 'retract' ? 'RETRACTING WAGER...' : 'CLAIMING VICTORY...');
+                const tx = type === 'retract'
+                    ? await contract.refundUnchallenged(gameId)
+                    : await contract.forceForfeit(gameId);
+                await tx.wait();
+                const newStatus = type === 'retract' ? 3 : 4;
+                await _supabase.from('games').update({ status: newStatus }).eq('game_id', gameId);
+                showToast(type === 'retract' ? '✓ WAGER RETRACTED' : '✓ VICTORY CLAIMED');
+                loadProfile();
+                updateBalance();
+            } catch(e) {
+                console.error('pendingAction error:', e);
+                showToast('TRANSACTION FAILED');
+            }
+        }
+
+                // ===========================
+        // USERNAME SYSTEM
+        // ===========================
+        let cachedUsernames = {}; // address → username cache
+        let profileChainFilter = 'martian';
+
+        async function loadUsername() {
+            if (!userAddress) return;
+            try {
+                const { data } = await _supabase.from('usernames')
+                    .select('username').eq('address', userAddress.toLowerCase()).single();
+                if (data && data.username) {
+                    cachedUsernames[userAddress.toLowerCase()] = data.username;
+                    document.getElementById('username-display').textContent = data.username;
+                    document.getElementById('username-input').value = data.username;
+                } else {
+                    document.getElementById('username-display').textContent = userAddress.slice(0,8) + '...';
+                }
+            } catch(e) { console.warn('loadUsername:', e); }
+        }
+
+        async function saveUsername() {
+            if (!userAddress) return showToast('CONNECT WALLET FIRST');
+            const val = document.getElementById('username-input').value.trim();
+            if (!val || val.length < 2) return showToast('MIN 2 CHARACTERS');
+            if (!/^[a-zA-Z0-9_]+$/.test(val)) return showToast('LETTERS, NUMBERS, _ ONLY');
+            try {
+                const { error } = await _supabase.from('usernames')
+                    .upsert([{ address: userAddress.toLowerCase(), username: val }], { onConflict: 'address' });
+                if (error) {
+                    if (error.message && error.message.includes('unique')) return showToast('⚠️ CALLSIGN TAKEN');
+                    return showToast('SAVE FAILED: ' + error.message);
+                }
+                cachedUsernames[userAddress.toLowerCase()] = val;
+                document.getElementById('username-display').textContent = val;
+                showToast('✓ CALLSIGN SAVED');
+            } catch(e) { showToast('ERROR: ' + e.message); }
+        }
+
+        async function getUsername(address) {
+            if (!address) return null;
+            const addr = address.toLowerCase();
+            if (cachedUsernames[addr]) return cachedUsernames[addr];
+            try {
+                const { data } = await _supabase.from('usernames')
+                    .select('username').eq('address', addr).single();
+                if (data && data.username) {
+                    cachedUsernames[addr] = data.username;
+                    return data.username;
+                }
+            } catch(e) {}
+            return null;
+        }
+
+        function formatAddr(address) {
+            if (!address) return 'Unknown';
+            const cached = cachedUsernames[address.toLowerCase()];
+            if (cached) return cached;
+            return address.slice(0,6) + '...' + address.slice(-4);
+        }
+
+        function setProfileChain(chain) {
+            profileChainFilter = chain;
+            ['martian','avax','all'].forEach(ch => {
+                const btn = document.getElementById('profile-tab-' + ch);
+                if (!btn) return;
+                const isActive = ch === chain;
+                const colors = ch === 'avax' ? 'border-blue-500 text-blue-400'
+                             : ch === 'martian' ? 'border-orange-500 text-orange-500'
+                             : 'border-green-700 text-green-500';
+                btn.className = 'px-4 py-2 text-[10px] uppercase orbitron border transition ' +
+                    (isActive ? colors : 'border-gray-700 text-gray-600');
+            });
+            loadProfile();
         }
 
         // ===========================
@@ -2624,15 +2992,52 @@
         }
         
         function switchTab(tab) {
+            // Deactivate all tab buttons except chain pills
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            const tabBtn = document.getElementById(`tab-${tab}`);
-            if (tabBtn) tabBtn.classList.add('active');
-            
-            document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active'));
+            // Reactivate the correct chain lobby tab if we're going to lobby
+            if (tab === 'lobby') {
+                const chainTabId = activeChain === 'avax' ? 'tab-lobby-avax' : 'tab-lobby-martian';
+                const chainTab = document.getElementById(chainTabId);
+                if (chainTab) chainTab.classList.add('active');
+            } else {
+                const tabBtn = document.getElementById(`tab-${tab}`);
+                if (tabBtn) tabBtn.classList.add('active');
+            }
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
             document.getElementById(`page-${tab}`).classList.add('active');
-            
             if (tab === 'profile') loadProfile();
             if (tab === 'leaderboard') loadLeaderboard();
+        }
+
+        function switchChainTab(chain) {
+            activeChain = chain;
+            CHAIN_ID     = CHAINS[chain].id;
+            RPC_URL      = CHAINS[chain].rpc;
+            CONTRACT_ADDR = CHAINS[chain].contract;
+
+            // Update nav tab highlight
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab-lobby-' + chain).classList.add('active');
+
+            // Show lobby page
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('page-lobby').classList.add('active');
+
+            // Update chain banner
+            const isMartian = chain === 'martian';
+            document.getElementById('chain-banner-icon').textContent = isMartian ? '🔴' : '🔺';
+            document.getElementById('chain-banner-name').textContent = isMartian ? 'Martian Chain' : 'Avalanche C-Chain';
+            document.getElementById('chain-banner-sub').textContent  = isMartian ? 'Betting with native $EROL' : 'Betting with native AVAX';
+            document.getElementById('chain-pill-martian').className = 'px-3 py-1 text-[9px] uppercase border orbitron ' +
+                (isMartian ? 'border-orange-500 text-orange-500' : 'border-gray-700 text-gray-600');
+            document.getElementById('chain-pill-avax').className = 'px-3 py-1 text-[9px] uppercase border orbitron ' +
+                (!isMartian ? 'border-blue-500 text-blue-400' : 'border-gray-700 text-gray-600');
+
+            // Rebuild contract reference if wallet is connected
+            if (signer) {
+                contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+            }
+            refreshLobby();
         }
         
         function debugInfo() {
@@ -3591,6 +3996,19 @@
 
             document.addEventListener('touchend', () => { isDragging = false; });
         }
+
+        // Register real implementations to override head stubs
+        (function registerRealFns() {
+            var fns = ['switchTab','connectWallet','openChallengeModal','openTipModal',
+                       'openMatchDetail','openBridgeOverlay','closeBridgeOverlay','replayBattle',
+                       'sendMessage','copyAddress','closePlayerModal','closeTipModal','confirmTip',
+                       'setTipAmount','confirmChallenge','closeChallengeModal','selectChallengeMove'];
+            fns.forEach(function(name) {
+                if (typeof window[name] === 'function') {
+                    window['__real_' + name] = window[name];
+                }
+            });
+        })();
 
         window.onload = init;
         
