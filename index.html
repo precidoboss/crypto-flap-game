@@ -994,6 +994,38 @@
         </div>
     </div>
 
+    <!-- Tip Modal -->
+    <div id="tip-modal" class="modal">
+        <div class="modal-content mars-glass p-8 w-full" style="max-width:400px;">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="orbitron text-xl text-orange-500">⚡ SEND TIP</h2>
+                <button onclick="closeTipModal()" class="text-2xl text-gray-500 hover:text-orange-500">&times;</button>
+            </div>
+            <div id="tip-modal-content">
+                <div class="bg-black/40 border border-orange-900/20 p-3 mb-5 text-center">
+                    <div class="text-[9px] text-gray-500 mb-1 uppercase">Tipping Pilot</div>
+                    <div id="tip-recipient-display" class="orbitron text-orange-500 text-sm break-all"></div>
+                </div>
+                <div class="mb-5">
+                    <label class="text-[10px] text-orange-800 uppercase mb-2 block">Amount ($EROL)</label>
+                    <div class="flex gap-2 mb-3">
+                        <button onclick="setTipAmount(0.1)" class="flex-1 py-2 text-[10px] border border-orange-900/30 text-orange-700 hover:text-orange-500 hover:border-orange-500/50 transition uppercase">0.1</button>
+                        <button onclick="setTipAmount(0.5)" class="flex-1 py-2 text-[10px] border border-orange-900/30 text-orange-700 hover:text-orange-500 hover:border-orange-500/50 transition uppercase">0.5</button>
+                        <button onclick="setTipAmount(1)" class="flex-1 py-2 text-[10px] border border-orange-900/30 text-orange-700 hover:text-orange-500 hover:border-orange-500/50 transition uppercase">1.0</button>
+                        <button onclick="setTipAmount(5)" class="flex-1 py-2 text-[10px] border border-orange-900/30 text-orange-700 hover:text-orange-500 hover:border-orange-500/50 transition uppercase">5.0</button>
+                    </div>
+                    <input id="tip-amount-input" type="number" step="0.01" min="0.01" placeholder="Custom amount..." 
+                        class="w-full bg-black border border-orange-900/50 p-3 text-orange-500 focus:outline-none focus:border-orange-500 orbitron text-sm">
+                </div>
+                <div class="bg-orange-900/10 border border-orange-900/30 p-3 mb-5 text-[10px] text-gray-500 space-y-1">
+                    <div>Tips are sent directly as $EROL on Martian Chain</div>
+                    <div>Tip history is recorded on-chain and tracked in profiles</div>
+                </div>
+                <button onclick="confirmTip()" id="confirm-tip-btn" class="btn-mars w-full py-3 text-sm">Send Tip ⚡</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Challenge Move Modal -->
     <div id="challenge-modal" class="modal">
         <div class="modal-content mars-glass p-8 w-full" style="max-width:400px;">
@@ -1445,9 +1477,10 @@
                 if (nearExpiry) {
                     return `<span class="text-[9px] text-red-500 uppercase italic">🔒 Closing...</span>`;
                 }
-                const safeWager = (game.wager != null && game.wager !== 'null' && game.wager !== '') ? game.wager : '0';
-                const safeId = game.game_id != null ? game.game_id : '';
-                return `<button data-intercept-btn onclick="openChallengeModal('${safeId}', '${safeWager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
+                const safeId = game.game_id != null ? String(game.game_id) : '';
+                const dbWager = (game.wager != null && game.wager !== 'null' && game.wager !== '') ? String(game.wager) : 'null';
+                // Always show Intercept — wager will be fetched from contract if null
+                return `<button data-intercept-btn onclick="openChallengeModal('${safeId}', '${dbWager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
             }
 
             if (status === 1) {
@@ -1775,21 +1808,37 @@
         // ===========================
         // CHALLENGE MODAL
         // ===========================
-        function openChallengeModal(gameId, wager) {
+        async function openChallengeModal(gameId, wager) {
             if (!userAddress) { showToast("CONNECT UPLINK FIRST"); return; }
             if (!gameId || gameId === 'null' || gameId === '') { showToast("⚠️ INVALID GAME ID"); return; }
-            if (!wager || wager === 'null' || wager === '0' || isNaN(parseFloat(wager))) {
-                showToast("⚠️ WAGER DATA MISSING — REFRESH LOBBY");
-                return;
-            }
+            if (!(await checkNetwork())) return;
+
             pendingChallengeId = gameId;
-            pendingChallengeWager = wager;
             selectedChallengeMove = 0;
 
+            // Try to resolve wager: use passed value, else fetch from contract
+            let resolvedWager = wager;
+            const isValidWager = resolvedWager && resolvedWager !== 'null' && resolvedWager !== '0' && !isNaN(parseFloat(resolvedWager)) && parseFloat(resolvedWager) > 0;
+
+            document.getElementById('challenge-wager-display').textContent = isValidWager ? `${resolvedWager} $EROL` : 'Fetching...';
             document.querySelectorAll('[id^="cmove-"]').forEach(b => b.classList.remove('selected'));
             document.getElementById('confirm-challenge-btn').disabled = true;
-            document.getElementById('challenge-wager-display').textContent = `${wager} $EROL`;
             document.getElementById('challenge-modal').classList.add('active');
+
+            if (!isValidWager) {
+                // Fetch real wager from the smart contract
+                try {
+                    const readContract = new ethers.Contract(CONTRACT_ADDR, ABI, provider);
+                    const gameData = await readContract.games(gameId);
+                    resolvedWager = ethers.formatEther(gameData.wager);
+                    document.getElementById('challenge-wager-display').textContent = `${parseFloat(resolvedWager).toFixed(4)} $EROL`;
+                } catch(e) {
+                    console.error("Could not fetch wager from contract:", e);
+                    document.getElementById('challenge-wager-display').textContent = 'Fetch failed — check console';
+                    showToast("⚠️ COULD NOT FETCH WAGER — CHECK CONSOLE");
+                }
+            }
+            pendingChallengeWager = resolvedWager;
         }
 
         function closeChallengeModal() {
@@ -1827,20 +1876,27 @@
                     if (isNearExpiry(gameRow)) return showToast("⛔ TOO CLOSE TO TIMEOUT — CANNOT JOIN");
                 }
 
-                showToast("INTERCEPTING...");
+                showToast("FETCHING GAME DATA...");
                 
-                // Use wager amount passed from DB — avoids a contract.games() call that can fail
-                // Validate wager before parsing
-                if (!wager || wager === 'null' || wager === 'undefined' || wager === '0') {
-                    showToast("⚠️ INVALID WAGER AMOUNT — REFRESH AND TRY AGAIN");
-                    return;
+                // Always fetch actual wager from contract — DB wager field may be null
+                let actualWager;
+                try {
+                    const readContract = new ethers.Contract(CONTRACT_ADDR, ABI, provider);
+                    const onChainGame = await readContract.games(id);
+                    actualWager = onChainGame.wager; // BigInt, already in wei
+                    const wagerEth = ethers.formatEther(actualWager);
+                    console.log("On-chain wager:", wagerEth, "EROL");
+                    showToast("INTERCEPTING...");
+                } catch(e) {
+                    console.error("Failed to fetch on-chain wager:", e);
+                    // Fallback to passed wager value
+                    if (!wager || wager === 'null' || isNaN(parseFloat(wager)) || parseFloat(wager) <= 0) {
+                        showToast("⚠️ CANNOT FETCH WAGER — CHECK NETWORK");
+                        return;
+                    }
+                    actualWager = ethers.parseEther(parseFloat(wager).toString());
+                    showToast("INTERCEPTING (FALLBACK)...");
                 }
-                const wagerNum = parseFloat(wager);
-                if (isNaN(wagerNum) || wagerNum <= 0) {
-                    showToast("⚠️ INVALID WAGER AMOUNT");
-                    return;
-                }
-                const actualWager = ethers.parseEther(wagerNum.toString());
                 
                 const tx = await contract.challengeGame(id, move, { value: actualWager });
                 showToast("CONFIRMING TRANSACTION...");
@@ -2074,11 +2130,15 @@
 
                 chatMessages.innerHTML = messages.reverse().map(msg => {
                     const isOwn = userAddress && msg.sender.toLowerCase() === userAddress.toLowerCase();
+                    const addrDisplay = `${msg.sender.slice(0,6)}...${msg.sender.slice(-4)}`;
+                    const addrEl = isOwn
+                        ? `<span class="text-[9px] text-orange-700">${addrDisplay} (you)</span>`
+                        : `<button onclick="openTipModal('${msg.sender}')" title="Tip this pilot ⚡" class="text-[9px] text-orange-700 hover:text-orange-400 transition flex items-center gap-1"><span>${addrDisplay}</span><span class="text-orange-900 hover:text-orange-500">⚡</span></button>`;
                     return `
                         <div class="${isOwn ? 'text-right' : 'text-left'}">
                             <div class="inline-block max-w-[80%] ${isOwn ? 'bg-orange-900/30' : 'bg-gray-900/50'} px-3 py-2 rounded">
-                                <div class="text-[9px] text-orange-700 mb-1">${msg.sender.slice(0,6)}...${msg.sender.slice(-4)}</div>
-                                <div class="text-sm text-gray-200">${escapeHtml(msg.message)}</div>
+                                <div class="flex ${isOwn ? 'justify-end' : 'justify-start'} mb-1">${addrEl}</div>
+                                <div class="text-sm text-gray-200 text-left">${escapeHtml(msg.message)}</div>
                             </div>
                         </div>`;
                 }).join('');
@@ -2362,6 +2422,19 @@
                 const netPnL = totalWon - totalWagered;
                 const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
                 const moveIcons = ['', '☀️', '🌬️', '🌪️'];
+
+                // Load tip stats in parallel
+                const tipStats = await loadTipStats(userAddress);
+                const recentTipsHTML = tipStats.recentTips.length > 0
+                    ? tipStats.recentTips.map(t => `
+                        <div class="flex justify-between items-center py-2 border-b border-orange-900/10 text-sm">
+                            <div class="text-gray-400">
+                                <span class="text-[9px] text-gray-600">FROM </span>
+                                <span class="text-orange-700 text-[10px]">${t.sender.slice(0,8)}...${t.sender.slice(-4)}</span>
+                            </div>
+                            <div class="orbitron text-orange-500">+${parseFloat(t.amount).toFixed(4)} $EROL</div>
+                        </div>`).join('')
+                    : '<div class="text-center text-gray-600 py-3 text-sm">No tips received yet</div>';
                 
                 profileContent.innerHTML = `
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -2382,7 +2455,7 @@
                             <div class="orbitron text-3xl text-yellow-500">${draws}</div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                         <div class="bg-black/40 border border-orange-900/30 p-6">
                             <div class="text-[10px] text-orange-800 uppercase mb-2">Win Rate</div>
                             <div class="orbitron text-2xl text-orange-500">${winRate}%</div>
@@ -2395,14 +2468,33 @@
                             <div class="text-[10px] text-${netPnL >= 0 ? 'green' : 'red'}-800 uppercase mb-2">Net P&L</div>
                             <div class="orbitron text-2xl text-${netPnL >= 0 ? 'green' : 'red'}-500">${netPnL >= 0 ? '+' : ''}${netPnL.toFixed(2)}</div>
                         </div>
+                        <div class="bg-black/40 border border-yellow-900/30 p-6">
+                            <div class="text-[10px] text-yellow-800 uppercase mb-2">Tips Received</div>
+                            <div class="orbitron text-2xl text-yellow-500">+${tipStats.totalReceived.toFixed(2)}</div>
+                        </div>
                     </div>
+
+                    <!-- Tips Section -->
+                    <div class="bg-black/40 border border-yellow-900/20 p-6 mb-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="orbitron text-yellow-500 text-sm uppercase flex items-center gap-2">
+                                <span>⚡ TIP HISTORY</span>
+                            </h3>
+                            <div class="flex gap-6 text-[10px]">
+                                <span class="text-gray-500">Received: <span class="text-yellow-500 orbitron">${tipStats.totalReceived.toFixed(4)} $EROL</span></span>
+                                <span class="text-gray-500">Sent: <span class="text-orange-700 orbitron">${tipStats.totalSent.toFixed(4)} $EROL</span></span>
+                            </div>
+                        </div>
+                        <div>${recentTipsHTML}</div>
+                    </div>
+
                     <h3 class="orbitron text-orange-500 mb-4">RECENT BATTLES</h3>
                     <div class="space-y-3">
                         ${recentGames.slice(0, 10).map(game => `
                             <div class="lobby-row bg-black/40 border-l-2 border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-700 p-4 flex justify-between cursor-pointer" data-gameid="${game.game_id || ''}" onclick="if(this.dataset.gameid && this.dataset.gameid !== 'null') openMatchDetail(this.dataset.gameid)">
                                 <div>
                                     <span class="text-[10px] px-2 py-0.5 border border-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500 text-${game.result === 'WIN' ? 'green' : game.result === 'LOSS' ? 'red' : 'yellow'}-500">${game.result}</span>
-                                    <div class="text-sm mt-1"><span class="text-orange-500">${game.wager} $EROL</span><span class="text-gray-600 text-[10px] ml-2">Game #${game.game_id}</span></div>
+                                    <div class="text-sm mt-1"><span class="text-orange-500">${game.wager || '?'} $EROL</span><span class="text-gray-600 text-[10px] ml-2">Game #${game.game_id}</span></div>
                                 </div>
                                 <div class="text-2xl">${game.isHost ? moveIcons[game.host_move] : moveIcons[game.challenger_move]}</div>
                             </div>`).join('') || '<div class="text-center text-gray-600 py-8">No battles yet</div>'}
@@ -2450,6 +2542,106 @@
             setTimeout(() => t.classList.add('translate-y-32'), 4000);
         }
         
+        // ===========================
+        // TIPPING SYSTEM
+        // ===========================
+        let pendingTipRecipient = null;
+
+        function openTipModal(recipientAddress) {
+            if (!userAddress) { showToast("CONNECT UPLINK FIRST"); return; }
+            if (recipientAddress.toLowerCase() === userAddress.toLowerCase()) {
+                showToast("CANNOT TIP YOURSELF"); return;
+            }
+            pendingTipRecipient = recipientAddress;
+            document.getElementById('tip-recipient-display').textContent =
+                `${recipientAddress.slice(0,10)}...${recipientAddress.slice(-8)}`;
+            document.getElementById('tip-amount-input').value = '';
+            document.getElementById('tip-modal').classList.add('active');
+        }
+
+        function closeTipModal() {
+            document.getElementById('tip-modal').classList.remove('active');
+            pendingTipRecipient = null;
+        }
+
+        function setTipAmount(amount) {
+            document.getElementById('tip-amount-input').value = amount;
+        }
+
+        async function confirmTip() {
+            if (!signer || !pendingTipRecipient) return;
+            if (!(await checkNetwork())) return;
+
+            const amountInput = document.getElementById('tip-amount-input').value;
+            const amount = parseFloat(amountInput);
+            if (!amountInput || isNaN(amount) || amount <= 0) {
+                showToast("⚠️ ENTER A VALID AMOUNT");
+                return;
+            }
+
+            const btn = document.getElementById('confirm-tip-btn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            try {
+                showToast("SENDING TIP...");
+                const tipWei = ethers.parseEther(amount.toString());
+
+                // Send native EROL directly to recipient
+                const tx = await signer.sendTransaction({
+                    to: pendingTipRecipient,
+                    value: tipWei
+                });
+
+                showToast("CONFIRMING TIP...");
+                await tx.wait();
+
+                // Record in Supabase tips table
+                try {
+                    await _supabase.from('tips').insert([{
+                        sender: userAddress.toLowerCase(),
+                        recipient: pendingTipRecipient.toLowerCase(),
+                        amount: amount.toString(),
+                        tx_hash: tx.hash
+                    }]);
+                } catch(dbErr) {
+                    console.warn("Tip recorded on-chain but DB insert failed:", dbErr);
+                }
+
+                showToast(`⚡ ${amount} $EROL TIPPED!`);
+                closeTipModal();
+                updateBalance();
+            } catch(err) {
+                console.error("Tip error:", err);
+                if (err.message && err.message.includes('user rejected')) {
+                    showToast("TIP CANCELLED");
+                } else {
+                    showToast("TIP FAILED — CHECK BALANCE");
+                }
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send Tip ⚡';
+            }
+        }
+
+        async function loadTipStats(address) {
+            try {
+                const [sentRes, receivedRes] = await Promise.all([
+                    _supabase.from('tips').select('amount').eq('sender', address.toLowerCase()),
+                    _supabase.from('tips').select('amount, sender, created_at').eq('recipient', address.toLowerCase()).order('created_at', { ascending: false })
+                ]);
+
+                const totalSent = (sentRes.data || []).reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+                const totalReceived = (receivedRes.data || []).reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+                const recentTips = (receivedRes.data || []).slice(0, 5);
+
+                return { totalSent, totalReceived, recentTips };
+            } catch(e) {
+                console.error("loadTipStats error:", e);
+                return { totalSent: 0, totalReceived: 0, recentTips: [] };
+            }
+        }
+
         // ===========================
         // BRIDGE OVERLAY
         // ===========================
