@@ -372,14 +372,18 @@
                             <button id="copy-address" class="copy-btn text-orange-400 text-xs" onclick="copyAddress()" title="Copy Address">📋</button>
                             <button onclick="refreshAllBalances()" title="Refresh balances" class="text-orange-700 hover:text-orange-400 text-xs transition leading-none">↻</button>
                         </div>
-                        <div class="flex gap-3">
-                            <div class="text-center">
-                                <div class="text-[8px] text-gray-600 uppercase">Martian</div>
-                                <div id="balance-martian" class="orbitron text-orange-500 font-bold text-[11px]">— EROL</div>
+                        <div class="flex gap-2">
+                            <div class="text-center px-2 border-r border-orange-900/20">
+                                <div class="text-[7px] text-gray-600 uppercase">Martian</div>
+                                <div id="balance-martian" class="orbitron text-orange-500 font-bold text-[10px]">— EROL</div>
                             </div>
-                            <div class="text-center">
-                                <div class="text-[8px] text-gray-600 uppercase">AVAX</div>
-                                <div id="balance-avax" class="orbitron text-blue-400 font-bold text-[11px]">— AVAX</div>
+                            <div class="text-center px-2 border-r border-orange-900/20">
+                                <div class="text-[7px] text-gray-600 uppercase">AVAX native</div>
+                                <div id="balance-avax-native" class="orbitron text-blue-400 font-bold text-[10px]">— AVAX</div>
+                            </div>
+                            <div class="text-center px-2">
+                                <div class="text-[7px] text-gray-600 uppercase">EROL on AVAX</div>
+                                <div id="balance-avax-erol" class="orbitron text-green-400 font-bold text-[10px]">— EROL</div>
                             </div>
                         </div>
                     </div>
@@ -1379,37 +1383,58 @@
                     .subscribe();
 
                 window.ethereum.on('accountsChanged', () => window.location.reload());
-                window.ethereum.on('chainChanged', () => window.location.reload());
+                window.ethereum.on('chainChanged', (newChainId) => {
+                    // Do NOT reload — user switched chain intentionally via switchChainTab
+                    // Just refresh signer/contract reference
+                    provider.getSigner().then(s => {
+                        signer = s;
+                        contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+                    }).catch(() => {});
+                    updateBalance();
+                });
             }
         }
 
         async function checkNetwork() {
             const network = await provider.getNetwork();
-            if ("0x" + network.chainId.toString(16).toUpperCase() !== CHAIN_ID.toUpperCase()) {
+            const currentChainHex = '0x' + network.chainId.toString(16).toUpperCase();
+            if (currentChainHex !== CHAIN_ID.toUpperCase()) {
+                const cfg = CHAINS[activeChain];
                 try {
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: CHAIN_ID }],
+                        params: [{ chainId: cfg.id }],
                     });
+                    // After switch, refresh signer
+                    signer = await provider.getSigner();
+                    contract = new ethers.Contract(cfg.contract, ABI, signer);
+                    return true;
                 } catch (switchError) {
                     if (switchError.code === 4902) {
+                        // Chain not in MetaMask yet — add it
+                        const chainMeta = activeChain === 'avax'
+                            ? { chainId: cfg.id, chainName: 'Avalanche C-Chain',
+                                nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
+                                rpcUrls: [cfg.rpc],
+                                blockExplorerUrls: ['https://snowtrace.io'] }
+                            : { chainId: cfg.id, chainName: 'Martian Chain',
+                                nativeCurrency: { name: 'EROL', symbol: 'EROL', decimals: 18 },
+                                rpcUrls: [cfg.rpc],
+                                blockExplorerUrls: ['https://martian-explorer.amichain.org'] };
                         try {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: CHAIN_ID,
-                                    chainName: 'Martian Chain',
-                                    nativeCurrency: { name: 'EROL', symbol: 'EROL', decimals: 18 },
-                                    rpcUrls: [RPC_URL],
-                                    blockExplorerUrls: ['https://explorer.martian.com']
-                                }]
-                            });
+                            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [chainMeta] });
+                            signer = await provider.getSigner();
+                            contract = new ethers.Contract(cfg.contract, ABI, signer);
+                            return true;
                         } catch (addError) {
-                            showToast("FAILED TO ADD MARTIAN NETWORK");
+                            showToast('FAILED TO ADD ' + cfg.name.toUpperCase());
                             return false;
                         }
+                    } else if (switchError.code === 4001) {
+                        showToast('SWITCH REJECTED BY USER');
+                        return false;
                     } else {
-                        showToast("SWITCH TO MARTIAN NETWORK");
+                        showToast('SWITCH TO ' + cfg.name.toUpperCase());
                         return false;
                     }
                 }
@@ -1459,9 +1484,28 @@
             await refreshAllBalances();
         }
 
+        // EROL ERC-20 contract address on Avalanche C-Chain
+        // ⚠️ Replace with actual EROL ERC-20 address on AVAX once deployed
+        const EROL_AVAX_CONTRACT = "0x0000000000000000000000000000000000000000"; // TODO: set real address
+
+        async function fetchERC20Balance(tokenContract, walletAddress, rpc) {
+            // ERC-20 balanceOf(address) selector = 0x70a08231
+            const paddedAddr = walletAddress.replace('0x','').padStart(64, '0');
+            const callData = '0x70a08231' + paddedAddr;
+            const payload = { jsonrpc:"2.0", method:"eth_call",
+                params:[{ to: tokenContract, data: callData }, "latest"], id: Date.now() };
+            const res = await fetch(rpc, {
+                method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+            });
+            const json = await res.json();
+            if (!json.result || json.result === '0x') return null;
+            return parseFloat(ethers.formatEther(BigInt(json.result)));
+        }
+
         async function refreshAllBalances() {
             if (!userAddress) return;
-            // Martian balance via Martian RPC
+
+            // 1. Martian Chain — native EROL balance
             try {
                 const payload = { jsonrpc:"2.0", method:"eth_getBalance", params:[userAddress,"latest"], id:1 };
                 const res = await fetch(CHAINS.martian.rpc, {
@@ -1474,7 +1518,7 @@
                 }
             } catch(e) { console.error("Martian balance error:", e); }
 
-            // AVAX balance via AVAX public RPC
+            // 2. AVAX Chain — native AVAX balance
             try {
                 const payload = { jsonrpc:"2.0", method:"eth_getBalance", params:[userAddress,"latest"], id:2 };
                 const res = await fetch(CHAINS.avax.rpc, {
@@ -1483,9 +1527,21 @@
                 const json = await res.json();
                 if (json.result) {
                     const bal = parseFloat(ethers.formatEther(BigInt(json.result))).toFixed(4);
-                    document.getElementById('balance-avax').textContent = bal + " AVAX";
+                    document.getElementById('balance-avax-native').textContent = bal + " AVAX";
                 }
-            } catch(e) { console.error("AVAX balance error:", e); }
+            } catch(e) { console.error("AVAX native balance error:", e); }
+
+            // 3. AVAX Chain — EROL ERC-20 balance (if contract set)
+            if (EROL_AVAX_CONTRACT && EROL_AVAX_CONTRACT !== "0x0000000000000000000000000000000000000000") {
+                try {
+                    const erolBal = await fetchERC20Balance(EROL_AVAX_CONTRACT, userAddress, CHAINS.avax.rpc);
+                    if (erolBal !== null) {
+                        document.getElementById('balance-avax-erol').textContent = erolBal.toFixed(4) + " EROL";
+                    }
+                } catch(e) { console.error("AVAX EROL balance error:", e); }
+            } else {
+                document.getElementById('balance-avax-erol').textContent = "— EROL";
+            }
         }
 
         function selectMove(idx) {
@@ -1586,54 +1642,62 @@
         async function refreshLobby() {
             const lobby = document.getElementById('lobby-list');
             try {
-                // Filter by active chain
-                let query = _supabase.from('games')
-                    .select('*')
-                    .order('game_id', { ascending: false })
-                    .limit(100);
-
-                // Filter by chain column if it exists; fall back gracefully
                 const chainVal = CHAINS[activeChain].dbValue;
-                query = query.or(`chain.eq.${chainVal},chain.is.null`);
-                // If chain is null, only show martian chain games (legacy rows)
-                if (activeChain !== 'martian') {
-                    query = _supabase.from('games')
-                        .select('*')
-                        .eq('chain', chainVal)
-                        .order('game_id', { ascending: false })
-                        .limit(100);
-                }
+                const addr = userAddress ? userAddress.toLowerCase() : null;
 
-                const { data: games, error } = await query;
+                // Build chain filter: avax = strict eq, martian = eq OR null (legacy rows)
+                let chainFilter = activeChain === 'martian'
+                    ? { filter: 'chain', op: 'or', val: `chain.eq.martian,chain.is.null` }
+                    : { filter: 'chain', op: 'eq', val: chainVal };
 
-                if (error) {
-                    lobby.innerHTML = `<div class="text-center py-20 text-red-500 uppercase">Indexing Error: ${error.message}</div>`;
+                // Fetch open games separately — top 5 non-expired, plus your own open games
+                let openQuery = _supabase.from('games').select('*').eq('status', 0).order('game_id', { ascending: false }).limit(50);
+                if (activeChain === 'martian') openQuery = openQuery.or('chain.eq.martian,chain.is.null');
+                else openQuery = openQuery.eq('chain', chainVal);
+
+                // Fetch non-open games (intercepted/resolved/etc) — recent 30
+                let otherQuery = _supabase.from('games').select('*').neq('status', 0).order('game_id', { ascending: false }).limit(30);
+                if (activeChain === 'martian') otherQuery = otherQuery.or('chain.eq.martian,chain.is.null');
+                else otherQuery = otherQuery.eq('chain', chainVal);
+
+                const [{ data: openGames, error: e1 }, { data: otherGames, error: e2 }] = await Promise.all([openQuery, otherQuery]);
+
+                if (e1 || e2) {
+                    lobby.innerHTML = `<div class="text-center py-20 text-red-500 uppercase">Indexing Error: ${(e1||e2).message}</div>`;
                     return;
                 }
 
+                const now = Math.floor(Date.now() / 1000);
+
+                // Filter open games: hide expired non-own, cap visible at 5
+                let visibleOpenCount = 0;
+                const filteredOpen = (openGames || []).filter(game => {
+                    const isHost = addr && game.host === addr;
+                    const remaining = getTimeRemaining(game);
+                    const expired = remaining <= 0;
+                    if (expired && !isHost) return false; // expired + not yours → hide
+                    if (!isHost) {
+                        visibleOpenCount++;
+                        if (visibleOpenCount > 5) return false; // cap at 5 for strangers
+                    }
+                    return true;
+                });
+
+                const games = [...filteredOpen, ...(otherGames || [])];
+
                 lobby.innerHTML = '';
                 let displayedCount = 0;
-                let openCount = 0; // Track open games — cap at 5
 
                 games.forEach(game => {
                     const status = Number(game.status);
-                    const isHost = userAddress && game.host === userAddress.toLowerCase();
-                    const isChallenger = userAddress && game.challenger === userAddress.toLowerCase();
+                    const isHost = addr && game.host === addr;
+                    const isChallenger = addr && game.challenger === addr;
                     const remaining = getTimeRemaining(game);
                     const expired = remaining <= 0;
-
-                    // OPEN games: hide timed-out ones from lobby (they go to profile pending actions)
-                    if (status === 0 && expired && !isHost) return;
-                    // Cap open games at 5 for non-participants
-                    if (status === 0 && !isHost) {
-                        openCount++;
-                        if (openCount > 5) return;
-                    }
 
                     if (currentLobbyFilter === 'open' && status !== 0) return;
                     if (currentLobbyFilter === 'intercepted' && status !== 1) return;
                     if (currentLobbyFilter === 'resolved' && status !== 2) return;
-                    
                     if (status > 1 && !isHost && !isChallenger && currentLobbyFilter === 'all') return;
 
                     displayedCount++;
@@ -2713,6 +2777,7 @@
                 const pendingActions = [];
                 const now = Math.floor(Date.now() / 1000);
                 allGames.forEach(game => {
+                    if (dismissedPending.has(String(game.game_id))) return; // user cleared this
                     const status = Number(game.status);
                     const isHost = game.host === userAddress.toLowerCase();
                     const isChallenger = game.challenger === userAddress.toLowerCase();
@@ -2781,14 +2846,18 @@
                         </div>
                         <div class="space-y-2">
                             ${pendingActions.map(pa => `
-                            <div class="flex justify-between items-center bg-black/40 p-3 border border-red-900/20">
-                                <div>
+                            <div class="flex justify-between items-center bg-black/40 p-3 border border-red-900/20 gap-3">
+                                <div class="flex-1 min-w-0">
                                     <span class="text-[9px] text-gray-500">${pa.chainLabel}</span>
-                                    <div class="text-sm text-white">Game #${pa.game.game_id} — ${pa.game.wager} ${pa.game.chain === 'avax' ? 'AVAX' : 'EROL'}</div>
-                                    <div class="text-[9px] text-red-400 uppercase">${pa.label === 'Retract Wager' ? 'No one challenged — you can retract your wager' : 'Host failed to reveal — you can claim the pot'}</div>
+                                    <div class="text-sm text-white">Game #${pa.game.game_id} — ${pa.game.wager || '?'} ${pa.game.chain === 'avax' ? 'AVAX' : 'EROL'}</div>
+                                    <div class="text-[9px] text-red-400 uppercase">${pa.label === 'Retract Wager' ? 'No one challenged — retract your wager' : 'Host failed to reveal — claim the pot'}</div>
                                 </div>
-                                <button onclick="pendingAction(${pa.game.game_id}, '${pa.type}', '${pa.game.chain || 'martian'}')"
-                                    class="btn-mars text-[10px] px-4 py-2 uppercase">${pa.label}</button>
+                                <div class="flex gap-2 shrink-0">
+                                    <button onclick="pendingAction(${pa.game.game_id}, '${pa.type}', '${pa.game.chain || 'martian'}')"
+                                        class="btn-mars text-[10px] px-3 py-2 uppercase">${pa.label}</button>
+                                    <button onclick="dismissPending(${pa.game.game_id})"
+                                        title="Dismiss" class="px-3 py-2 text-[10px] border border-gray-700 text-gray-500 hover:text-gray-300 hover:border-gray-500 transition uppercase">✕ Dismiss</button>
+                                </div>
                             </div>`).join('')}
                         </div>
                     </div>` : '';
@@ -2874,6 +2943,14 @@
             } catch (err) {
                 profileContent.innerHTML = `<div class="text-red-500">Error: ${err.message}</div>`;
             }
+        }
+
+        // ── Dismissed pending actions (cleared by user this session) ──────
+        const dismissedPending = new Set();
+
+        function dismissPending(gameId) {
+            dismissedPending.add(String(gameId));
+            loadProfile(); // re-render without that item
         }
 
         // ── Pending action handler (retract / forfeit from profile) ──────────
