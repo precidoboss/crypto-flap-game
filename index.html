@@ -245,9 +245,24 @@
         /* Bridge iframe */
         .bridge-iframe {
             width: 100%;
-            height: 600px;
+            height: 750px;
             border: none;
-            border-radius: 4px;
+            border-radius: 0 0 4px 4px;
+        }
+
+        /* Live countdown ticker */
+        .countdown-tick {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.05em;
+            transition: color 0.3s;
+        }
+        @keyframes blink-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .countdown-critical {
+            animation: blink-red 0.8s ease-in-out infinite;
+            color: #ef4444;
         }
 
         @media (max-width: 768px) {
@@ -262,7 +277,7 @@
                 height: 300px;
             }
             .bridge-iframe {
-                height: 500px;
+                height: 600px;
             }
         }
     </style>
@@ -603,7 +618,7 @@
                     <div class="bg-black/60 border-b border-orange-900/30 px-4 py-2 flex items-center gap-2">
                         <span class="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
                         <span class="text-[10px] text-orange-700 uppercase tracking-widest">Martian Chain Bridge — Powered by martianchain.com</span>
-                        <a href="https://bridge.martianchain.com/swap/0x43845e182504d95bbd509d4dbc594dc85c94af45291ce71be2357b734f9f0557/43114" 
+                        <a href="https://bridge.martianchain.com/swap/" 
                            target="_blank" 
                            rel="noopener noreferrer"
                            class="ml-auto text-[9px] text-orange-700 hover:text-orange-500 border border-orange-900/30 px-2 py-1 uppercase transition"
@@ -613,16 +628,16 @@
                     </div>
                     <iframe 
                         id="bridge-iframe"
-                        src="https://bridge.martianchain.com/swap/0x43845e182504d95bbd509d4dbc594dc85c94af45291ce71be2357b734f9f0557/43114"
+                        src="https://bridge.martianchain.com/swap/"
                         class="bridge-iframe"
                         title="Martian Chain Bridge"
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals"
-                        loading="lazy"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-top-navigation allow-top-navigation-by-user-activation allow-downloads allow-storage-access-by-user-activation"
+                        allow="ethereum; web3; clipboard-read; clipboard-write"
                     ></iframe>
                 </div>
 
                 <div class="mt-4 text-center text-[10px] text-gray-700">
-                    If the bridge doesn't load, <a href="https://bridge.martianchain.com/swap/0x43845e182504d95bbd509d4dbc594dc85c94af45291ce71be2357b734f9f0557/43114" target="_blank" rel="noopener noreferrer" class="text-orange-700 hover:text-orange-500 underline">open it directly ↗</a>
+                    If wallet connection doesn't work inside the frame, <a href="https://bridge.martianchain.com/swap/" target="_blank" rel="noopener noreferrer" class="text-orange-700 hover:text-orange-500 underline">open it directly ↗</a>
                 </div>
             </div>
         </div>
@@ -735,7 +750,7 @@
             if (seconds <= 0) return null;
             const m = Math.floor(seconds / 60);
             const s = seconds % 60;
-            return `${m}m ${s}s`;
+            return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
         }
 
         // ===========================
@@ -975,11 +990,16 @@
 
                     let countdownHTML = '';
                     if (status === 0 || status === 1) {
+                        const createdAt = new Date(game.created_at).getTime() / 1000;
+                        const timeout = game.timeout || 900;
+                        const deadline = Math.floor(createdAt + timeout);
+
                         if (!expired) {
-                            const timeColor = nearExpiry ? 'text-red-400 animate-pulse' : (remaining < 300 ? 'text-yellow-500' : 'text-orange-500');
-                            countdownHTML = `<span class="text-[10px] ${timeColor} ml-2">⏱ ${formatCountdown(remaining)}</span>`;
+                            const initColor = nearExpiry ? 'countdown-critical' : (remaining < 300 ? 'text-yellow-500' : 'text-orange-500');
+                            const initText = `⏱ ${formatCountdown(remaining)}`;
+                            countdownHTML = `<span class="text-[10px] countdown-tick ${initColor} ml-2" data-deadline="${deadline}">${initText}</span>`;
                         } else {
-                            countdownHTML = `<span class="text-[10px] text-red-500 ml-2 animate-pulse">⏱ TIMEOUT</span>`;
+                            countdownHTML = `<span class="text-[10px] countdown-critical ml-2" data-deadline="${deadline}">⏱ TIMEOUT</span>`;
                         }
                     }
 
@@ -1086,7 +1106,7 @@
                 if (nearExpiry) {
                     return `<span class="text-[9px] text-red-500 uppercase italic">🔒 Closing...</span>`;
                 }
-                return `<button onclick="openChallengeModal(${game.game_id}, '${game.wager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
+                return `<button data-intercept-btn onclick="openChallengeModal(${game.game_id}, '${game.wager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
             }
 
             if (status === 1) {
@@ -1112,6 +1132,12 @@
         // MATCH DETAIL PAGE
         // ===========================
         async function openMatchDetail(gameId) {
+            if (!gameId || gameId === 'null' || gameId === 'undefined') {
+                showToast("⚠️ INVALID MATCH ID");
+                return;
+            }
+            gameId = parseInt(gameId);
+            if (isNaN(gameId)) { showToast("⚠️ INVALID MATCH ID"); return; }
             // Switch to match detail tab
             document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1197,12 +1223,15 @@
                 // Timer section
                 let timerSection = '';
                 if (status === 0 || status === 1) {
-                    const timeColor = expired ? 'text-red-500' : (nearExpiry ? 'text-red-400' : 'text-orange-500');
-                    const timeDisplay = expired ? 'TIMED OUT' : formatCountdown(remaining);
+                    const createdAt = new Date(game.created_at).getTime() / 1000;
+                    const timeout = game.timeout || 900;
+                    const deadline = Math.floor(createdAt + timeout);
+                    const timeColor = expired ? 'countdown-critical' : (nearExpiry ? 'countdown-critical' : 'text-orange-500');
+                    const timeDisplay = expired ? '⏱ TIMEOUT' : `⏱ ${formatCountdown(remaining)}`;
                     timerSection = `
                         <div class="stat-card mb-4">
                             <div class="text-[10px] text-gray-500 uppercase mb-2">Time Remaining</div>
-                            <div class="orbitron text-3xl ${timeColor} ${expired ? 'animate-pulse' : ''}">${timeDisplay}</div>
+                            <div class="orbitron text-3xl countdown-tick ${timeColor}" data-deadline="${deadline}">${timeDisplay}</div>
                             ${nearExpiry && !expired ? `<div class="text-[10px] text-red-500 mt-2 animate-pulse">🔒 Cannot be joined in final 60 seconds</div>` : ''}
                         </div>
                     `;
@@ -1457,8 +1486,8 @@
 
                 showToast("INTERCEPTING...");
                 
-                const gameData = await contract.games(id);
-                const actualWager = gameData.wager;
+                // Use wager amount passed from DB — avoids a contract.games() call that can fail
+                const actualWager = ethers.parseEther(String(wager));
                 
                 const tx = await contract.challengeGame(id, move, { value: actualWager });
                 showToast("CONFIRMING TRANSACTION...");
@@ -2052,6 +2081,52 @@
         }
         
         window.onload = init;
+        
+        // Live countdown ticker — updates every second
+        setInterval(() => {
+            document.querySelectorAll('[data-deadline]').forEach(el => {
+                const deadline = parseInt(el.getAttribute('data-deadline'));
+                const now = Math.floor(Date.now() / 1000);
+                const remaining = deadline - now;
+                if (remaining <= 0) {
+                    el.textContent = '⏱ TIMEOUT';
+                    el.className = el.className.replace(/text-\S+/g, '') + ' countdown-critical';
+                    // Also disable any intercept buttons in the same row
+                    const row = el.closest('[data-game-id]');
+                    if (row) {
+                        const interceptBtn = row.querySelector('[data-intercept-btn]');
+                        if (interceptBtn) {
+                            interceptBtn.disabled = true;
+                            interceptBtn.textContent = 'Timed Out';
+                            interceptBtn.className = 'text-[9px] text-red-700 uppercase italic px-4 py-2';
+                        }
+                    }
+                } else if (remaining < 60) {
+                    const s = remaining;
+                    el.textContent = `⏱ 00:${String(s).padStart(2,'0')}`;
+                    el.className = 'text-[10px] countdown-tick countdown-critical ml-2';
+                    // Disable intercept buttons when < 60s
+                    const row = el.closest('[data-game-id]');
+                    if (row) {
+                        const interceptBtn = row.querySelector('[data-intercept-btn]');
+                        if (interceptBtn && !interceptBtn.disabled) {
+                            interceptBtn.disabled = true;
+                            interceptBtn.textContent = '🔒 Closing...';
+                            interceptBtn.className = 'text-[9px] text-red-500 uppercase italic px-4 py-2 cursor-not-allowed opacity-60';
+                        }
+                    }
+                } else {
+                    const m = Math.floor(remaining / 60);
+                    const s = remaining % 60;
+                    el.textContent = `⏱ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                    if (remaining < 300) {
+                        el.className = 'text-[10px] countdown-tick text-yellow-500 ml-2';
+                    } else {
+                        el.className = 'text-[10px] countdown-tick text-orange-500 ml-2';
+                    }
+                }
+            });
+        }, 1000);
         
         window.onbeforeunload = () => {
             if (lobbyRefreshInterval) clearInterval(lobbyRefreshInterval);
