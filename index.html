@@ -1651,26 +1651,43 @@
                         resultColor = 'text-green-500';
                     }
 
+                    const isDraw = hostMove === challengerMove;
+                    const hostWins = !isDraw && resultLabel.includes('HOST');
+                    const challengerWins = !isDraw && resultLabel.includes('CHALLENGER');
+
                     resultSection = `
-                        <div class="mars-glass p-6 mb-6 border border-orange-500/30">
-                            <h3 class="orbitron text-sm text-orange-500 mb-4 uppercase">⚔️ Battle Outcome</h3>
-                            <div class="${resultColor} orbitron text-2xl font-bold text-center mb-6">${resultLabel}</div>
-                            <div class="grid grid-cols-2 gap-6 text-center">
-                                <div class="bg-black/40 p-4 ${isHost && resultLabel.includes('HOST') ? 'border border-green-500/30' : ''}">
-                                    <div class="text-[10px] text-gray-500 uppercase mb-2">HOST</div>
-                                    <div class="text-4xl mb-2">${moveIcons[hostMove]}</div>
-                                    <div class="orbitron text-orange-500 text-sm">${moves[hostMove]}</div>
-                                    <div class="text-[10px] text-gray-600 mt-1">${game.host.slice(0,10)}...</div>
+                        <div class="mars-glass mb-6 border border-orange-500/30 overflow-hidden">
+                            <div class="px-6 pt-5 pb-2 flex justify-between items-center">
+                                <h3 class="orbitron text-sm text-orange-500 uppercase">⚔️ Battle Outcome</h3>
+                                <button onclick="replayBattle()" class="text-[9px] border border-orange-900/40 text-orange-700 hover:text-orange-500 px-3 py-1 uppercase tracking-widest transition">↺ Replay</button>
+                            </div>
+                            <!-- Canvas battle arena -->
+                            <div style="position:relative;background:#000;overflow:hidden;" id="battle-arena-wrap">
+                                <canvas id="battle-canvas" width="800" height="340" style="width:100%;height:auto;display:block;"></canvas>
+                                <!-- Scanline overlay -->
+                                <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);pointer-events:none;"></div>
+                            </div>
+                            <!-- Result footer -->
+                            <div class="p-4 flex justify-between items-center border-t border-orange-900/20">
+                                <div class="flex items-center gap-3">
+                                    <div class="text-center px-3">
+                                        <div class="text-[9px] text-gray-600 uppercase mb-1">HOST</div>
+                                        <div class="text-2xl">${moveIcons[hostMove]}</div>
+                                        <div class="text-[9px] text-orange-700 orbitron mt-1">${moves[hostMove]}</div>
+                                    </div>
+                                    <div class="orbitron text-orange-800 text-lg">VS</div>
+                                    <div class="text-center px-3">
+                                        <div class="text-[9px] text-gray-600 uppercase mb-1">CHALLENGER</div>
+                                        <div class="text-2xl">${moveIcons[challengerMove]}</div>
+                                        <div class="text-[9px] text-orange-700 orbitron mt-1">${moves[challengerMove]}</div>
+                                    </div>
                                 </div>
-                                <div class="bg-black/40 p-4 ${isChallenger && resultLabel.includes('CHALLENGER') ? 'border border-green-500/30' : ''}">
-                                    <div class="text-[10px] text-gray-500 uppercase mb-2">CHALLENGER</div>
-                                    <div class="text-4xl mb-2">${moveIcons[challengerMove]}</div>
-                                    <div class="orbitron text-orange-500 text-sm">${moves[challengerMove]}</div>
-                                    <div class="text-[10px] text-gray-600 mt-1">${(game.challenger || 'Unknown').slice(0,10)}...</div>
-                                </div>
+                                <div class="${resultColor} orbitron text-xl font-bold text-right">${resultLabel}</div>
                             </div>
                         </div>
                     `;
+                    // Queue canvas animation after DOM renders
+                    setTimeout(() => initBattleAnimation(${hostMove}, ${challengerMove}, "${isDraw ? 'draw' : hostWins ? 'host' : 'challenger'}"), 120);
                 }
 
                 // Timer section
@@ -2636,6 +2653,745 @@
             setTimeout(() => t.classList.add('translate-y-32'), 4000);
         }
         
+
+        // ===================================================
+        // EPIC BATTLE ANIMATION ENGINE
+        // Canvas-based cinematic fight sequence
+        // ===================================================
+        let battleAnimFrame = null;
+        let battleState = null;
+
+        function replayBattle() {
+            if (battleState) {
+                initBattleAnimation(battleState.hMove, battleState.cMove, battleState.winner);
+            }
+        }
+
+        function initBattleAnimation(hostMove, challengerMove, winner) {
+            const canvas = document.getElementById('battle-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+
+            // Cancel any running animation
+            if (battleAnimFrame) cancelAnimationFrame(battleAnimFrame);
+
+            battleState = { hMove: hostMove, cMove: challengerMove, winner };
+
+            // Move definitions
+            const MOVES = {
+                1: { name: 'SOLAR FLARE',    color: '#ffaa00', glow: '#ff6600', emoji: '☀️',  secondary: '#ff8800' },
+                2: { name: 'OXYGEN SIPHON',  color: '#44aaff', glow: '#0088ff', emoji: '🌬️', secondary: '#0044aa' },
+                3: { name: 'DUST STORM',      color: '#cc6600', glow: '#884400', emoji: '🌪️', secondary: '#ff8844' },
+            };
+
+            const hDef = MOVES[hostMove]   || MOVES[1];
+            const cDef = MOVES[challengerMove] || MOVES[1];
+
+            // Animation timeline phases
+            // 0-60:   Intro — arena materializes, fighters slide in
+            // 60-120: Charge — fighters power up with particles
+            // 120-160: Clash — fighters rush to center
+            // 160-200: Impact — massive collision flash + shockwave
+            // 200-280: Resolution — winner pushes loser back (or draw spin)
+            // 280-360: Outro — winner celebration, result text
+
+            const TOTAL = 360;
+            let frame = 0;
+
+            // Particle systems
+            let particles = [];
+            let shockwaves = [];
+            let stars = [];
+            let debris = [];
+
+            // Pre-populate background stars
+            for (let i = 0; i < 80; i++) {
+                stars.push({
+                    x: Math.random() * W,
+                    y: Math.random() * H,
+                    r: Math.random() * 1.5 + 0.3,
+                    a: Math.random(),
+                    speed: Math.random() * 0.5 + 0.1
+                });
+            }
+
+            function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+            function easeIn(t) { return t * t * t; }
+            function lerp(a, b, t) { return a + (b - a) * t; }
+            function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
+
+            function spawnParticles(x, y, color, count, speed, life) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const s = (Math.random() * 0.5 + 0.5) * speed;
+                    particles.push({
+                        x, y,
+                        vx: Math.cos(angle) * s,
+                        vy: Math.sin(angle) * s,
+                        life: life || 40,
+                        maxLife: life || 40,
+                        color,
+                        r: Math.random() * 3 + 1,
+                        trail: []
+                    });
+                }
+            }
+
+            function spawnDebris(x, y, color, count) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const s = Math.random() * 8 + 2;
+                    debris.push({
+                        x, y,
+                        vx: Math.cos(angle) * s,
+                        vy: Math.sin(angle) * s - 3,
+                        life: 60,
+                        maxLife: 60,
+                        color,
+                        w: Math.random() * 8 + 2,
+                        h: Math.random() * 3 + 1,
+                        rot: Math.random() * Math.PI * 2,
+                        rotV: (Math.random() - 0.5) * 0.3
+                    });
+                }
+            }
+
+            function addShockwave(x, y, color) {
+                shockwaves.push({ x, y, r: 0, maxR: 200, life: 40, maxLife: 40, color });
+            }
+
+            function drawBackground(t) {
+                // Martian landscape gradient
+                const grad = ctx.createLinearGradient(0, 0, 0, H);
+                grad.addColorStop(0, '#0a0008');
+                grad.addColorStop(0.5, '#150510');
+                grad.addColorStop(1, '#200808');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, H);
+
+                // Ground line
+                const groundY = H * 0.78;
+                ctx.strokeStyle = 'rgba(255,77,0,0.15)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, groundY);
+                ctx.lineTo(W, groundY);
+                ctx.stroke();
+
+                // Terrain bumps
+                ctx.fillStyle = 'rgba(180,60,0,0.12)';
+                ctx.beginPath();
+                ctx.moveTo(0, groundY);
+                for (let x = 0; x <= W; x += 20) {
+                    ctx.lineTo(x, groundY + Math.sin(x * 0.05) * 8);
+                }
+                ctx.lineTo(W, H); ctx.lineTo(0, H);
+                ctx.fill();
+
+                // Stars twinkle
+                stars.forEach(s => {
+                    s.a += s.speed * 0.02;
+                    const alpha = (Math.sin(s.a) * 0.5 + 0.5) * 0.6 + 0.1;
+                    ctx.fillStyle = `rgba(255,220,180,${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y * 0.7, s.r, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // Red planet in background
+                const planetX = W * 0.5, planetY = H * 0.22;
+                const pGrad = ctx.createRadialGradient(planetX - 15, planetY - 15, 5, planetX, planetY, 45);
+                pGrad.addColorStop(0, 'rgba(255,100,30,0.15)');
+                pGrad.addColorStop(1, 'rgba(100,20,0,0.04)');
+                ctx.fillStyle = pGrad;
+                ctx.beginPath();
+                ctx.arc(planetX, planetY, 45, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Grid floor lines
+                for (let i = 0; i < 6; i++) {
+                    const py = groundY + i * 12;
+                    const alpha = (1 - i / 6) * 0.08;
+                    ctx.strokeStyle = `rgba(255,77,0,${alpha})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, py); ctx.lineTo(W, py);
+                    ctx.stroke();
+                }
+            }
+
+            function drawFighter(x, y, def, scale, glowIntensity, label, flip, frameNum) {
+                ctx.save();
+                ctx.translate(x, y);
+                if (flip) ctx.scale(-1, 1);
+
+                // Glow aura
+                if (glowIntensity > 0) {
+                    const aura = ctx.createRadialGradient(0, 0, 10, 0, 0, 80 * scale);
+                    aura.addColorStop(0, def.glow + Math.round(glowIntensity * 0.6 * 255).toString(16).padStart(2,'0'));
+                    aura.addColorStop(1, 'transparent');
+                    ctx.fillStyle = aura;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 80 * scale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Fighter body — stylized mech suit
+                const bodyScale = scale;
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(0, 55 * bodyScale, 30 * bodyScale, 8 * bodyScale, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Legs
+                ctx.fillStyle = def.secondary;
+                ctx.fillRect(-18 * bodyScale, 28 * bodyScale, 12 * bodyScale, 28 * bodyScale);
+                ctx.fillRect(6 * bodyScale, 28 * bodyScale, 12 * bodyScale, 28 * bodyScale);
+                // Boot
+                ctx.fillStyle = '#1a1a2a';
+                ctx.fillRect(-20 * bodyScale, 52 * bodyScale, 14 * bodyScale, 8 * bodyScale);
+                ctx.fillRect(6 * bodyScale, 52 * bodyScale, 14 * bodyScale, 8 * bodyScale);
+
+                // Torso
+                const torsoGrad = ctx.createLinearGradient(-22 * bodyScale, -20 * bodyScale, 22 * bodyScale, 30 * bodyScale);
+                torsoGrad.addColorStop(0, def.color);
+                torsoGrad.addColorStop(0.5, def.secondary);
+                torsoGrad.addColorStop(1, '#111');
+                ctx.fillStyle = torsoGrad;
+                ctx.beginPath();
+                ctx.roundRect(-22 * bodyScale, -20 * bodyScale, 44 * bodyScale, 50 * bodyScale, 4 * bodyScale);
+                ctx.fill();
+
+                // Chest emblem glow
+                if (glowIntensity > 0.3) {
+                    const chest = ctx.createRadialGradient(0, 5 * bodyScale, 2, 0, 5 * bodyScale, 14 * bodyScale);
+                    chest.addColorStop(0, def.color + 'cc');
+                    chest.addColorStop(1, 'transparent');
+                    ctx.fillStyle = chest;
+                    ctx.beginPath();
+                    ctx.arc(0, 5 * bodyScale, 14 * bodyScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Arms
+                // Back arm
+                ctx.fillStyle = def.secondary;
+                ctx.save();
+                ctx.rotate(flip ? 0.3 : -0.3);
+                ctx.fillRect(flip ? -36 * bodyScale : 22 * bodyScale, -15 * bodyScale, 14 * bodyScale, 36 * bodyScale);
+                ctx.restore();
+                // Front arm (weapon arm)
+                ctx.save();
+                const armAngle = glowIntensity > 0.5 ? (flip ? -0.5 : 0.5) : 0.1;
+                ctx.rotate(armAngle);
+                ctx.fillStyle = def.color;
+                const armX = flip ? 22 * bodyScale : -36 * bodyScale;
+                ctx.fillRect(armX, -15 * bodyScale, 14 * bodyScale, 38 * bodyScale);
+
+                // Weapon / ability glow on hand
+                if (glowIntensity > 0.4) {
+                    const handY = 23 * bodyScale;
+                    const handX = armX + 7 * bodyScale;
+                    const weaponGrad = ctx.createRadialGradient(handX, handY, 2, handX, handY, 20 * glowIntensity * bodyScale);
+                    weaponGrad.addColorStop(0, def.color + 'ff');
+                    weaponGrad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = weaponGrad;
+                    ctx.beginPath();
+                    ctx.arc(handX, handY, 20 * glowIntensity * bodyScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+
+                // Shoulders
+                ctx.fillStyle = def.color;
+                ctx.beginPath();
+                ctx.roundRect(-30 * bodyScale, -22 * bodyScale, 18 * bodyScale, 14 * bodyScale, 3 * bodyScale);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.roundRect(12 * bodyScale, -22 * bodyScale, 18 * bodyScale, 14 * bodyScale, 3 * bodyScale);
+                ctx.fill();
+
+                // Helmet
+                const helmGrad = ctx.createLinearGradient(-16 * bodyScale, -52 * bodyScale, 16 * bodyScale, -20 * bodyScale);
+                helmGrad.addColorStop(0, '#2a2a3a');
+                helmGrad.addColorStop(0.5, '#1a1a28');
+                helmGrad.addColorStop(1, '#111');
+                ctx.fillStyle = helmGrad;
+                ctx.beginPath();
+                ctx.roundRect(-16 * bodyScale, -52 * bodyScale, 32 * bodyScale, 34 * bodyScale, 8 * bodyScale);
+                ctx.fill();
+
+                // Visor
+                ctx.fillStyle = def.color + '99';
+                ctx.shadowColor = def.glow;
+                ctx.shadowBlur = 10 * glowIntensity;
+                ctx.beginPath();
+                ctx.roundRect(-11 * bodyScale, -45 * bodyScale, 22 * bodyScale, 12 * bodyScale, 3 * bodyScale);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Visor reflection
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                ctx.beginPath();
+                ctx.roundRect(-9 * bodyScale, -43 * bodyScale, 10 * bodyScale, 4 * bodyScale, 2);
+                ctx.fill();
+
+                // Helmet antenna/crest
+                ctx.fillStyle = def.color;
+                ctx.fillRect(-3 * bodyScale, -62 * bodyScale, 6 * bodyScale, 12 * bodyScale);
+                if (glowIntensity > 0.2) {
+                    ctx.fillStyle = def.glow;
+                    ctx.shadowColor = def.glow;
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.arc(0, -63 * bodyScale, 4 * bodyScale, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+
+                // Name label
+                ctx.restore();
+                ctx.save();
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(x - 40, y + 68 * scale, 80, 16);
+                ctx.fillStyle = def.color;
+                ctx.font = `bold ${8 * scale}px 'Orbitron', monospace`;
+                ctx.textAlign = 'center';
+                ctx.fillText(label.toUpperCase(), x, y + 80 * scale);
+                ctx.restore();
+            }
+
+            function drawMoveEffect(x, y, def, intensity, frameNum, move) {
+                if (intensity <= 0) return;
+                ctx.save();
+
+                if (move === 1) {
+                    // Solar Flare — rotating sun corona
+                    const rays = 12;
+                    for (let i = 0; i < rays; i++) {
+                        const angle = (i / rays) * Math.PI * 2 + frameNum * 0.05;
+                        const len = (50 + Math.sin(frameNum * 0.15 + i) * 15) * intensity;
+                        ctx.strokeStyle = def.color + Math.round(intensity * 180).toString(16).padStart(2,'0');
+                        ctx.lineWidth = 2 + Math.sin(i) * 1;
+                        ctx.shadowColor = def.glow;
+                        ctx.shadowBlur = 15 * intensity;
+                        ctx.beginPath();
+                        ctx.moveTo(x + Math.cos(angle) * 20 * intensity, y + Math.sin(angle) * 20 * intensity);
+                        ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+                        ctx.stroke();
+                    }
+                    // Core fireball
+                    const fireGrad = ctx.createRadialGradient(x, y, 0, x, y, 35 * intensity);
+                    fireGrad.addColorStop(0, '#ffffff');
+                    fireGrad.addColorStop(0.2, '#ffee44');
+                    fireGrad.addColorStop(0.6, def.color);
+                    fireGrad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = fireGrad;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 35 * intensity, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (move === 2) {
+                    // Oxygen Siphon — swirling wind vortex
+                    for (let ring = 0; ring < 4; ring++) {
+                        const offset = (ring / 4) * Math.PI * 2;
+                        const radius = (20 + ring * 18) * intensity;
+                        ctx.strokeStyle = def.color + Math.round((1 - ring * 0.2) * intensity * 200).toString(16).padStart(2,'0');
+                        ctx.lineWidth = 3 - ring * 0.5;
+                        ctx.shadowColor = def.glow;
+                        ctx.shadowBlur = 10;
+                        ctx.beginPath();
+                        for (let a = 0; a < Math.PI * 2; a += 0.05) {
+                            const spin = a + frameNum * 0.08 + offset;
+                            const r = radius + Math.sin(a * 4 + frameNum * 0.1) * 8 * intensity;
+                            const px = x + Math.cos(spin) * r;
+                            const py = y + Math.sin(spin) * r * 0.5; // elliptical
+                            if (a === 0) ctx.moveTo(px, py);
+                            else ctx.lineTo(px, py);
+                        }
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                    // Center orb
+                    const windGrad = ctx.createRadialGradient(x, y, 0, x, y, 22 * intensity);
+                    windGrad.addColorStop(0, '#ffffff');
+                    windGrad.addColorStop(0.3, def.color);
+                    windGrad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = windGrad;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 22 * intensity, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (move === 3) {
+                    // Dust Storm — expanding spiral particles
+                    const spiralCount = 6;
+                    for (let s = 0; s < spiralCount; s++) {
+                        const baseAngle = (s / spiralCount) * Math.PI * 2 + frameNum * -0.06;
+                        for (let t = 0; t < 8; t++) {
+                            const angle = baseAngle + t * 0.4;
+                            const r = (t * 10 + 5) * intensity;
+                            const px = x + Math.cos(angle) * r;
+                            const py = y + Math.sin(angle) * r * 0.6;
+                            const dotAlpha = (1 - t / 8) * intensity;
+                            ctx.fillStyle = def.color + Math.round(dotAlpha * 200).toString(16).padStart(2,'0');
+                            ctx.shadowColor = def.glow;
+                            ctx.shadowBlur = 5;
+                            ctx.beginPath();
+                            ctx.arc(px, py, (4 - t * 0.3) * intensity, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    // Vortex core
+                    const dustGrad = ctx.createRadialGradient(x, y, 0, x, y, 28 * intensity);
+                    dustGrad.addColorStop(0, '#ffffff99');
+                    dustGrad.addColorStop(0.4, def.color + 'aa');
+                    dustGrad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = dustGrad;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 28 * intensity, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            }
+
+            function drawImpactFlash(intensity) {
+                if (intensity <= 0) return;
+                // Screen-wide white flash
+                ctx.fillStyle = `rgba(255,255,255,${intensity * 0.7})`;
+                ctx.fillRect(0, 0, W, H);
+                // Color tint
+                const midColor = winner === 'draw' ? '#ffaa00' :
+                                 winner === 'host' ? hDef.color : cDef.color;
+                ctx.fillStyle = midColor + Math.round(intensity * 80).toString(16).padStart(2,'0');
+                ctx.fillRect(0, 0, W, H);
+            }
+
+            function drawShockwaves() {
+                shockwaves = shockwaves.filter(sw => sw.life > 0);
+                shockwaves.forEach(sw => {
+                    const t = 1 - sw.life / sw.maxLife;
+                    const r = sw.maxR * easeOut(t);
+                    const alpha = (1 - t) * 0.7;
+                    ctx.strokeStyle = sw.color + Math.round(alpha * 255).toString(16).padStart(2,'0');
+                    ctx.lineWidth = (1 - t) * 6 + 1;
+                    ctx.shadowColor = sw.color;
+                    ctx.shadowBlur = 20 * (1 - t);
+                    ctx.beginPath();
+                    ctx.arc(sw.x, sw.y, r, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                    // Inner ring
+                    if (t < 0.7) {
+                        ctx.strokeStyle = '#ffffff' + Math.round(alpha * 0.5 * 255).toString(16).padStart(2,'0');
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.arc(sw.x, sw.y, r * 0.6, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    sw.r = r;
+                    sw.life--;
+                });
+            }
+
+            function drawParticles() {
+                particles = particles.filter(p => p.life > 0);
+                particles.forEach(p => {
+                    const t = p.life / p.maxLife;
+                    p.trail.push({ x: p.x, y: p.y });
+                    if (p.trail.length > 6) p.trail.shift();
+                    // Trail
+                    if (p.trail.length > 1) {
+                        ctx.strokeStyle = p.color + Math.round(t * 0.4 * 255).toString(16).padStart(2,'0');
+                        ctx.lineWidth = p.r * t;
+                        ctx.beginPath();
+                        ctx.moveTo(p.trail[0].x, p.trail[0].y);
+                        p.trail.forEach(pt => ctx.lineTo(pt.x, pt.y));
+                        ctx.stroke();
+                    }
+                    // Dot
+                    ctx.fillStyle = p.color + Math.round(t * 220).toString(16).padStart(2,'0');
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 6 * t;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r * t, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    p.x += p.vx; p.y += p.vy;
+                    p.vy += 0.15; // gravity
+                    p.vx *= 0.97;
+                    p.life--;
+                });
+            }
+
+            function drawDebris() {
+                debris = debris.filter(d => d.life > 0);
+                debris.forEach(d => {
+                    const t = d.life / d.maxLife;
+                    ctx.save();
+                    ctx.translate(d.x, d.y);
+                    ctx.rotate(d.rot);
+                    ctx.globalAlpha = t;
+                    ctx.fillStyle = d.color;
+                    ctx.fillRect(-d.w / 2, -d.h / 2, d.w, d.h);
+                    ctx.restore();
+                    d.x += d.vx; d.y += d.vy;
+                    d.vy += 0.3;
+                    d.vx *= 0.95;
+                    d.rot += d.rotV;
+                    d.life--;
+                });
+            }
+
+            function drawHUD(frame) {
+                // Phase label
+                const phases = [
+                    [0, 60, 'ARENA INITIALIZED'],
+                    [60, 120, 'PILOTS CHARGING'],
+                    [120, 160, 'COLLISION IMMINENT'],
+                    [160, 200, 'IMPACT'],
+                    [200, 280, winner === 'draw' ? 'DRAW — EQUAL POWER' : 'EXECUTING VICTORY'],
+                    [280, TOTAL, winner === 'draw' ? '⚖️ DRAW' : '🏆 VICTORY']
+                ];
+                let phase = phases.find(([s, e]) => frame >= s && frame < e);
+                if (!phase) phase = phases[phases.length - 1];
+
+                const phaseAlpha = Math.min(1, (frame - phase[0]) / 10) * Math.min(1, (phase[1] - frame) / 10);
+                if (phaseAlpha > 0 && frame < 280) {
+                    ctx.save();
+                    ctx.globalAlpha = phaseAlpha * 0.8;
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(W/2 - 100, 8, 200, 18);
+                    ctx.fillStyle = '#ff4d00';
+                    ctx.font = '8px Orbitron, monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(phase[2], W/2, 20);
+                    ctx.restore();
+                }
+
+                // Versus divider line during charge phase
+                if (frame >= 40 && frame < 120) {
+                    const t = clamp((frame - 40) / 30, 0, 1);
+                    const alpha = Math.sin(frame * 0.1) * 0.3 + 0.4;
+                    ctx.strokeStyle = `rgba(255,77,0,${t * alpha})`;
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(W / 2, H * 0.1);
+                    ctx.lineTo(W / 2, H * 0.85);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // VS text
+                    ctx.fillStyle = `rgba(255,77,0,${t})`;
+                    ctx.font = 'bold 18px Orbitron, monospace';
+                    ctx.textAlign = 'center';
+                    ctx.shadowColor = '#ff4d00';
+                    ctx.shadowBlur = 15;
+                    ctx.fillText('VS', W / 2, H / 2 + 6);
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            function drawVictoryText(frame) {
+                if (frame < 285) return;
+                const t = clamp((frame - 285) / 30, 0, 1);
+                const winDef = winner === 'host' ? hDef : winner === 'challenger' ? cDef : null;
+                const label = winner === 'draw' ? 'DRAW' : winner === 'host' ? 'HOST WINS' : 'CHALLENGER WINS';
+                const col = winner === 'draw' ? '#ffaa00' : winDef.color;
+
+                // Backdrop
+                ctx.fillStyle = `rgba(0,0,0,${t * 0.5})`;
+                ctx.fillRect(0, H * 0.3, W, H * 0.4);
+
+                // Glow
+                ctx.shadowColor = col;
+                ctx.shadowBlur = 40 * t;
+
+                // Main text
+                const scale2 = 0.5 + easeOut(t) * 0.5;
+                ctx.save();
+                ctx.translate(W / 2, H * 0.5);
+                ctx.scale(scale2, scale2);
+                ctx.fillStyle = col;
+                ctx.font = `bold ${38}px Orbitron, monospace`;
+                ctx.textAlign = 'center';
+                ctx.globalAlpha = t;
+                ctx.fillText(label, 0, 0);
+
+                // Sub text
+                ctx.fillStyle = '#ffffff88';
+                ctx.font = `${13}px Orbitron, monospace`;
+                ctx.fillText(winner === 'draw' ? 'Both pilots return to base' : '97% of pot awarded', 0, 28);
+                ctx.restore();
+                ctx.shadowBlur = 0;
+            }
+
+            // ---- Main animation loop ----
+            const centerX = W / 2;
+            const groundY = H * 0.72;
+
+            function tick() {
+                ctx.clearRect(0, 0, W, H);
+
+                // ---- Calculate positions and states based on frame ----
+                let hX, cX, hGlow, cGlow, chargeH, chargeC, flashIntensity = 0;
+                const attackX = centerX;
+
+                if (frame < 60) {
+                    // Phase 1: Slide in
+                    const t = easeOut(frame / 60);
+                    hX = lerp(-100, W * 0.22, t);
+                    cX = lerp(W + 100, W * 0.78, t);
+                    hGlow = 0.1;
+                    cGlow = 0.1;
+                    chargeH = 0; chargeC = 0;
+                } else if (frame < 120) {
+                    // Phase 2: Charge up
+                    const t = (frame - 60) / 60;
+                    hX = W * 0.22;
+                    cX = W * 0.78;
+                    hGlow = easeIn(t) * 0.9;
+                    cGlow = easeIn(t) * 0.9;
+                    chargeH = t; chargeC = t;
+                    // Spawn charge particles
+                    if (frame % 3 === 0) {
+                        spawnParticles(hX, groundY - 30, hDef.color, 3, 3, 25);
+                        spawnParticles(cX, groundY - 30, cDef.color, 3, 3, 25);
+                    }
+                } else if (frame < 160) {
+                    // Phase 3: Rush to center
+                    const t = easeIn((frame - 120) / 40);
+                    hX = lerp(W * 0.22, centerX - 55, t);
+                    cX = lerp(W * 0.78, centerX + 55, t);
+                    hGlow = 1;
+                    cGlow = 1;
+                    chargeH = 1; chargeC = 1;
+                    // Rush particles
+                    if (frame % 2 === 0) {
+                        spawnParticles(hX - 20, groundY - 30, hDef.color, 2, 5, 15);
+                        spawnParticles(cX + 20, groundY - 30, cDef.color, 2, 5, 15);
+                    }
+                } else if (frame < 200) {
+                    // Phase 4: IMPACT
+                    const t = (frame - 160) / 40;
+                    hX = centerX - 55 + (winner === 'challenger' ? t * 20 : -t * 5);
+                    cX = centerX + 55 + (winner === 'host' ? -t * 20 : t * 5);
+                    hGlow = 1;
+                    cGlow = 1;
+                    chargeH = 1; chargeC = 1;
+                    flashIntensity = frame === 160 ? 1 : Math.max(0, 1 - (frame - 160) / 20);
+
+                    if (frame === 160) {
+                        // Big bang
+                        addShockwave(centerX, groundY - 30, '#ffffff');
+                        addShockwave(centerX, groundY - 30, hDef.color);
+                        addShockwave(centerX, groundY - 30, cDef.color);
+                        spawnParticles(centerX, groundY - 30, '#ffffff', 30, 12, 50);
+                        spawnParticles(centerX, groundY - 30, hDef.color, 20, 9, 45);
+                        spawnParticles(centerX, groundY - 30, cDef.color, 20, 9, 45);
+                        spawnDebris(centerX, groundY - 30, hDef.secondary, 8);
+                        spawnDebris(centerX, groundY - 30, cDef.secondary, 8);
+                    }
+                    if (frame > 163 && frame % 4 === 0) {
+                        addShockwave(
+                            centerX + (Math.random() - 0.5) * 60,
+                            groundY - 30 + (Math.random() - 0.5) * 40,
+                            frame % 8 === 0 ? hDef.color : cDef.color
+                        );
+                    }
+                } else if (frame < 280) {
+                    // Phase 5: Resolution
+                    const t = easeOut((frame - 200) / 80);
+                    if (winner === 'draw') {
+                        // Push apart
+                        hX = lerp(centerX - 55, W * 0.28, t);
+                        cX = lerp(centerX + 55, W * 0.72, t);
+                    } else if (winner === 'host') {
+                        hX = lerp(centerX - 55, W * 0.35, t);
+                        cX = lerp(centerX + 55, W * 0.78, t);
+                        // Loser staggers
+                        cX += Math.sin(frame * 0.8) * (1 - t) * 10;
+                    } else {
+                        cX = lerp(centerX + 55, W * 0.65, t);
+                        hX = lerp(centerX - 55, W * 0.22, t);
+                        hX += Math.sin(frame * 0.8) * (1 - t) * 10;
+                    }
+                    hGlow = winner === 'host' ? 0.8 : 0.2 * (1 - t);
+                    cGlow = winner === 'challenger' ? 0.8 : 0.2 * (1 - t);
+                    chargeH = winner === 'host' ? 1 : 0;
+                    chargeC = winner === 'challenger' ? 1 : 0;
+
+                    // Victory particles for winner
+                    if (frame % 4 === 0) {
+                        if (winner === 'host') spawnParticles(hX, groundY - 80, hDef.color, 3, 4, 35);
+                        if (winner === 'challenger') spawnParticles(cX, groundY - 80, cDef.color, 3, 4, 35);
+                        if (winner === 'draw') {
+                            spawnParticles(hX, groundY - 80, '#ffaa00', 2, 3, 30);
+                            spawnParticles(cX, groundY - 80, '#ffaa00', 2, 3, 30);
+                        }
+                    }
+                } else {
+                    // Phase 6: Hold final pose
+                    hX = winner === 'host' ? W * 0.35 : W * 0.22;
+                    cX = winner === 'challenger' ? W * 0.65 : W * 0.78;
+                    hGlow = winner === 'host' ? 0.7 + Math.sin(frame * 0.05) * 0.2 : 0.05;
+                    cGlow = winner === 'challenger' ? 0.7 + Math.sin(frame * 0.05) * 0.2 : 0.05;
+                    chargeH = winner === 'host' ? 1 : 0;
+                    chargeC = winner === 'challenger' ? 1 : 0;
+                    if (winner === 'draw') { hGlow = 0.3; cGlow = 0.3; }
+                    if (frame % 6 === 0 && winner !== 'draw') {
+                        const wx = winner === 'host' ? hX : cX;
+                        const wDef = winner === 'host' ? hDef : cDef;
+                        spawnParticles(wx, groundY - 90, wDef.color, 2, 3, 40);
+                    }
+                }
+
+                // ---- Draw everything ----
+                drawBackground(frame);
+
+                // Move effects (charge auras)
+                if (chargeH > 0) drawMoveEffect(hX, groundY - 30, hDef, chargeH * hGlow, frame, hostMove);
+                if (chargeC > 0) drawMoveEffect(cX, groundY - 30, cDef, chargeC * cGlow, frame, challengerMove);
+
+                // Shockwaves
+                drawShockwaves();
+
+                // Fighters
+                const hWinner = (winner === 'host' && frame >= 200);
+                const cWinner = (winner === 'challenger' && frame >= 200);
+                drawFighter(hX, groundY, hDef, 1, hGlow, 'HOST', false, frame);
+                drawFighter(cX, groundY, cDef, 1, cGlow, 'CHALLENGER', true, frame);
+
+                // Particles and debris on top
+                drawParticles();
+                drawDebris();
+
+                // Flash
+                drawImpactFlash(flashIntensity);
+
+                // HUD
+                drawHUD(frame);
+
+                // Victory text
+                drawVictoryText(frame);
+
+                frame++;
+                if (frame < TOTAL) {
+                    battleAnimFrame = requestAnimationFrame(tick);
+                } else {
+                    // Hold last frame
+                    battleAnimFrame = null;
+                }
+            }
+
+            battleAnimFrame = requestAnimationFrame(tick);
+        }
+
         // ===========================
         // TIPPING SYSTEM
         // ===========================
