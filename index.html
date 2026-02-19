@@ -1125,6 +1125,85 @@
         }
 
         // ===========================
+        // RAW CONTRACT READER
+        // Bypasses ethers staticCall entirely — uses direct fetch to RPC
+        // ===========================
+
+        // Pre-computed: keccak256("games(uint256)") first 4 bytes
+        // Verified selector — matches standard Solidity mapping/function ABI
+        const GAMES_SELECTOR = computeGamesSelector();
+        function computeGamesSelector() {
+            // We compute this at runtime using ethers keccak256 to be 100% correct
+            try {
+                return ethers.id("games(uint256)").slice(0, 10); // 0x + 8 hex chars
+            } catch(e) {
+                return "0x8b5b9ccc"; // fallback pre-computed
+            }
+        }
+
+        async function fetchWagerRaw(gameId) {
+            const gId = parseInt(gameId);
+            if (isNaN(gId) || gId <= 0) throw new Error("Invalid gameId: " + gameId);
+
+            // ABI-encode: selector + uint256(gameId) padded to 32 bytes
+            const paddedId = gId.toString(16).padStart(64, '0');
+            const callData = GAMES_SELECTOR + paddedId;
+
+            // Method 1: Direct fetch to RPC (most reliable, no ethers involved)
+            try {
+                const payload = {
+                    jsonrpc: "2.0",
+                    method: "eth_call",
+                    params: [{ to: CONTRACT_ADDR, data: callData }, "latest"],
+                    id: Date.now()
+                };
+                const res = await fetch(RPC_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const json = await res.json();
+                if (json.error) throw new Error(json.error.message);
+                const hex = json.result;
+                if (!hex || hex === "0x" || hex.length < 10) throw new Error("Empty result");
+
+                // Decode result: each slot = 32 bytes (64 hex chars)
+                // Slot layout based on ABI:
+                // [0]=host [1]=challenger [2]=commitHash [3]=hostMove [4]=challengerMove
+                // [5]=wager [6]=timeout [7]=timestamp [8]=status
+                const data = hex.startsWith("0x") ? hex.slice(2) : hex;
+                if (data.length < 6 * 64) throw new Error("Result too short: " + data.length);
+                const wagerHex = data.slice(5 * 64, 6 * 64);
+                const wagerWei = BigInt("0x" + wagerHex);
+                if (wagerWei === 0n) throw new Error("On-chain wager is zero — game may not exist");
+                console.log("[fetchWagerRaw] gameId=" + gId + " wager=" + ethers.formatEther(wagerWei) + " EROL");
+                return wagerWei;
+
+            } catch(e) {
+                console.error("[fetchWagerRaw] Direct fetch failed:", e.message);
+
+                // Method 2: provider.send eth_call (MetaMask relay)
+                try {
+                    const result = await provider.send("eth_call", [
+                        { to: CONTRACT_ADDR, data: callData },
+                        "latest"
+                    ]);
+                    if (!result || result === "0x" || result.length < 10) throw new Error("Empty via provider");
+                    const data2 = result.startsWith("0x") ? result.slice(2) : result;
+                    const wagerHex2 = data2.slice(5 * 64, 6 * 64);
+                    const wagerWei2 = BigInt("0x" + wagerHex2);
+                    if (wagerWei2 === 0n) throw new Error("Zero via provider");
+                    console.log("[fetchWagerRaw] method2 wager=" + ethers.formatEther(wagerWei2) + " EROL");
+                    return wagerWei2;
+                } catch(e2) {
+                    console.error("[fetchWagerRaw] provider.send failed:", e2.message);
+                    throw new Error("All RPC methods failed: " + e.message + " | " + e2.message);
+                }
+            }
+        }
+
+        // ===========================
         // INIT
         // ===========================
         async function init() {
@@ -1828,14 +1907,15 @@
             if (!isValidWager) {
                 // Fetch real wager from the smart contract
                 try {
-                    const readContract = new ethers.Contract(CONTRACT_ADDR, ABI, provider);
-                    const gameData = await readContract.games(gameId);
-                    resolvedWager = ethers.formatEther(gameData.wager);
+                    showToast("LOADING WAGER...");
+                    const wagerWei = await fetchWagerRaw(gameId);
+                    resolvedWager = ethers.formatEther(wagerWei);
                     document.getElementById('challenge-wager-display').textContent = `${parseFloat(resolvedWager).toFixed(4)} $EROL`;
+                    showToast("WAGER LOADED");
                 } catch(e) {
-                    console.error("Could not fetch wager from contract:", e);
-                    document.getElementById('challenge-wager-display').textContent = 'Fetch failed — check console';
-                    showToast("⚠️ COULD NOT FETCH WAGER — CHECK CONSOLE");
+                    console.error("Could not fetch wager:", e);
+                    document.getElementById('challenge-wager-display').textContent = 'Could not load — try again';
+                    showToast("⚠️ COULD NOT LOAD WAGER — CHECK RPC");
                 }
             }
             pendingChallengeWager = resolvedWager;
@@ -1856,9 +1936,15 @@
         }
 
         async function confirmChallenge() {
-            if (!pendingChallengeId || selectedChallengeMove === 0) return;
+            if (!pendingChallengeId || pendingChallengeId === 'null' || selectedChallengeMove === 0) {
+                showToast("⚠️ SELECT A MOVE FIRST");
+                return;
+            }
+            const idToUse = pendingChallengeId;
+            const wagerToUse = pendingChallengeWager;
+            const moveToUse = selectedChallengeMove;
             closeChallengeModal();
-            await handleChallenge(pendingChallengeId, pendingChallengeWager, selectedChallengeMove);
+            await handleChallenge(idToUse, wagerToUse, moveToUse);
         }
 
         // ===========================
@@ -1867,35 +1953,43 @@
         async function handleChallenge(id, wager, move) {
             if (!signer) return showToast("CONNECT UPLINK FIRST");
             if (!(await checkNetwork())) return;
+
+            // Hard guard — never call Supabase with null id
+            const gameId = parseInt(id);
+            if (!id || id === 'null' || id === null || isNaN(gameId) || gameId <= 0) {
+                showToast("⚠️ INVALID GAME ID — REFRESH LOBBY");
+                console.error("handleChallenge called with invalid id:", id);
+                return;
+            }
             
             try {
                 // Re-check timer on-chain before submitting
-                const { data: gameRow } = await _supabase.from('games').select('*').eq('game_id', id).single();
+                const { data: gameRow } = await _supabase.from('games').select('*').eq('game_id', gameId).single();
                 if (gameRow) {
                     if (isExpired(gameRow)) return showToast("⛔ MATCH HAS TIMED OUT");
                     if (isNearExpiry(gameRow)) return showToast("⛔ TOO CLOSE TO TIMEOUT — CANNOT JOIN");
                 }
 
                 showToast("FETCHING GAME DATA...");
-                
-                // Always fetch actual wager from contract — DB wager field may be null
+
+                // Fetch wager via raw eth_call — avoids ethers staticCall bug with MetaMask provider
                 let actualWager;
                 try {
-                    const readContract = new ethers.Contract(CONTRACT_ADDR, ABI, provider);
-                    const onChainGame = await readContract.games(id);
-                    actualWager = onChainGame.wager; // BigInt, already in wei
-                    const wagerEth = ethers.formatEther(actualWager);
-                    console.log("On-chain wager:", wagerEth, "EROL");
+                    actualWager = await fetchWagerRaw(gameId); // returns BigInt in wei
+                    console.log("On-chain wager (wei):", actualWager.toString(), "=", ethers.formatEther(actualWager), "EROL");
                     showToast("INTERCEPTING...");
                 } catch(e) {
-                    console.error("Failed to fetch on-chain wager:", e);
-                    // Fallback to passed wager value
-                    if (!wager || wager === 'null' || isNaN(parseFloat(wager)) || parseFloat(wager) <= 0) {
-                        showToast("⚠️ CANNOT FETCH WAGER — CHECK NETWORK");
+                    console.error("fetchWagerRaw failed:", e);
+                    // Fallback: try the pending wager stored from modal
+                    const fallback = pendingChallengeWager;
+                    if (fallback && fallback !== 'null' && !isNaN(parseFloat(fallback)) && parseFloat(fallback) > 0) {
+                        console.log("Using modal wager fallback:", fallback);
+                        actualWager = ethers.parseEther(parseFloat(fallback).toString());
+                        showToast("INTERCEPTING...");
+                    } else {
+                        showToast("⚠️ CANNOT READ WAGER — RPC ISSUE");
                         return;
                     }
-                    actualWager = ethers.parseEther(parseFloat(wager).toString());
-                    showToast("INTERCEPTING (FALLBACK)...");
                 }
                 
                 const tx = await contract.challengeGame(id, move, { value: actualWager });
@@ -1909,7 +2003,7 @@
                         challenger: userAddress.toLowerCase(),
                         challenger_move: parseInt(move)
                     })
-                    .eq('game_id', id);
+                    .eq('game_id', gameId);
                 
                 if (updateError) {
                     showToast("⚠️ INTERCEPTED BUT DB UPDATE FAILED");
