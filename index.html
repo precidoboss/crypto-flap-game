@@ -260,6 +260,11 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
         }
+        /* FAQ accordion */
+        details summary::-webkit-details-marker { display: none; }
+        details[open] summary span:last-child { transform: rotate(180deg); display: inline-block; }
+        details[open] { border-color: rgba(255,77,0,0.3) !important; }
+
         .countdown-critical {
             animation: blink-red 0.8s ease-in-out infinite;
             color: #ef4444;
@@ -493,91 +498,384 @@
 
         <!-- HOW TO PLAY PAGE -->
         <div id="page-howto" class="page-section">
-            <div class="mars-glass p-8 max-w-4xl mx-auto">
-                <h2 class="orbitron text-2xl text-orange-500 mb-8">MISSION BRIEFING</h2>
-                
-                <div class="space-y-8 text-gray-300">
-                    <section>
-                        <h3 class="orbitron text-orange-500 text-lg mb-3">🎯 OBJECTIVE</h3>
-                        <p class="leading-relaxed">Martian Gambit is a high-stakes Rock-Paper-Scissors style game on the Martian Chain. Players bet $EROL tokens and compete using three strategic moves. The winner takes the pot (minus a small fee).</p>
-                    </section>
+            <div class="max-w-4xl mx-auto space-y-6">
 
-                    <section>
-                        <h3 class="orbitron text-orange-500 text-lg mb-3">⚔️ THE THREE MOVES</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="bg-black/40 p-4 border border-orange-900/30">
-                                <div class="text-4xl mb-2">☀️</div>
-                                <div class="orbitron text-orange-500 mb-1">SOLAR FLARE</div>
-                                <div class="text-[11px] text-gray-400">Beats Oxygen Siphon</div>
-                            </div>
-                            <div class="bg-black/40 p-4 border border-orange-900/30">
-                                <div class="text-4xl mb-2">🌬️</div>
-                                <div class="orbitron text-orange-500 mb-1">OXYGEN SIPHON</div>
-                                <div class="text-[11px] text-gray-400">Beats Dust Storm</div>
-                            </div>
-                            <div class="bg-black/40 p-4 border border-orange-900/30">
-                                <div class="text-4xl mb-2">🌪️</div>
-                                <div class="orbitron text-orange-500 mb-1">DUST STORM</div>
-                                <div class="text-[11px] text-gray-400">Beats Solar Flare</div>
-                            </div>
-                        </div>
-                    </section>
+                <!-- Header -->
+                <div class="mars-glass p-8">
+                    <h2 class="orbitron text-2xl text-orange-500 mb-2">MISSION BRIEFING</h2>
+                    <p class="text-gray-500 text-sm">Everything you need to know to survive the Martian arena.</p>
 
-                    <section>
-                        <h3 class="orbitron text-orange-500 text-lg mb-3">📋 HOW TO PLAY</h3>
-                        <div class="space-y-4">
-                            <div class="flex gap-4">
-                                <div class="orbitron text-orange-500 text-xl">1.</div>
-                                <div>
-                                    <div class="font-bold text-white mb-1">Deploy Signal (Host)</div>
-                                    <p class="text-sm text-gray-400">Select your move, wager amount, and timeout. Your move is encrypted and stored locally. Click "Deploy Signal" to create the game.</p>
-                                </div>
-                            </div>
-                            <div class="flex gap-4">
-                                <div class="orbitron text-orange-500 text-xl">2.</div>
-                                <div>
-                                    <div class="font-bold text-white mb-1">Intercept (Challenger)</div>
-                                    <p class="text-sm text-gray-400">Find an open game in the lobby and click "Intercept". Choose your move and match the wager amount.</p>
-                                </div>
-                            </div>
-                            <div class="flex gap-4">
-                                <div class="orbitron text-orange-500 text-xl">3.</div>
-                                <div>
-                                    <div class="font-bold text-white mb-1">Broadcast Reveal (Host)</div>
-                                    <p class="text-sm text-gray-400">Once intercepted, click "Broadcast Reveal" to reveal your move. The smart contract determines the winner automatically.</p>
-                                </div>
-                            </div>
-                            <div class="flex gap-4">
-                                <div class="orbitron text-orange-500 text-xl">4.</div>
-                                <div>
-                                    <div class="font-bold text-white mb-1">Victory or Defeat</div>
-                                    <p class="text-sm text-gray-400">Winner takes 97% of the pot. 1.5% goes to treasury, 1.5% is burned. In case of a draw, both players get their wager back minus fees.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section>
-                        <h3 class="orbitron text-orange-500 text-lg mb-3">⚠️ IMPORTANT NOTES</h3>
-                        <ul class="space-y-2 text-sm text-gray-400">
-                            <li class="flex gap-2"><span class="text-orange-500">→</span> You must use the same browser/device to reveal your move (secret is stored locally)</li>
-                            <li class="flex gap-2"><span class="text-orange-500">→</span> If host doesn't reveal within the timeout, challenger can force forfeit to claim victory</li>
-                            <li class="flex gap-2"><span class="text-orange-500">→</span> If no one intercepts within the timeout, host can retract their wager</li>
-                            <li class="flex gap-2"><span class="text-orange-500">→</span> Matches cannot be joined in the last 60 seconds before timeout</li>
-                            <li class="flex gap-2"><span class="text-orange-500">→</span> All games are on-chain and provably fair via cryptographic commitments</li>
-                        </ul>
-                    </section>
-
-                    <section class="bg-orange-900/10 border border-orange-500/30 p-6">
-                        <h3 class="orbitron text-orange-500 text-lg mb-3">💰 FEES & PAYOUTS</h3>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between"><span>Winner Payout:</span><span class="text-orange-500">97% of pot</span></div>
-                            <div class="flex justify-between"><span>Treasury Fee:</span><span class="text-orange-500">1.5%</span></div>
-                            <div class="flex justify-between"><span>Burn Amount:</span><span class="text-orange-500">1.5%</span></div>
-                            <div class="flex justify-between"><span>Draw (each player):</span><span class="text-orange-500">Wager - 3%</span></div>
-                        </div>
-                    </section>
+                    <!-- Social Links -->
+                    <div class="flex flex-wrap gap-3 mt-5 pt-5 border-t border-orange-900/20">
+                        <a href="https://twitter.com/ErolMuskAvax" target="_blank" rel="noopener noreferrer"
+                           class="flex items-center gap-2 px-4 py-2 border border-orange-900/40 text-orange-600 hover:text-orange-400 hover:border-orange-500/50 text-[11px] uppercase transition tracking-widest">
+                            𝕏 @ErolMuskAvax
+                        </a>
+                        <a href="https://erolmusk.com" target="_blank" rel="noopener noreferrer"
+                           class="flex items-center gap-2 px-4 py-2 border border-orange-900/40 text-orange-600 hover:text-orange-400 hover:border-orange-500/50 text-[11px] uppercase transition tracking-widest">
+                            🌐 erolmusk.com
+                        </a>
+                        <a href="https://twitter.com/Precidobos" target="_blank" rel="noopener noreferrer"
+                           class="flex items-center gap-2 px-4 py-2 border border-orange-900/40 text-orange-600 hover:text-orange-400 hover:border-orange-500/50 text-[11px] uppercase transition tracking-widest">
+                            🛠 Dev: @Precidobos
+                        </a>
+                    </div>
                 </div>
+
+                <!-- What is it -->
+                <div class="mars-glass p-8">
+                    <h3 class="orbitron text-orange-500 text-lg mb-4">🎯 WHAT IS MARTIAN GAMBIT?</h3>
+                    <p class="text-gray-300 leading-relaxed mb-4">
+                        Martian Gambit is a <span class="text-orange-400">provably fair, on-chain PvP wagering game</span> built on the Martian Chain. 
+                        Two pilots face off in a battle of wits using three strategic moves — a futuristic take on Rock-Paper-Scissors. 
+                        Bet <span class="text-orange-400">$EROL tokens</span>, outthink your opponent, and claim victory.
+                    </p>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Every game is secured by cryptographic commitments on the blockchain — the host's move is hashed before the challenger joins, 
+                        guaranteeing neither player can cheat. No house edge beyond a small 3% fee split between the treasury and token burn.
+                    </p>
+                    <div class="grid grid-cols-3 gap-4 mt-6">
+                        <div class="bg-black/40 border border-orange-900/20 p-4 text-center">
+                            <div class="orbitron text-orange-500 text-xl mb-1">97%</div>
+                            <div class="text-[10px] text-gray-500 uppercase">Winner Keeps</div>
+                        </div>
+                        <div class="bg-black/40 border border-orange-900/20 p-4 text-center">
+                            <div class="orbitron text-orange-500 text-xl mb-1">0%</div>
+                            <div class="text-[10px] text-gray-500 uppercase">House Edge</div>
+                        </div>
+                        <div class="bg-black/40 border border-orange-900/20 p-4 text-center">
+                            <div class="orbitron text-orange-500 text-xl mb-1">∞</div>
+                            <div class="text-[10px] text-gray-500 uppercase">On-Chain Proof</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The Three Moves -->
+                <div class="mars-glass p-8">
+                    <h3 class="orbitron text-orange-500 text-lg mb-4">⚔️ THE THREE MOVES</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="bg-black/40 p-5 border border-orange-900/30 text-center">
+                            <div class="text-5xl mb-3">☀️</div>
+                            <div class="orbitron text-orange-500 mb-2">SOLAR FLARE</div>
+                            <div class="text-xs text-gray-400 mb-1">✅ Beats Oxygen Siphon</div>
+                            <div class="text-xs text-gray-600">❌ Loses to Dust Storm</div>
+                        </div>
+                        <div class="bg-black/40 p-5 border border-orange-900/30 text-center">
+                            <div class="text-5xl mb-3">🌬️</div>
+                            <div class="orbitron text-orange-500 mb-2">OXYGEN SIPHON</div>
+                            <div class="text-xs text-gray-400 mb-1">✅ Beats Dust Storm</div>
+                            <div class="text-xs text-gray-600">❌ Loses to Solar Flare</div>
+                        </div>
+                        <div class="bg-black/40 p-5 border border-orange-900/30 text-center">
+                            <div class="text-5xl mb-3">🌪️</div>
+                            <div class="orbitron text-orange-500 mb-2">DUST STORM</div>
+                            <div class="text-xs text-gray-400 mb-1">✅ Beats Solar Flare</div>
+                            <div class="text-xs text-gray-600">❌ Loses to Oxygen Siphon</div>
+                        </div>
+                    </div>
+                    <div class="bg-black/40 border border-orange-900/20 p-3 text-center text-[11px] text-gray-500">
+                        ☀️ Solar → beats → 🌬️ Oxygen → beats → 🌪️ Dust → beats → ☀️ Solar
+                    </div>
+                </div>
+
+                <!-- Step by step -->
+                <div class="mars-glass p-8">
+                    <h3 class="orbitron text-orange-500 text-lg mb-6">📋 HOW TO PLAY — STEP BY STEP</h3>
+
+                    <div class="space-y-6">
+                        <!-- Step 1 -->
+                        <div class="flex gap-5 items-start">
+                            <div class="orbitron text-orange-500 text-3xl font-bold shrink-0 w-10 text-center">1</div>
+                            <div class="flex-1">
+                                <div class="text-white font-bold text-base mb-2">Get $EROL on Martian Chain</div>
+                                <p class="text-sm text-gray-400 leading-relaxed mb-2">
+                                    You need $EROL tokens on the <span class="text-orange-500">Martian Chain (Chain ID: 2027)</span> to play. 
+                                    If you have $EROL on Avalanche C-Chain, use the <strong class="text-orange-400">Bridge tab</strong> to transfer them over at a 1:1 ratio with zero fees (gas only).
+                                </p>
+                                <div class="bg-black/40 border border-orange-900/20 p-3 text-[11px] text-gray-500">
+                                    💡 Add Martian Chain to MetaMask: RPC → <span class="text-orange-700">https://martian-rpc1.amichain.org/</span> · Chain ID: 2027 · Symbol: EROL
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-orange-900/10"></div>
+
+                        <!-- Step 2 -->
+                        <div class="flex gap-5 items-start">
+                            <div class="orbitron text-orange-500 text-3xl font-bold shrink-0 w-10 text-center">2</div>
+                            <div class="flex-1">
+                                <div class="text-white font-bold text-base mb-2">Connect Your Wallet</div>
+                                <p class="text-sm text-gray-400 leading-relaxed">
+                                    Click <strong class="text-orange-400">"Initialize Uplink"</strong> in the top right. MetaMask (or compatible wallet) will prompt you. 
+                                    The app will automatically switch to Martian Chain — if the network isn't in your wallet yet, it will add it for you automatically.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-orange-900/10"></div>
+
+                        <!-- Step 3 -->
+                        <div class="flex gap-5 items-start">
+                            <div class="orbitron text-orange-500 text-3xl font-bold shrink-0 w-10 text-center">3</div>
+                            <div class="flex-1">
+                                <div class="text-white font-bold text-base mb-2">Deploy a Signal (Create a Game)</div>
+                                <p class="text-sm text-gray-400 leading-relaxed mb-3">
+                                    In the left panel, pick your secret move, set your wager amount in $EROL, and choose a timeout window (5, 10, or 15 minutes). 
+                                    Hit <strong class="text-orange-400">"Deploy Signal"</strong>.
+                                </p>
+                                <div class="bg-orange-900/10 border border-orange-900/30 p-3 text-[11px] text-gray-400 space-y-1">
+                                    <div class="text-orange-500 font-bold uppercase mb-1">⚠️ Critical — Don't lose your reveal key</div>
+                                    <div>Your move is encrypted and stored in <strong>this browser only</strong>. If you clear browser data, switch devices, or use incognito mode, you will not be able to reveal your move and will forfeit the game.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-orange-900/10"></div>
+
+                        <!-- Step 4 -->
+                        <div class="flex gap-5 items-start">
+                            <div class="orbitron text-orange-500 text-3xl font-bold shrink-0 w-10 text-center">4</div>
+                            <div class="flex-1">
+                                <div class="text-white font-bold text-base mb-2">Intercept (Join a Game as Challenger)</div>
+                                <p class="text-sm text-gray-400 leading-relaxed mb-2">
+                                    Browse the <strong class="text-orange-400">Lobby</strong> for open signals. Click a row to view full details, or hit <strong class="text-orange-400">"Intercept"</strong> to join. 
+                                    Choose your move in the popup, then confirm. You must match the host's exact wager amount — this is deducted from your wallet automatically.
+                                </p>
+                                <div class="bg-black/40 border border-orange-900/20 p-3 text-[11px] text-gray-500">
+                                    🔒 You cannot join a game with less than 60 seconds remaining on the timer — this prevents last-second sniping.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-orange-900/10"></div>
+
+                        <!-- Step 5 -->
+                        <div class="flex gap-5 items-start">
+                            <div class="orbitron text-orange-500 text-3xl font-bold shrink-0 w-10 text-center">5</div>
+                            <div class="flex-1">
+                                <div class="text-white font-bold text-base mb-2">Broadcast Reveal (Host Reveals Move)</div>
+                                <p class="text-sm text-gray-400 leading-relaxed mb-2">
+                                    Once a challenger joins, the game status changes to <span class="text-yellow-500">Intercepted</span>. As host, you must return to the lobby 
+                                    <strong>on the same browser/device</strong> and click <strong class="text-orange-400">"Broadcast Reveal"</strong> before the timer expires.
+                                </p>
+                                <p class="text-sm text-gray-400 leading-relaxed">
+                                    The smart contract then compares both moves on-chain and automatically sends winnings to the winner — no manual claim needed.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-orange-900/10"></div>
+
+                        <!-- Step 6 -->
+                        <div class="flex gap-5 items-start">
+                            <div class="orbitron text-orange-500 text-3xl font-bold shrink-0 w-10 text-center">6</div>
+                            <div class="flex-1">
+                                <div class="text-white font-bold text-base mb-2">Collect Winnings</div>
+                                <p class="text-sm text-gray-400 leading-relaxed">
+                                    Winnings are sent directly to your wallet by the smart contract — there is nothing to claim. 
+                                    Check your Profile tab for your full battle history and P&L tracking.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeout rules -->
+                <div class="mars-glass p-8">
+                    <h3 class="orbitron text-orange-500 text-lg mb-4">⏱ TIMEOUT RULES</h3>
+                    <div class="space-y-4 text-sm text-gray-400">
+                        <div class="flex gap-3 items-start">
+                            <span class="text-orange-500 shrink-0 mt-0.5">→</span>
+                            <div><strong class="text-white">No Challenger Within Timeout:</strong> If nobody intercepts your signal before the timer hits zero, click <strong class="text-orange-400">"Retract"</strong> on your game to get your full wager back.</div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <span class="text-orange-500 shrink-0 mt-0.5">→</span>
+                            <div><strong class="text-white">Host Fails to Reveal:</strong> If you joined a game and the host doesn't reveal before timeout, you can click <strong class="text-orange-400">"Claim Victory"</strong> to force-forfeit and claim the full pot.</div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <span class="text-orange-500 shrink-0 mt-0.5">→</span>
+                            <div><strong class="text-white">Last 60 Seconds:</strong> Open games are locked for joining in the final 60 seconds of their countdown. This protects against manipulation.</div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <span class="text-orange-500 shrink-0 mt-0.5">→</span>
+                            <div><strong class="text-white">Draw Result:</strong> If both pilots choose the same move, both receive their original wager minus the 3% protocol fee (1.5% treasury + 1.5% burned).</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fees -->
+                <div class="mars-glass p-8">
+                    <h3 class="orbitron text-orange-500 text-lg mb-4">💰 FEES & PAYOUTS</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-orange-900/30">
+                                    <th class="text-left py-2 text-[10px] text-orange-800 uppercase">Scenario</th>
+                                    <th class="text-right py-2 text-[10px] text-orange-800 uppercase">Winner Gets</th>
+                                    <th class="text-right py-2 text-[10px] text-orange-800 uppercase">Treasury</th>
+                                    <th class="text-right py-2 text-[10px] text-orange-800 uppercase">Burned</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-gray-400">
+                                <tr class="border-b border-orange-900/10">
+                                    <td class="py-3 text-white">Win (e.g. 5 $EROL pot)</td>
+                                    <td class="py-3 text-right text-green-500 orbitron">4.85 $EROL</td>
+                                    <td class="py-3 text-right text-blue-500">0.075</td>
+                                    <td class="py-3 text-right text-red-500">0.075</td>
+                                </tr>
+                                <tr class="border-b border-orange-900/10">
+                                    <td class="py-3 text-white">Draw (each gets back)</td>
+                                    <td class="py-3 text-right text-yellow-500 orbitron">97% of wager</td>
+                                    <td class="py-3 text-right text-blue-500">1.5%</td>
+                                    <td class="py-3 text-right text-red-500">1.5%</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 text-white">Forfeit (challenger claims)</td>
+                                    <td class="py-3 text-right text-green-500 orbitron">Full pot × 97%</td>
+                                    <td class="py-3 text-right text-blue-500">1.5%</td>
+                                    <td class="py-3 text-right text-red-500">1.5%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- FAQ -->
+                <div class="mars-glass p-8">
+                    <h3 class="orbitron text-orange-500 text-lg mb-6">❓ FREQUENTLY ASKED QUESTIONS</h3>
+                    <div class="space-y-5" id="faq-list">
+
+                        <details class="border border-orange-900/20 bg-black/20">
+                            <summary class="p-4 cursor-pointer text-white font-bold text-sm hover:text-orange-400 transition list-none flex justify-between items-center">
+                                <span>What wallet do I need?</span>
+                                <span class="text-orange-600 text-xs">▼</span>
+                            </summary>
+                            <div class="px-4 pb-4 text-sm text-gray-400 leading-relaxed border-t border-orange-900/20 pt-3">
+                                MetaMask (browser extension or mobile app) is the most compatible. Any EVM-compatible wallet that supports custom networks should work. 
+                                The app will automatically prompt you to add Martian Chain (Chain ID: 2027) when you connect.
+                            </div>
+                        </details>
+
+                        <details class="border border-orange-900/20 bg-black/20">
+                            <summary class="p-4 cursor-pointer text-white font-bold text-sm hover:text-orange-400 transition list-none flex justify-between items-center">
+                                <span>How do I get $EROL tokens?</span>
+                                <span class="text-orange-600 text-xs">▼</span>
+                            </summary>
+                            <div class="px-4 pb-4 text-sm text-gray-400 leading-relaxed border-t border-orange-900/20 pt-3">
+                                Visit <a href="https://erolmusk.com" target="_blank" class="text-orange-500 hover:underline">erolmusk.com</a> for the official token information. 
+                                If you already hold $EROL on Avalanche C-Chain, use the <strong class="text-orange-400">Bridge tab</strong> in this app to transfer to Martian Chain at a 1:1 ratio.
+                            </div>
+                        </details>
+
+                        <details class="border border-orange-900/20 bg-black/20">
+                            <summary class="p-4 cursor-pointer text-white font-bold text-sm hover:text-orange-400 transition list-none flex justify-between items-center">
+                                <span>I created a game but can't reveal. What happened?</span>
+                                <span class="text-orange-600 text-xs">▼</span>
+                            </summary>
+                            <div class="px-4 pb-4 text-sm text-gray-400 leading-relaxed border-t border-orange-900/20 pt-3">
+                                Your move secret is stored in your browser's local storage — it's tied to the specific browser and device you used to create the game. 
+                                If you switched browsers, cleared cookies, or used incognito mode, the secret is gone. 
+                                If a challenger joins and you cannot reveal, they can claim victory after the timeout by clicking "Claim Victory".
+                                Always play from the same browser you started on.
+                            </div>
+                        </details>
+
+                        <details class="border border-orange-900/20 bg-black/20">
+                            <summary class="p-4 cursor-pointer text-white font-bold text-sm hover:text-orange-400 transition list-none flex justify-between items-center">
+                                <span>Is the game provably fair?</span>
+                                <span class="text-orange-600 text-xs">▼</span>
+                            </summary>
+                            <div class="px-4 pb-4 text-sm text-gray-400 leading-relaxed border-t border-orange-900/20 pt-3">
+                                Yes. When you deploy a signal (create a game), your move is hashed using a cryptographic commitment: 
+                                <code class="text-orange-700 text-[10px]">keccak256(move, salt, address, gameId)</code>. 
+                                This hash is stored on-chain. The challenger commits their move openly. When the host reveals, 
+                                the smart contract verifies the hash matches — making it mathematically impossible for the host to change their move after seeing the challenger's choice.
+                            </div>
+                        </details>
+
+                        <details class="border border-orange-900/20 bg-black/20">
+                            <summary class="p-4 cursor-pointer text-white font-bold text-sm hover:text-orange-400 transition list-none flex justify-between items-center">
+                                <span>Can I play on mobile?</span>
+                                <span class="text-orange-600 text-xs">▼</span>
+                            </summary>
+                            <div class="px-4 pb-4 text-sm text-gray-400 leading-relaxed border-t border-orange-900/20 pt-3">
+                                Yes! Open this app in the <strong class="text-white">MetaMask in-app browser</strong> (tap the globe/browser icon inside MetaMask) for the best experience on mobile. 
+                                Standard mobile browsers like Chrome or Safari may have trouble connecting to MetaMask — the in-app browser bypasses this issue entirely.
+                                For the bridge on mobile, tap "Open Bridge in New Tab" for full wallet compatibility.
+                            </div>
+                        </details>
+
+                        <details class="border border-orange-900/20 bg-black/20">
+                            <summary class="p-4 cursor-pointer text-white font-bold text-sm hover:text-orange-400 transition list-none flex justify-between items-center">
+                                <span>What happens if I close the browser after intercepting?</span>
+                                <span class="text-orange-600 text-xs">▼</span>
+                            </summary>
+                            <div class="px-4 pb-4 text-sm text-gray-400 leading-relaxed border-t border-orange-900/20 pt-3">
+                                As a challenger, closing the browser has no effect — your move and wager are already locked on-chain. 
+                                Simply come back and find your game in the lobby. If the host doesn't reveal in time, you can claim victory from any device.
+                            </div>
+                        </details>
+
+                        <details class="border border-orange-900/20 bg-black/20">
+                            <summary class="p-4 cursor-pointer text-white font-bold text-sm hover:text-orange-400 transition list-none flex justify-between items-center">
+                                <span>What is the Martian Chain?</span>
+                                <span class="text-orange-600 text-xs">▼</span>
+                            </summary>
+                            <div class="px-4 pb-4 text-sm text-gray-400 leading-relaxed border-t border-orange-900/20 pt-3">
+                                Martian Chain is a custom EVM-compatible blockchain built for the Erol Musk ecosystem. 
+                                It uses $EROL as its native gas token. Network details: RPC <span class="text-orange-700">https://martian-rpc1.amichain.org/</span> · Chain ID: 2027 · Symbol: EROL.
+                                Visit <a href="https://erolmusk.com" target="_blank" class="text-orange-500 hover:underline">erolmusk.com</a> for more.
+                            </div>
+                        </details>
+
+                        <details class="border border-orange-900/20 bg-black/20">
+                            <summary class="p-4 cursor-pointer text-white font-bold text-sm hover:text-orange-400 transition list-none flex justify-between items-center">
+                                <span>Who built this?</span>
+                                <span class="text-orange-600 text-xs">▼</span>
+                            </summary>
+                            <div class="px-4 pb-4 text-sm text-gray-400 leading-relaxed border-t border-orange-900/20 pt-3">
+                                Martian Gambit was developed by <a href="https://twitter.com/Precidobos" target="_blank" class="text-orange-500 hover:underline">@Precidobos</a> for the 
+                                <a href="https://twitter.com/ErolMuskAvax" target="_blank" class="text-orange-500 hover:underline">@ErolMuskAvax</a> project. 
+                                Visit <a href="https://erolmusk.com" target="_blank" class="text-orange-500 hover:underline">erolmusk.com</a> for the official token and community.
+                            </div>
+                        </details>
+
+                    </div>
+                </div>
+
+                <!-- Quick Reference Card -->
+                <div class="mars-glass p-6 bg-orange-900/5 border border-orange-500/20">
+                    <h3 class="orbitron text-orange-500 text-sm mb-4 uppercase">⚡ Quick Reference</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] text-gray-400">
+                        <div class="space-y-2">
+                            <div class="text-orange-600 uppercase font-bold mb-1">Move Rules</div>
+                            <div>☀️ Solar beats 🌬️ Oxygen</div>
+                            <div>🌬️ Oxygen beats 🌪️ Dust</div>
+                            <div>🌪️ Dust beats ☀️ Solar</div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-orange-600 uppercase font-bold mb-1">Network Info</div>
+                            <div>Chain: Martian Chain</div>
+                            <div>Chain ID: 2027</div>
+                            <div>Token: $EROL</div>
+                            <div>RPC: martian-rpc1.amichain.org</div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-orange-600 uppercase font-bold mb-1">Links</div>
+                            <div><a href="https://twitter.com/ErolMuskAvax" target="_blank" class="text-orange-700 hover:text-orange-500">𝕏 @ErolMuskAvax</a></div>
+                            <div><a href="https://erolmusk.com" target="_blank" class="text-orange-700 hover:text-orange-500">🌐 erolmusk.com</a></div>
+                            <div><a href="https://twitter.com/Precidobos" target="_blank" class="text-orange-700 hover:text-orange-500">🛠 Dev: @Precidobos</a></div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-orange-600 uppercase font-bold mb-1">Fee Structure</div>
+                            <div>Winner: 97% of pot</div>
+                            <div>Treasury: 1.5%</div>
+                            <div>Burned: 1.5%</div>
+                            <div>Draw: both get wager × 97%</div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -625,11 +923,14 @@
                 </div>
 
                 <div class="mt-6 bg-orange-900/10 border border-orange-900/30 p-4 text-[11px] text-gray-500 space-y-1">
-                    <div class="text-orange-600 font-bold uppercase mb-2">⚠️ Wallet Connection Note</div>
-                    <div>• Click "Launch Bridge Interface" to open the bridge in a full-screen floating window</div>
-                    <div>• Connect your wallet directly inside that window — MetaMask will pop up normally</div>
-                    <div>• You can drag the window to reposition it</div>
-                    <div>• If MetaMask still doesn't appear, use "Open in New Tab" for full compatibility</div>
+                    <div class="text-orange-600 font-bold uppercase mb-2">⚠️ Wallet Connection Guide</div>
+                    <div class="font-bold text-gray-300 mt-1 mb-1">On Desktop (PC / Mac):</div>
+                    <div>• Click "Launch Bridge Interface" — bridge opens as a draggable full-screen overlay</div>
+                    <div>• Connect MetaMask directly inside that window, then drag to reposition</div>
+                    <div class="font-bold text-gray-300 mt-3 mb-1">On Mobile:</div>
+                    <div>• Open <strong class="text-orange-500">MetaMask app</strong> → tap the built-in browser (globe icon) → navigate here</div>
+                    <div>• Or tap <strong class="text-orange-500">"Open Bridge in New Tab"</strong> for full wallet support in any mobile browser</div>
+                    <div class="mt-2 text-gray-600">⚠️ Standard mobile Chrome/Safari cannot inject wallet into iframes. Always use MetaMask's in-app browser or open in a new tab.</div>
                 </div>
             </div>
         </div>
@@ -1052,12 +1353,12 @@
                          status == 2 ? "border-green-700" : 
                          "border-gray-800");
                     
-                    // Click handler to open detail page
-                    div.setAttribute('data-game-id', game.game_id);
+                    // Click handler to open detail page - guard against null game_id
+                    const safeGameId = game.game_id != null ? String(game.game_id) : '';
+                    div.setAttribute('data-game-id', safeGameId);
                     div.onclick = (e) => {
-                        // Don't navigate if clicking a button
                         if (e.target.closest('button')) return;
-                        openMatchDetail(game.game_id);
+                        if (safeGameId && safeGameId !== 'null') openMatchDetail(safeGameId);
                     };
                     
                     let gameInfo = `
@@ -1144,7 +1445,9 @@
                 if (nearExpiry) {
                     return `<span class="text-[9px] text-red-500 uppercase italic">🔒 Closing...</span>`;
                 }
-                return `<button data-intercept-btn onclick="openChallengeModal(${game.game_id}, '${game.wager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
+                const safeWager = (game.wager != null && game.wager !== 'null' && game.wager !== '') ? game.wager : '0';
+                const safeId = game.game_id != null ? game.game_id : '';
+                return `<button data-intercept-btn onclick="openChallengeModal('${safeId}', '${safeWager}')" class="btn-mars text-[10px] px-6 py-2">Intercept</button>`;
             }
 
             if (status === 1) {
@@ -1473,8 +1776,10 @@
         // CHALLENGE MODAL
         // ===========================
         function openChallengeModal(gameId, wager) {
-            if (!userAddress) {
-                showToast("CONNECT UPLINK FIRST");
+            if (!userAddress) { showToast("CONNECT UPLINK FIRST"); return; }
+            if (!gameId || gameId === 'null' || gameId === '') { showToast("⚠️ INVALID GAME ID"); return; }
+            if (!wager || wager === 'null' || wager === '0' || isNaN(parseFloat(wager))) {
+                showToast("⚠️ WAGER DATA MISSING — REFRESH LOBBY");
                 return;
             }
             pendingChallengeId = gameId;
@@ -1525,7 +1830,17 @@
                 showToast("INTERCEPTING...");
                 
                 // Use wager amount passed from DB — avoids a contract.games() call that can fail
-                const actualWager = ethers.parseEther(String(wager));
+                // Validate wager before parsing
+                if (!wager || wager === 'null' || wager === 'undefined' || wager === '0') {
+                    showToast("⚠️ INVALID WAGER AMOUNT — REFRESH AND TRY AGAIN");
+                    return;
+                }
+                const wagerNum = parseFloat(wager);
+                if (isNaN(wagerNum) || wagerNum <= 0) {
+                    showToast("⚠️ INVALID WAGER AMOUNT");
+                    return;
+                }
+                const actualWager = ethers.parseEther(wagerNum.toString());
                 
                 const tx = await contract.challengeGame(id, move, { value: actualWager });
                 showToast("CONFIRMING TRANSACTION...");
