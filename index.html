@@ -361,6 +361,8 @@
                 <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Profile</button>
                 <button onclick="switchTab('bridge')" id="tab-bridge" class="tab-btn px-4 py-2 text-[10px] uppercase transition">Bridge</button>
                 <button onclick="switchTab('howto')" id="tab-howto" class="tab-btn px-4 py-2 text-[10px] uppercase transition">How to Play</button>
+                <button onclick="switchTab('gamenight')" id="tab-gamenight" class="tab-btn px-4 py-2 text-[10px] uppercase transition" style="border:1px solid rgba(234,179,8,0.4);color:#eab308;">🎮 Game Night</button>
+                <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn px-4 py-2 text-[10px] uppercase transition hidden" style="border:1px solid rgba(239,68,68,0.4);color:#ef4444;">⚙ Admin</button>
             </div>
 
             <div id="connection-interface">
@@ -1470,6 +1472,11 @@
                     if (name) document.getElementById('user-address').innerText = name;
                     else document.getElementById('user-address').innerText = userAddress.slice(0,6)+'...'+userAddress.slice(-4);
                 });
+                // Show admin tab only for admin wallet
+                if (userAddress.toLowerCase() === ADMIN_WALLET) {
+                    document.getElementById('tab-admin').classList.remove('hidden');
+                    document.getElementById('admin-wallet-display').textContent = userAddress;
+                }
             } catch (err) { 
                 console.error(err);
                 showToast("UPLINK FAILED"); 
@@ -1507,21 +1514,43 @@
             return parseFloat(ethers.formatEther(BigInt(json.result)));
         }
 
+        // Alternative RPCs to try if primary fails (SSL issues on some networks)
+        const MARTIAN_RPCS = [
+            "https://martian-rpc1.amichain.org/",
+            "https://martian-rpc2.amichain.org/",
+            "http://martian-rpc1.amichain.org/"
+        ];
+
+        async function rpcFetch(rpcs, payload) {
+            for (const rpc of rpcs) {
+                try {
+                    const res = await fetch(rpc, {
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify(payload),
+                        signal: AbortSignal.timeout(5000)
+                    });
+                    const json = await res.json();
+                    if (json.result !== undefined) return json;
+                } catch(e) { /* try next */ }
+            }
+            return null;
+        }
+
         async function refreshAllBalances() {
             if (!userAddress) return;
 
-            // 1. Martian Chain — native EROL balance
+            // 1. Martian Chain — native EROL balance (try multiple RPCs)
             try {
                 const payload = { jsonrpc:"2.0", method:"eth_getBalance", params:[userAddress,"latest"], id:1 };
-                const res = await fetch(CHAINS.martian.rpc, {
-                    method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
-                });
-                const json = await res.json();
-                if (json.result) {
+                const json = await rpcFetch(MARTIAN_RPCS, payload);
+                if (json && json.result) {
                     const bal = parseFloat(ethers.formatEther(BigInt(json.result))).toFixed(4);
                     document.getElementById('balance-martian').textContent = bal + " EROL";
+                } else {
+                    document.getElementById('balance-martian').textContent = "RPC ERR";
                 }
-            } catch(e) { console.error("Martian balance error:", e); }
+            } catch(e) { document.getElementById('balance-martian').textContent = "ERR"; }
 
             // 2. AVAX Chain — native AVAX balance
             try {
@@ -1580,6 +1609,7 @@
                 );
                 const hash = ethers.keccak256(encoded);
 
+                const gnIsActive = (await getGNSetting("gn_active")) === "true";
                 showToast("ENCRYPTING SIGNAL...");
                 const tx = await contract.createGame(hash, timeoutValue, { value: wagerValue });
                 
@@ -1618,7 +1648,8 @@
                         timeout: parseInt(timeoutValue),
                         status: 0,
                         commit_hash: hash,
-                        chain: CHAINS[activeChain].dbValue
+                        chain: CHAINS[activeChain].dbValue,
+                        gn_session: gnIsActive
                     }], { onConflict: 'game_id' })
                     .select();
 
@@ -2961,18 +2992,15 @@
         // ── Pending action handler (retract / forfeit from profile) ──────────
         async function pendingAction(gameId, type, chainStr) {
             if (!signer) return showToast('CONNECT WALLET FIRST');
-            // Switch to correct chain first
             const targetChain = chainStr === 'avax' ? 'avax' : 'martian';
-            if (activeChain !== targetChain) {
-                showToast('SWITCHING CHAIN...');
-                // Update chain globals
-                activeChain   = targetChain;
-                CHAIN_ID      = CHAINS[targetChain].id;
-                RPC_URL       = CHAINS[targetChain].rpc;
-                CONTRACT_ADDR = CHAINS[targetChain].contract;
-            }
+            // Always set globals to target chain then let checkNetwork do the actual switch
+            activeChain   = targetChain;
+            CHAIN_ID      = CHAINS[targetChain].id;
+            RPC_URL       = CHAINS[targetChain].rpc;
+            CONTRACT_ADDR = CHAINS[targetChain].contract;
+            showToast('SWITCHING TO ' + CHAINS[targetChain].name.toUpperCase() + '...');
             if (!(await checkNetwork())) return;
-            contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+            // checkNetwork already created fresh provider+signer+contract
             try {
                 showToast(type === 'retract' ? 'RETRACTING WAGER...' : 'CLAIMING VICTORY...');
                 const tx = type === 'retract'
@@ -2986,7 +3014,13 @@
                 updateBalance();
             } catch(e) {
                 console.error('pendingAction error:', e);
-                showToast('TRANSACTION FAILED');
+                const reason = e && (e.reason || (e.data && e.data.message) || e.message) || '';
+                if (reason.includes('Transfer failed') || reason.includes('already') || reason.includes('not in')) {
+                    showToast('GAME ALREADY RESOLVED - DISMISSING');
+                    dismissPending(gameId);
+                } else {
+                    showToast('TX FAILED: ' + reason.slice(0, 50));
+                }
             }
         }
 
@@ -3073,10 +3107,12 @@
             return ["Open", "Intercepted", "Resolved", "Refunded", "Forfeited"][s] || "Unknown"; 
         }
         
+        const ADMIN_WALLET = "0x46914d5dc59598801e435af2a08928da87c60df0";
+
         function switchTab(tab) {
-            // Deactivate all tab buttons except chain pills
+            // Block non-admins from admin page
+            if (tab === 'admin' && (!userAddress || userAddress.toLowerCase() !== ADMIN_WALLET)) return;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            // Reactivate the correct chain lobby tab if we're going to lobby
             if (tab === 'lobby') {
                 const chainTabId = activeChain === 'avax' ? 'tab-lobby-avax' : 'tab-lobby-martian';
                 const chainTab = document.getElementById(chainTabId);
@@ -3089,6 +3125,8 @@
             document.getElementById(`page-${tab}`).classList.add('active');
             if (tab === 'profile') loadProfile();
             if (tab === 'leaderboard') loadLeaderboard();
+            if (tab === 'gamenight') { loadGNRegistrations(); updateGNCountdown(); checkGNState(); }
+            if (tab === 'admin') { loadAdminPanel(); }
         }
 
         function switchChainTab(chain) {
@@ -4145,11 +4183,553 @@
             });
         }, 1000);
         
+
+        // ================================================================
+        // GAME NIGHT SYSTEM
+        // ================================================================
+        const ADMIN_WALLET_LOWER = "0x46914d5dc59598801e435af2a08928da87c60df0";
+        let gnCurrentPage = 0;
+        const GN_PAGE_SIZE = 10;
+        let gnAllRegistrations = [];
+
+        // Game night state keys in Supabase settings table
+        // We store state as rows in a 'gn_settings' table: { key, value }
+        // Keys: gn_active (bool), gn_leaderboard_open (bool)
+
+        async function getGNSetting(key) {
+            try {
+                const { data } = await _supabase.from('gn_settings').select('value').eq('key', key).single();
+                return data ? data.value : null;
+            } catch(e) { return null; }
+        }
+
+        async function setGNSetting(key, value) {
+            try {
+                await _supabase.from('gn_settings').upsert([{ key, value }], { onConflict: 'key' });
+            } catch(e) { console.error('setGNSetting:', e); }
+        }
+
+        async function checkGNState() {
+            const active = await getGNSetting('gn_active');
+            const lbOpen = await getGNSetting('gn_leaderboard_open');
+            const lb = document.getElementById('gn-leaderboard-section');
+            const badge = document.getElementById('gn-status-badge');
+            if (active === 'true') {
+                badge.textContent = '🔴 LIVE NOW';
+                badge.className = 'mt-3 px-3 py-1 text-[10px] uppercase orbitron border border-yellow-500 text-yellow-500 animate-pulse';
+                if (lb) { lb.classList.remove('hidden'); loadGNLeaderboard(); }
+            } else if (lbOpen === 'true') {
+                badge.textContent = '🏆 Results Posted';
+                badge.className = 'mt-3 px-3 py-1 text-[10px] uppercase orbitron border border-green-700 text-green-500';
+                if (lb) { lb.classList.remove('hidden'); loadGNLeaderboard(); }
+            } else {
+                badge.textContent = 'Registration Open';
+                badge.className = 'mt-3 px-3 py-1 text-[10px] uppercase orbitron border border-gray-700 text-gray-500';
+                if (lb) lb.classList.add('hidden');
+            }
+        }
+
+        function updateGNCountdown() {
+            const target = new Date('2026-03-01T00:00:00Z').getTime();
+            const now = Date.now();
+            const diff = target - now;
+            const el = document.getElementById('gn-countdown');
+            if (!el) return;
+            if (diff <= 0) {
+                el.textContent = '0';
+                return;
+            }
+            el.textContent = Math.ceil(diff / 86400000);
+        }
+
+        async function registerGameNight() {
+            const wallet = document.getElementById('gn-wallet').value.trim();
+            const twitter = document.getElementById('gn-twitter').value.trim().replace(/^@/, '');
+            const msgEl = document.getElementById('gn-reg-msg');
+
+            if (!wallet || !/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
+                msgEl.innerHTML = '<span class="text-red-400">❌ Enter a valid EVM wallet address (0x...)</span>'; return;
+            }
+            if (!twitter || twitter.length < 2) {
+                msgEl.innerHTML = '<span class="text-red-400">❌ Enter your X handle</span>'; return;
+            }
+
+            msgEl.innerHTML = '<span class="text-orange-500">Registering...</span>';
+
+            try {
+                // Check if already registered
+                const { data: existing } = await _supabase.from('gn_registrations')
+                    .select('id').eq('wallet', wallet.toLowerCase()).single();
+                if (existing) {
+                    msgEl.innerHTML = '<span class="text-yellow-400">⚡ Already registered! Your 1,000 points are locked in.</span>';
+                    return;
+                }
+                const { error } = await _supabase.from('gn_registrations').insert([{
+                    wallet: wallet.toLowerCase(),
+                    twitter_handle: twitter,
+                    points: 1000,
+                    created_at: new Date().toISOString()
+                }]);
+                if (error) throw error;
+                msgEl.innerHTML = '<span class="text-green-400">✅ Registered! 1,000 Game Night Points credited. See you March 1st! 🚀</span>';
+                document.getElementById('gn-wallet').value = '';
+                document.getElementById('gn-twitter').value = '';
+                loadGNRegistrations();
+            } catch(e) {
+                if (e.message && e.message.includes('unique')) {
+                    msgEl.innerHTML = '<span class="text-yellow-400">⚡ Already registered!</span>';
+                } else {
+                    msgEl.innerHTML = '<span class="text-red-400">❌ Error: ' + e.message + '</span>';
+                }
+            }
+        }
+
+        async function loadGNRegistrations() {
+            try {
+                const { data, error } = await _supabase.from('gn_registrations')
+                    .select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                gnAllRegistrations = data || [];
+                document.getElementById('gn-reg-count').textContent = '(' + gnAllRegistrations.length + ' pilots)';
+                renderGNTable();
+            } catch(e) { console.error('loadGNRegistrations:', e); }
+        }
+
+        function renderGNTable() {
+            const tbody = document.getElementById('gn-reg-table');
+            const total = gnAllRegistrations.length;
+            const totalPages = Math.max(1, Math.ceil(total / GN_PAGE_SIZE));
+            gnCurrentPage = Math.max(0, Math.min(gnCurrentPage, totalPages - 1));
+            const slice = gnAllRegistrations.slice(gnCurrentPage * GN_PAGE_SIZE, (gnCurrentPage + 1) * GN_PAGE_SIZE);
+            const offset = gnCurrentPage * GN_PAGE_SIZE;
+
+            if (slice.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-600 py-8">No pilots registered yet</td></tr>';
+            } else {
+                tbody.innerHTML = slice.map((r, i) => `
+                    <tr class="border-b border-orange-900/10 hover:bg-black/20">
+                        <td class="py-3 pr-4 text-gray-500 text-[11px]">${offset + i + 1}</td>
+                        <td class="py-3 pr-4 font-mono text-orange-500 text-[11px]">${r.wallet.slice(0,8)}...${r.wallet.slice(-4)}</td>
+                        <td class="py-3 pr-4 text-blue-400 text-[11px]">@${r.twitter_handle}</td>
+                        <td class="py-3 text-right text-yellow-500 orbitron text-[11px]">${(r.points || 1000).toLocaleString()}</td>
+                    </tr>`).join('');
+            }
+            document.getElementById('gn-page-info').textContent = 'Page ' + (gnCurrentPage+1) + ' / ' + totalPages;
+            document.getElementById('gn-prev').disabled = gnCurrentPage === 0;
+            document.getElementById('gn-next').disabled = gnCurrentPage >= totalPages - 1;
+        }
+
+        function gnPage(dir) {
+            gnCurrentPage += dir;
+            renderGNTable();
+        }
+
+        async function loadGNLeaderboard() {
+            try {
+                // Aggregate wagers from games during game night period
+                const { data: gnGames } = await _supabase.from('games')
+                    .select('host, challenger, wager, status, gn_session')
+                    .eq('gn_session', true)
+                    .eq('status', 2); // only resolved games count
+
+                const totals = {};
+                (gnGames || []).forEach(g => {
+                    const w = parseFloat(g.wager) || 0;
+                    if (g.host) totals[g.host] = (totals[g.host] || 0) + w;
+                    if (g.challenger) totals[g.challenger] = (totals[g.challenger] || 0) + w;
+                });
+
+                const sorted = Object.entries(totals).sort((a,b) => b[1] - a[1]);
+                const tbody = document.getElementById('gn-lb-table');
+                if (!sorted.length) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-600 py-6">No games recorded yet</td></tr>';
+                    return;
+                }
+                const medals = ['🥇','🥈','🥉'];
+                tbody.innerHTML = sorted.slice(0, 20).map(([addr, total], i) => {
+                    const name = cachedUsernames[addr.toLowerCase()] || (addr.slice(0,6)+'...'+addr.slice(-4));
+                    const reg = gnAllRegistrations.find(r => r.wallet === addr.toLowerCase());
+                    const pts = (reg ? reg.points : 0) + Math.floor(total * 100);
+                    return `<tr class="border-b border-yellow-900/10">
+                        <td class="py-3 pr-4 text-[11px]">${medals[i] || '#'+(i+1)}</td>
+                        <td class="py-3 pr-4 text-[11px] text-white">${name}</td>
+                        <td class="py-3 pr-4 text-right orbitron text-orange-500 text-[11px]">${total.toFixed(2)}</td>
+                        <td class="py-3 text-right orbitron text-yellow-500 text-[11px]">${pts.toLocaleString()}</td>
+                    </tr>`;
+                }).join('');
+            } catch(e) { console.error('loadGNLeaderboard:', e); }
+        }
+
+        // ================================================================
+        // ADMIN PANEL
+        // ================================================================
+        let adminLog = '';
+
+        function adminConsole(msg) {
+            adminLog += '[' + new Date().toISOString().slice(11,19) + '] ' + msg + '\n';
+            const el = document.getElementById('admin-console');
+            if (el) { el.textContent = adminLog; el.scrollTop = el.scrollHeight; }
+        }
+
+        function loadAdminPanel() {
+            if (!userAddress || userAddress.toLowerCase() !== ADMIN_WALLET_LOWER) return;
+            document.getElementById('admin-wallet-display').textContent = userAddress;
+            adminConsole('Admin panel loaded');
+            refreshAdminGNStatus();
+        }
+
+        async function refreshAdminGNStatus() {
+            const active = await getGNSetting('gn_active');
+            const lbOpen = await getGNSetting('gn_leaderboard_open');
+            const el = document.getElementById('admin-gn-status');
+            if (el) el.textContent = 'Game Night Active: ' + (active === 'true' ? '✅ YES' : '❌ NO') +
+                '   |   Leaderboard Open: ' + (lbOpen === 'true' ? '✅ YES' : '❌ NO');
+        }
+
+        async function adminStartGameNight() {
+            if (!userAddress || userAddress.toLowerCase() !== ADMIN_WALLET_LOWER) return;
+            await setGNSetting('gn_active', 'true');
+            adminConsole('✅ Game Night STARTED — all new resolved games will be tagged gn_session=true');
+            showToast('✓ GAME NIGHT STARTED');
+            refreshAdminGNStatus();
+        }
+
+        async function adminStopGameNight() {
+            if (!userAddress || userAddress.toLowerCase() !== ADMIN_WALLET_LOWER) return;
+            await setGNSetting('gn_active', 'false');
+            adminConsole('⏹ Game Night STOPPED');
+            showToast('GAME NIGHT STOPPED');
+            refreshAdminGNStatus();
+        }
+
+        async function adminOpenLeaderboard() {
+            if (!userAddress || userAddress.toLowerCase() !== ADMIN_WALLET_LOWER) return;
+            await setGNSetting('gn_leaderboard_open', 'true');
+            adminConsole('🏆 Leaderboard OPENED for public view');
+            showToast('LEADERBOARD OPENED');
+            refreshAdminGNStatus();
+        }
+
+        function adminForceRefresh() {
+            adminConsole('↻ Forcing refresh of all data...');
+            refreshLobby();
+            refreshActivityFeed();
+            refreshChat();
+            refreshAllBalances();
+            adminConsole('Done');
+        }
+
+        function adminClearLocalStorage() {
+            const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
+            const count = Object.keys(secrets).length;
+            localStorage.removeItem('martian_gambits');
+            adminConsole('🗑 Cleared ' + count + ' secrets from localStorage');
+            showToast('LOCALSTORAGE CLEARED');
+        }
+
+        function adminShowSecrets() {
+            const secrets = JSON.parse(localStorage.getItem('martian_gambits') || '{}');
+            adminConsole('🔑 Stored secrets (' + Object.keys(secrets).length + '):');
+            Object.entries(secrets).forEach(([hash, data]) => {
+                adminConsole('  Hash: ' + hash.slice(0,16) + '... Move: ' + data.move + ' GameId: ' + data.gameId);
+            });
+        }
+
+        async function adminCheckContracts() {
+            adminConsole('📡 Checking contracts...');
+            for (const [chainName, cfg] of Object.entries(CHAINS)) {
+                try {
+                    const payload = { jsonrpc:"2.0", method:"eth_call",
+                        params:[{ to: cfg.contract, data: "0x61bc221a" }, "latest"], id: 1 }; // gameCounter()
+                    const res = await fetch(cfg.rpc, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+                    const json = await res.json();
+                    const counter = json.result ? parseInt(json.result, 16) : 'ERR';
+                    adminConsole('  ' + chainName + ': contract=' + cfg.contract.slice(0,10) + '... gameCounter=' + counter);
+                } catch(e) {
+                    adminConsole('  ' + chainName + ': FAILED - ' + e.message);
+                }
+            }
+        }
+
+        async function adminLoadAllGames() {
+            adminConsole('Loading all games from DB...');
+            try {
+                const { data, error } = await _supabase.from('games').select('*').order('game_id', { ascending: false }).limit(200);
+                if (error) throw error;
+                adminConsole('Total games in DB: ' + data.length);
+                const byChain = { martian: 0, avax: 0, null: 0 };
+                data.forEach(g => { byChain[g.chain || 'null'] = (byChain[g.chain || 'null'] || 0) + 1; });
+                adminConsole('  Martian: ' + byChain.martian + '  AVAX: ' + byChain.avax + '  Legacy/null: ' + byChain.null);
+                const byStatus = {};
+                data.forEach(g => { const s = ['Open','Challenged','Resolved','Refunded','Forfeited'][g.status] || g.status; byStatus[s] = (byStatus[s]||0)+1; });
+                Object.entries(byStatus).forEach(([k,v]) => adminConsole('  ' + k + ': ' + v));
+            } catch(e) { adminConsole('ERROR: ' + e.message); }
+        }
+
+        async function adminViewRegistrations() {
+            adminConsole('Loading GN registrations...');
+            try {
+                const { data, error } = await _supabase.from('gn_registrations').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                adminConsole('Total registrations: ' + data.length);
+                data.slice(0, 20).forEach((r, i) => {
+                    adminConsole('  ' + (i+1) + '. @' + r.twitter_handle + ' | ' + r.wallet.slice(0,10) + '... | pts:' + r.points);
+                });
+            } catch(e) { adminConsole('ERROR: ' + e.message); }
+        }
+
+        async function adminClearStuckGames() {
+            adminConsole('Scanning for stuck games (open > 30min)...');
+            try {
+                const { data } = await _supabase.from('games').select('*').eq('status', 0).order('game_id', { ascending: false });
+                const stuck = (data || []).filter(g => {
+                    const created = new Date(g.created_at).getTime();
+                    return Date.now() - created > 30 * 60 * 1000;
+                });
+                adminConsole('Found ' + stuck.length + ' possibly stuck open games:');
+                stuck.forEach(g => adminConsole('  Game #' + g.game_id + ' chain:' + (g.chain||'martian') + ' wager:' + g.wager + ' host:' + (g.host||'').slice(0,10)));
+            } catch(e) { adminConsole('ERROR: ' + e.message); }
+        }
+
+        async function adminLookupGame() {
+            const id = document.getElementById('admin-game-id').value;
+            const chain = document.getElementById('admin-game-chain').value;
+            if (!id) { adminConsole('Enter a game ID'); return; }
+            const result = document.getElementById('admin-game-result');
+            result.textContent = 'Loading...';
+            try {
+                const { data, error } = await _supabase.from('games').select('*').eq('game_id', id).single();
+                if (error) { result.textContent = 'DB: Not found. Error: ' + error.message; }
+                else { result.textContent = 'DB Record:\n' + JSON.stringify(data, null, 2); }
+                // Also fetch from chain
+                const cfg = CHAINS[chain];
+                const sel = '0x1f2698c6'; // games(uint256) selector
+                const paddedId = id.toString().replace(/^0x/, '').padStart(64, '0');
+                adminConsole('Fetching game #' + id + ' from ' + chain + ' chain...');
+                const payload = { jsonrpc:"2.0", method:"eth_call", params:[{ to: cfg.contract, data: sel + paddedId }, "latest"], id:1 };
+                const res = await fetch(cfg.rpc, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+                const json = await res.json();
+                if (json.result && json.result.length > 10) {
+                    adminConsole('Chain result (raw): ' + json.result.slice(0, 130) + '...');
+                    const wagerHex = json.result.slice(2 + 5*64, 2 + 6*64);
+                    const wager = parseFloat(ethers.formatEther(BigInt('0x' + wagerHex)));
+                    adminConsole('Wager from chain: ' + wager);
+                } else {
+                    adminConsole('Chain: No data returned (game may not exist on chain)');
+                }
+            } catch(e) { result.textContent = 'ERROR: ' + e.message; adminConsole('ERROR: ' + e.message); }
+        }
+
         window.onbeforeunload = () => {
             if (lobbyRefreshInterval) clearInterval(lobbyRefreshInterval);
             if (activityRefreshInterval) clearInterval(activityRefreshInterval);
             if (chatRefreshInterval) clearInterval(chatRefreshInterval);
         };
     </script>
-</body>
+
+        <!-- GAME NIGHT PAGE -->
+        <div id="page-gamenight" class="page-section">
+            <div class="max-w-5xl mx-auto space-y-6">
+
+                <!-- Header banner -->
+                <div class="mars-glass p-8 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-yellow-900/20 to-orange-900/10 pointer-events-none"></div>
+                    <div class="relative">
+                        <div class="flex flex-col md:flex-row justify-between items-start gap-6">
+                            <div>
+                                <div class="text-yellow-500 text-[10px] uppercase tracking-widest mb-2 orbitron">⚡ EROL MUSK PRESENTS</div>
+                                <h2 class="orbitron text-3xl text-white mb-2">GAME NIGHT</h2>
+                                <div class="text-gray-400 text-sm mb-4">March 1st, 2026 · Live in Telegram</div>
+                                <div class="flex flex-wrap gap-3">
+                                    <a href="https://t.me/ErolMuskAvax" target="_blank"
+                                        class="flex items-center gap-2 px-4 py-2 bg-blue-900/30 border border-blue-700/40 text-blue-400 text-[11px] uppercase hover:bg-blue-900/50 transition">
+                                        📢 Join Telegram
+                                    </a>
+                                    <div class="flex items-center gap-2 px-4 py-2 border border-yellow-700/40 text-yellow-500 text-[11px] uppercase">
+                                        🏆 Top Wager Wins Prize
+                                    </div>
+                                    <div class="flex items-center gap-2 px-4 py-2 border border-orange-700/40 text-orange-500 text-[11px] uppercase">
+                                        🎡 3 Random Winners Enter Wheel
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Countdown -->
+                            <div class="text-center shrink-0">
+                                <div class="text-[10px] text-gray-600 uppercase mb-2 orbitron">Event Starts In</div>
+                                <div id="gn-countdown" class="orbitron text-4xl text-yellow-500 font-bold">--</div>
+                                <div class="text-[9px] text-gray-600 mt-1">DAYS</div>
+                                <div id="gn-status-badge" class="mt-3 px-3 py-1 text-[10px] uppercase orbitron border border-gray-700 text-gray-500">Registration Open</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prizes -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="mars-glass p-6 border-l-4 border-yellow-500">
+                        <div class="text-yellow-500 orbitron text-sm mb-2">🥇 GRAND PRIZE</div>
+                        <div class="text-white text-lg mb-1">Top Wager Leaderboard #1</div>
+                        <div class="text-gray-500 text-sm">The pilot who wagers the most during Game Night wins a fixed prize — amount revealed on the night.</div>
+                    </div>
+                    <div class="mars-glass p-6 border-l-4 border-orange-500">
+                        <div class="text-orange-500 orbitron text-sm mb-2">🎡 SPIN THE WHEEL</div>
+                        <div class="text-white text-lg mb-1">3 Random Winners</div>
+                        <div class="text-gray-500 text-sm">Any pilot who appears on the leaderboard AND places at least 1 wager is entered into the random draw.</div>
+                    </div>
+                </div>
+
+                <!-- Registration form -->
+                <div class="mars-glass p-6">
+                    <h3 class="orbitron text-orange-500 text-sm mb-1 uppercase">Register for Game Night</h3>
+                    <p class="text-gray-600 text-[11px] mb-5">No wallet connection required. Submit your EVM address and X handle to lock in 1,000 Game Night Points.</p>
+                    <div id="gn-reg-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] text-orange-800 uppercase block mb-2">EVM Wallet Address</label>
+                                <input id="gn-wallet" type="text" placeholder="0x..."
+                                    class="w-full bg-black border border-orange-900/50 px-3 py-3 text-orange-500 text-sm focus:outline-none focus:border-orange-500 font-mono">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-orange-800 uppercase block mb-2">X (Twitter) Handle</label>
+                                <input id="gn-twitter" type="text" placeholder="@YourHandle"
+                                    class="w-full bg-black border border-orange-900/50 px-3 py-3 text-orange-500 text-sm focus:outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <button onclick="registerGameNight()" class="btn-mars px-8 py-3 uppercase orbitron">⚡ Register &amp; Claim 1,000 Points</button>
+                        <div id="gn-reg-msg" class="text-[11px] mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- Registered pilots table -->
+                <div class="mars-glass p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="orbitron text-orange-500 text-sm uppercase">Registered Pilots <span id="gn-reg-count" class="text-gray-600 text-xs ml-2"></span></h3>
+                        <button onclick="loadGNRegistrations()" class="text-[10px] text-orange-500 border border-orange-900/30 px-3 py-1 hover:border-orange-500 transition">↻ Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-orange-900/30">
+                                    <th class="text-left text-[10px] text-orange-800 uppercase py-2 pr-4">#</th>
+                                    <th class="text-left text-[10px] text-orange-800 uppercase py-2 pr-4">Wallet</th>
+                                    <th class="text-left text-[10px] text-orange-800 uppercase py-2 pr-4">X Handle</th>
+                                    <th class="text-right text-[10px] text-orange-800 uppercase py-2">Points</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gn-reg-table"></tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination -->
+                    <div class="flex justify-between items-center mt-4">
+                        <button id="gn-prev" onclick="gnPage(-1)" class="text-[10px] px-4 py-2 border border-orange-900/30 text-orange-700 hover:text-orange-400 transition disabled:opacity-30">← Prev</button>
+                        <span id="gn-page-info" class="text-[10px] text-gray-600 orbitron"></span>
+                        <button id="gn-next" onclick="gnPage(1)" class="text-[10px] px-4 py-2 border border-orange-900/30 text-orange-700 hover:text-orange-400 transition disabled:opacity-30">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Game Night Leaderboard (shown when active) -->
+                <div id="gn-leaderboard-section" class="mars-glass p-6 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="orbitron text-yellow-500 text-sm uppercase flex items-center gap-2">
+                            <span class="w-2 h-2 bg-yellow-500 animate-pulse"></span>
+                            LIVE LEADERBOARD
+                        </h3>
+                        <div id="gn-live-badge" class="text-[10px] px-3 py-1 border border-yellow-500/50 text-yellow-500 orbitron animate-pulse">🔴 LIVE</div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-yellow-900/30">
+                                    <th class="text-left text-[10px] text-yellow-800 uppercase py-2 pr-4">Rank</th>
+                                    <th class="text-left text-[10px] text-yellow-800 uppercase py-2 pr-4">Pilot</th>
+                                    <th class="text-right text-[10px] text-yellow-800 uppercase py-2 pr-4">Total Wagered</th>
+                                    <th class="text-right text-[10px] text-yellow-800 uppercase py-2">GN Points</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gn-lb-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN PAGE -->
+        <div id="page-admin" class="page-section">
+            <div class="max-w-5xl mx-auto space-y-6">
+                <div class="mars-glass p-6 border border-red-900/40">
+                    <h2 class="orbitron text-2xl text-red-500 mb-1 flex items-center gap-3">
+                        <span class="w-3 h-3 bg-red-500 animate-pulse"></span>
+                        ADMIN CONTROL PANEL
+                    </h2>
+                    <div class="text-gray-600 text-[10px] mb-6">Connected as: <span id="admin-wallet-display" class="text-red-400 font-mono"></span></div>
+
+                    <!-- Game Night Controls -->
+                    <div class="bg-black/40 border border-yellow-900/30 p-5 mb-6">
+                        <h3 class="orbitron text-yellow-500 text-sm mb-4 uppercase">🎮 Game Night Controls</h3>
+                        <div class="flex flex-wrap gap-3 mb-4">
+                            <button onclick="adminStartGameNight()" id="btn-start-gn"
+                                class="px-6 py-3 bg-green-900/30 border border-green-700 text-green-400 orbitron text-sm uppercase hover:bg-green-900/50 transition">
+                                ▶ Start Game Night
+                            </button>
+                            <button onclick="adminStopGameNight()" id="btn-stop-gn"
+                                class="px-6 py-3 bg-red-900/30 border border-red-700 text-red-400 orbitron text-sm uppercase hover:bg-red-900/50 transition">
+                                ⏹ Stop Game Night
+                            </button>
+                            <button onclick="adminOpenLeaderboard()" id="btn-open-lb"
+                                class="px-6 py-3 bg-yellow-900/30 border border-yellow-700 text-yellow-400 orbitron text-sm uppercase hover:bg-yellow-900/50 transition">
+                                🏆 Open Leaderboard
+                            </button>
+                        </div>
+                        <div id="admin-gn-status" class="text-[11px] text-gray-500 orbitron"></div>
+                    </div>
+
+                    <!-- Site Controls -->
+                    <div class="bg-black/40 border border-orange-900/30 p-5 mb-6">
+                        <h3 class="orbitron text-orange-500 text-sm mb-4 uppercase">🔧 Site Controls</h3>
+                        <div class="flex flex-wrap gap-3 mb-4">
+                            <button onclick="adminForceRefresh()" class="px-4 py-2 border border-orange-700/50 text-orange-500 text-[11px] uppercase hover:border-orange-500 transition orbitron">↻ Force Refresh All</button>
+                            <button onclick="adminClearLocalStorage()" class="px-4 py-2 border border-yellow-700/50 text-yellow-500 text-[11px] uppercase hover:border-yellow-500 transition orbitron">🗑 Clear LocalStorage</button>
+                            <button onclick="adminShowSecrets()" class="px-4 py-2 border border-purple-700/50 text-purple-400 text-[11px] uppercase hover:border-purple-500 transition orbitron">🔑 Show Secrets</button>
+                            <button onclick="adminCheckContracts()" class="px-4 py-2 border border-blue-700/50 text-blue-400 text-[11px] uppercase hover:border-blue-500 transition orbitron">📡 Check Contracts</button>
+                        </div>
+                    </div>
+
+                    <!-- DB Controls -->
+                    <div class="bg-black/40 border border-orange-900/30 p-5 mb-6">
+                        <h3 class="orbitron text-orange-500 text-sm mb-4 uppercase">🗄 Database Controls</h3>
+                        <div class="flex flex-wrap gap-3 mb-4">
+                            <button onclick="adminLoadAllGames()" class="px-4 py-2 border border-orange-700/50 text-orange-500 text-[11px] uppercase hover:border-orange-500 transition orbitron">Load All Games</button>
+                            <button onclick="adminViewRegistrations()" class="px-4 py-2 border border-orange-700/50 text-orange-500 text-[11px] uppercase hover:border-orange-500 transition orbitron">View GN Registrations</button>
+                            <button onclick="adminClearStuckGames()" class="px-4 py-2 border border-red-700/50 text-red-400 text-[11px] uppercase hover:border-red-500 transition orbitron">⚠ Fix Stuck Games</button>
+                        </div>
+                    </div>
+
+                    <!-- Game lookup -->
+                    <div class="bg-black/40 border border-orange-900/30 p-5 mb-6">
+                        <h3 class="orbitron text-orange-500 text-sm mb-3 uppercase">🔍 Game Lookup</h3>
+                        <div class="flex gap-3">
+                            <input id="admin-game-id" type="number" placeholder="Game ID"
+                                class="bg-black border border-orange-900/50 px-3 py-2 text-orange-500 text-sm focus:outline-none focus:border-orange-500 w-32">
+                            <select id="admin-game-chain" class="bg-black border border-orange-900/50 px-3 py-2 text-orange-500 text-sm focus:outline-none">
+                                <option value="martian">Martian</option>
+                                <option value="avax">AVAX</option>
+                            </select>
+                            <button onclick="adminLookupGame()" class="btn-mars px-4 py-2 text-[11px] uppercase">Lookup</button>
+                        </div>
+                        <div id="admin-game-result" class="mt-4 font-mono text-[11px] text-gray-400 whitespace-pre-wrap max-h-64 overflow-y-auto"></div>
+                    </div>
+
+                    <!-- Console output -->
+                    <div class="bg-black/40 border border-gray-800 p-5">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="orbitron text-gray-500 text-sm uppercase">Console Output</h3>
+                            <button onclick="document.getElementById('admin-console').textContent=''" class="text-[10px] text-gray-600 hover:text-gray-400">Clear</button>
+                        </div>
+                        <div id="admin-console" class="font-mono text-[11px] text-green-400 bg-black p-4 min-h-[120px] max-h-64 overflow-y-auto whitespace-pre-wrap"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
 </html>
