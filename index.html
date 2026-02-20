@@ -1384,34 +1384,34 @@
 
                 window.ethereum.on('accountsChanged', () => window.location.reload());
                 window.ethereum.on('chainChanged', (newChainId) => {
-                    // Do NOT reload — user switched chain intentionally via switchChainTab
-                    // Just refresh signer/contract reference
-                    provider.getSigner().then(s => {
-                        signer = s;
-                        contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
-                    }).catch(() => {});
+                    // Do NOT reload — reset provider so ethers v6 stops caching old chain
+                    provider = new ethers.BrowserProvider(window.ethereum);
                     updateBalance();
                 });
             }
         }
 
+        // Always create a fresh BrowserProvider — ethers v6 caches the network
+        // and throws NETWORK_ERROR if the chain changed since last provider creation
+        function freshProvider() {
+            return new ethers.BrowserProvider(window.ethereum);
+        }
+
         async function checkNetwork() {
-            const network = await provider.getNetwork();
-            const currentChainHex = '0x' + network.chainId.toString(16).toUpperCase();
-            if (currentChainHex !== CHAIN_ID.toUpperCase()) {
-                const cfg = CHAINS[activeChain];
+            const cfg = CHAINS[activeChain];
+            // Read current chain directly from MetaMask (no ethers caching involved)
+            const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+            const needSwitch = currentChainId.toLowerCase() !== cfg.id.toLowerCase();
+
+            if (needSwitch) {
                 try {
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: cfg.id }],
+                        params: [{ chainId: cfg.id }]
                     });
-                    // After switch, refresh signer
-                    signer = await provider.getSigner();
-                    contract = new ethers.Contract(cfg.contract, ABI, signer);
-                    return true;
                 } catch (switchError) {
-                    if (switchError.code === 4902) {
-                        // Chain not in MetaMask yet — add it
+                    if (switchError.code === 4902 || switchError.code === -32603) {
+                        // Chain not in MetaMask — add it first
                         const chainMeta = activeChain === 'avax'
                             ? { chainId: cfg.id, chainName: 'Avalanche C-Chain',
                                 nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
@@ -1423,15 +1423,12 @@
                                 blockExplorerUrls: ['https://martian-explorer.amichain.org'] };
                         try {
                             await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [chainMeta] });
-                            signer = await provider.getSigner();
-                            contract = new ethers.Contract(cfg.contract, ABI, signer);
-                            return true;
                         } catch (addError) {
                             showToast('FAILED TO ADD ' + cfg.name.toUpperCase());
                             return false;
                         }
                     } else if (switchError.code === 4001) {
-                        showToast('SWITCH REJECTED BY USER');
+                        showToast('SWITCH REJECTED — PLEASE APPROVE IN METAMASK');
                         return false;
                     } else {
                         showToast('SWITCH TO ' + cfg.name.toUpperCase());
@@ -1439,11 +1436,19 @@
                     }
                 }
             }
+
+            // Always create fresh provider + signer after any network operation
+            // This prevents the ethers v6 "network changed" NETWORK_ERROR
+            provider = freshProvider();
+            signer = await provider.getSigner();
+            contract = new ethers.Contract(cfg.contract, ABI, signer);
             return true;
         }
 
         async function connectWallet() {
             try {
+                // Always start with a fresh provider to avoid network cache issues
+                provider = freshProvider();
                 const accounts = await provider.send("eth_requestAccounts", []);
                 userAddress = accounts[0];
                 signer = await provider.getSigner();
@@ -1486,7 +1491,7 @@
 
         // EROL ERC-20 contract address on Avalanche C-Chain
         // ⚠️ Replace with actual EROL ERC-20 address on AVAX once deployed
-        const EROL_AVAX_CONTRACT = "0xCaC4904E1DB1589Aa17A2Ec742F5a6bCF4c4D037"; // TODO: set real address
+        const EROL_AVAX_CONTRACT = "0x0000000000000000000000000000000000000000"; // TODO: set real address
 
         async function fetchERC20Balance(tokenContract, walletAddress, rpc) {
             // ERC-20 balanceOf(address) selector = 0x70a08231
@@ -3110,9 +3115,14 @@
             document.getElementById('chain-pill-avax').className = 'px-3 py-1 text-[9px] uppercase border orbitron ' +
                 (!isMartian ? 'border-blue-500 text-blue-400' : 'border-gray-700 text-gray-600');
 
-            // Rebuild contract reference if wallet is connected
-            if (signer) {
-                contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+            // Rebuild provider+signer+contract fresh for new chain
+            // ethers v6 caches the network — must create new BrowserProvider
+            if (userAddress) {
+                provider = freshProvider();
+                provider.getSigner().then(s => {
+                    signer = s;
+                    contract = new ethers.Contract(CHAINS[chain].contract, ABI, signer);
+                }).catch(() => {});
             }
             refreshLobby();
         }
@@ -4143,4 +4153,3 @@
     </script>
 </body>
 </html>
-
