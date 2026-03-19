@@ -745,7 +745,15 @@ let splashRunning=true;
 })();
 
 // ==================== ASSET IMAGES ====================
-function mkImg(src){const i=new Image();i.crossOrigin='anonymous';i.src=src;return i;}
+function mkImg(src){
+  const i=new Image();
+  i.crossOrigin='anonymous';
+  i.loaded=false;
+  i.onload=()=>{i.loaded=true;};
+  i.onerror=()=>{i.loaded=false;};
+  i.src=src;
+  return i;
+}
 const SPRITE_IMG=mkImg('https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/Gemini_Generated_Image_xikg39xikg39xikg-removebg-preview.png');
 const FRAG_IMGS=[
   mkImg('https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/G-9krYtWQAE82a6-removebg-preview.png'),
@@ -1059,46 +1067,62 @@ let worldDecals=[]; // ground markings
 function generateWorld(){
   worldTiles=[]; worldProps=[]; worldDecals=[];
 
-  // Tile the floor with cobblestone grid
+  // Room bounds — everything spawns INSIDE the room
+  const RX=WORLD_W/2-800, RY=WORLD_H/2-600;
+  const RW=1600, RH=1200;
+
+  // Tile the floor — only inside room
   const TILE=80;
-  for(let x=0;x<WORLD_W;x+=TILE){
-    for(let y=0;y<WORLD_H;y+=TILE){
-      const v=Math.random();
+  for(let x=RX;x<RX+RW;x+=TILE){
+    for(let y=RY;y<RY+RH;y+=TILE){
       worldTiles.push({
         x,y,w:TILE,h:TILE,
-        // slight tone variation for worn cobblestone look
-        light: 0.85+Math.random()*.3,
-        crack: Math.random()<.12,
+        light: 0.7+Math.random()*.6,
+        crack: Math.random()<.14,
         crackAngle: Math.random()*Math.PI,
-        moss: Math.random()<.08
+        moss: Math.random()<.09
       });
     }
   }
 
-  // Props scattered around the world
-  const propTypes=['lamp','crate','pipe','barrel','debris','vent'];
-  for(let i=0;i<220;i++){
+  // Props — richer set, all inside room with margin from walls
+  const M=80; // margin from walls
+  const rp=()=>({x:RX+M+Math.random()*(RW-M*2), y:RY+M+Math.random()*(RH-M*2)});
+  const propTypes=['lamp','crate','pipe','barrel','debris','vent','table','chair','skull','pillar','chest','altar'];
+  for(let i=0;i<160;i++){
     const type=propTypes[Math.floor(Math.random()*propTypes.length)];
+    const pos=rp();
     worldProps.push({
-      x: Math.random()*WORLD_W,
-      y: Math.random()*WORLD_H,
-      type,
-      size: 14+Math.random()*22,
+      x:pos.x, y:pos.y, type,
+      size: 16+Math.random()*28,
       rot: Math.random()*Math.PI*2,
       variant: Math.floor(Math.random()*3)
     });
   }
+  // Fixed landmark props for visual anchors
+  const landmarks=[
+    {x:RX+RW*.25,y:RY+RH*.25,type:'pillar',size:36,rot:0,variant:0},
+    {x:RX+RW*.75,y:RY+RH*.25,type:'pillar',size:36,rot:0,variant:1},
+    {x:RX+RW*.25,y:RY+RH*.75,type:'pillar',size:36,rot:0,variant:0},
+    {x:RX+RW*.75,y:RY+RH*.75,type:'pillar',size:36,rot:0,variant:1},
+    {x:RX+RW*.5,y:RY+RH*.5,type:'altar',size:44,rot:0,variant:0},
+    {x:RX+RW*.15,y:RY+RH*.5,type:'chest',size:28,rot:.3,variant:0},
+    {x:RX+RW*.85,y:RY+RH*.5,type:'chest',size:28,rot:-.3,variant:1},
+    {x:RX+RW*.5,y:RY+RH*.15,type:'skull',size:22,rot:.2,variant:0},
+    {x:RX+RW*.5,y:RY+RH*.85,type:'skull',size:22,rot:-.2,variant:1},
+  ];
+  worldProps.push(...landmarks);
 
-  // Ground decals: painted lines, scorch marks, drain covers
+  // Ground decals — inside room
   const decalTypes=['line','circle','drain','scorch'];
-  for(let i=0;i<80;i++){
+  for(let i=0;i<100;i++){
     worldDecals.push({
-      x: Math.random()*WORLD_W,
-      y: Math.random()*WORLD_H,
+      x:RX+M+Math.random()*(RW-M*2),
+      y:RY+M+Math.random()*(RH-M*2),
       type: decalTypes[Math.floor(Math.random()*decalTypes.length)],
-      size: 20+Math.random()*60,
+      size: 20+Math.random()*70,
       rot: Math.random()*Math.PI,
-      alpha: 0.15+Math.random()*.25
+      alpha: 0.15+Math.random()*.3
     });
   }
 
@@ -2115,7 +2139,7 @@ class Fragment{
     }
 
     // Draw fragment IMAGE — primary visual
-    if(this.fragImg && this.fragImg.complete && this.fragImg.naturalHeight>0){
+    if(this.fragImg && (this.fragImg.loaded || (this.fragImg.complete && this.fragImg.naturalHeight>0))){
       try{
         c.save(); c.translate(sx,sy);
         const pm2=1+Math.sin(this.pulse)*.12;
@@ -2255,6 +2279,125 @@ function renderWorld(){
         ctx.fillRect(-s*.12,-s*.07,s*.24,s*.14);
         ctx.fillStyle='rgba(80,60,30,0.5)'; ctx.fillRect(-s*.12,-s*.07,s*.24,2); ctx.restore();
       }
+    } else if(p.type==='table'){
+      // Wooden table top-down
+      ctx.fillStyle='#4a3218'; ctx.fillRect(-s*.55,-s*.38,s*1.1,s*.76);
+      ctx.strokeStyle='#7a5830'; ctx.lineWidth=1.5; ctx.strokeRect(-s*.55,-s*.38,s*1.1,s*.76);
+      // Table legs (4 corners)
+      ctx.fillStyle='#2e1e0a';
+      [[-s*.48,-s*.3],[s*.38,-s*.3],[-s*.48,s*.22],[s*.38,s*.22]].forEach(([lx,ly])=>{
+        ctx.fillRect(lx,ly,s*.14,s*.14);
+      });
+      // Wood grain lines
+      ctx.strokeStyle='rgba(100,70,30,0.3)'; ctx.lineWidth=.8;
+      for(let g=-s*.4;g<s*.5;g+=s*.18){
+        ctx.beginPath(); ctx.moveTo(g,-s*.38); ctx.lineTo(g,s*.38); ctx.stroke();
+      }
+      // Tabletop items (random variant)
+      if(p.variant===0){
+        ctx.fillStyle='#8B5E00'; ctx.beginPath(); ctx.arc(0,-s*.1,s*.12,0,Math.PI*2); ctx.fill(); // bowl
+        ctx.strokeStyle='#c09030'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(0,-s*.1,s*.12,0,Math.PI*2); ctx.stroke();
+      } else if(p.variant===1){
+        ctx.fillStyle='#5a4528'; ctx.fillRect(-s*.15,-s*.2,s*.3,s*.4); // book
+        ctx.strokeStyle='#8B6A30'; ctx.lineWidth=1; ctx.strokeRect(-s*.15,-s*.2,s*.3,s*.4);
+        ctx.strokeStyle='rgba(200,160,80,0.3)'; ctx.lineWidth=.5;
+        for(let by=-s*.15;by<s*.2;by+=s*.07){ctx.beginPath();ctx.moveTo(-s*.14,by);ctx.lineTo(s*.14,by);ctx.stroke();}
+      } else {
+        ctx.fillStyle='rgba(60,100,200,0.4)'; ctx.beginPath(); ctx.arc(0,0,s*.18,0,Math.PI*2); ctx.fill(); // orb
+        ctx.strokeStyle='rgba(100,150,255,0.7)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(0,0,s*.18,0,Math.PI*2); ctx.stroke();
+        ctx.fillStyle='rgba(200,220,255,0.6)'; ctx.beginPath(); ctx.arc(-s*.06,-s*.06,s*.06,0,Math.PI*2); ctx.fill();
+      }
+    } else if(p.type==='chair'){
+      // Chair top-down view
+      ctx.fillStyle='#3a2410';
+      // Seat
+      ctx.fillRect(-s*.3,-s*.3,s*.6,s*.6);
+      ctx.strokeStyle='#6a4820'; ctx.lineWidth=1.2; ctx.strokeRect(-s*.3,-s*.3,s*.6,s*.6);
+      // Back (one side)
+      ctx.fillStyle='#2a1a08'; ctx.fillRect(-s*.3,-s*.42,s*.6,s*.14);
+      ctx.strokeStyle='#5a3818'; ctx.lineWidth=1; ctx.strokeRect(-s*.3,-s*.42,s*.6,s*.14);
+      // Legs
+      ctx.fillStyle='#1e1006';
+      [[-s*.26,-s*.26],[s*.16,-s*.26],[-s*.26,s*.16],[s*.16,s*.16]].forEach(([lx,ly])=>{
+        ctx.fillRect(lx,ly,s*.1,s*.1);
+      });
+      // Cushion
+      ctx.fillStyle='rgba(100,40,20,0.5)'; ctx.fillRect(-s*.22,-s*.22,s*.44,s*.44);
+    } else if(p.type==='skull'){
+      // Skull on floor
+      ctx.fillStyle='#e8e0c8'; ctx.beginPath(); ctx.arc(0,-s*.08,s*.3,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#a8a090'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(0,-s*.08,s*.3,0,Math.PI*2); ctx.stroke();
+      // Jaw
+      ctx.fillStyle='#d8d0b8'; ctx.fillRect(-s*.18,s*.1,s*.36,s*.18);
+      ctx.strokeStyle='#a8a090'; ctx.lineWidth=1; ctx.strokeRect(-s*.18,s*.1,s*.36,s*.18);
+      // Eye sockets
+      ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.beginPath(); ctx.arc(-s*.1,-s*.1,s*.1,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(s*.1,-s*.1,s*.1,0,Math.PI*2); ctx.fill();
+      // Teeth
+      ctx.fillStyle='#f0e8d0';
+      [-s*.12,-s*.04,s*.04,s*.12].forEach(tx2=>{ctx.fillRect(tx2,s*.1,s*.06,s*.1);});
+      // Void glow from eyes
+      const egl=ctx.createRadialGradient(0,-s*.1,0,0,-s*.1,s*.3);
+      egl.addColorStop(0,'rgba(120,0,180,0.2)'); egl.addColorStop(1,'transparent');
+      ctx.fillStyle=egl; ctx.beginPath(); ctx.arc(0,-s*.08,s*.3,0,Math.PI*2); ctx.fill();
+    } else if(p.type==='pillar'){
+      // Stone pillar top-down
+      const pr=s*.38;
+      // Shadow
+      ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(s*.1,s*.1,pr,0,Math.PI*2); ctx.fill();
+      // Base
+      const pig=ctx.createRadialGradient(-pr*.3,-pr*.3,0,0,0,pr);
+      pig.addColorStop(0,'#5a4a32'); pig.addColorStop(.6,'#3a2e1e'); pig.addColorStop(1,'#1e1810');
+      ctx.fillStyle=pig; ctx.beginPath(); ctx.arc(0,0,pr,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#6a5a3a'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,pr,0,Math.PI*2); ctx.stroke();
+      // Stone detail rings
+      ctx.strokeStyle='rgba(100,85,55,0.4)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.arc(0,0,pr*.7,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,0,pr*.4,0,Math.PI*2); ctx.stroke();
+      // Crack
+      ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(-pr*.2,-pr*.6); ctx.lineTo(pr*.1,pr*.4); ctx.stroke();
+      // Top highlight
+      ctx.fillStyle='rgba(140,120,80,0.3)'; ctx.beginPath(); ctx.arc(-pr*.2,-pr*.2,pr*.25,0,Math.PI*2); ctx.fill();
+    } else if(p.type==='chest'){
+      // Treasure chest top-down
+      ctx.fillStyle='#3a2810'; ctx.fillRect(-s*.42,-s*.3,s*.84,s*.6);
+      ctx.strokeStyle='#8B6A20'; ctx.lineWidth=2; ctx.strokeRect(-s*.42,-s*.3,s*.84,s*.6);
+      // Metal bands
+      ctx.strokeStyle='#c09030'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(-s*.42,0); ctx.lineTo(s*.42,0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,-s*.3); ctx.lineTo(0,s*.3); ctx.stroke();
+      // Lock
+      ctx.fillStyle='#d4a030'; ctx.beginPath(); ctx.arc(0,0,s*.1,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#8B6A10'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(0,0,s*.1,0,Math.PI*2); ctx.stroke();
+      // Glow if unlocked variant
+      if(p.variant===1){
+        const cg=ctx.createRadialGradient(0,0,0,0,0,s*.6);
+        cg.addColorStop(0,'rgba(255,200,50,0.2)'); cg.addColorStop(1,'transparent');
+        ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(0,0,s*.6,0,Math.PI*2); ctx.fill();
+      }
+    } else if(p.type==='altar'){
+      // Central altar / void shrine
+      const ar=s*.5;
+      ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.arc(s*.08,s*.08,ar,0,Math.PI*2); ctx.fill();
+      // Base
+      ctx.fillStyle='#2a1e28'; ctx.beginPath(); ctx.arc(0,0,ar,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#6a3080'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,ar,0,Math.PI*2); ctx.stroke();
+      // Inner platform
+      ctx.fillStyle='#1a0e22'; ctx.beginPath(); ctx.arc(0,0,ar*.7,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#8840aa'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(0,0,ar*.7,0,Math.PI*2); ctx.stroke();
+      // Rune marks
+      for(let ri=0;ri<8;ri++){
+        const ra=(ri/8)*Math.PI*2;
+        const rrx=Math.cos(ra)*ar*.85, rry=Math.sin(ra)*ar*.85;
+        ctx.fillStyle=`rgba(160,80,220,${0.4+Math.sin(Date.now()*.002+ri)*.2})`;
+        ctx.fillRect(rrx-2,rry-2,4,4);
+      }
+      // Center crystal
+      ctx.fillStyle='rgba(180,80,255,0.8)'; ctx.beginPath(); ctx.arc(0,0,ar*.25,0,Math.PI*2); ctx.fill();
+      const altarGlow=ctx.createRadialGradient(0,0,0,0,0,ar*1.2);
+      altarGlow.addColorStop(0,'rgba(150,50,220,0.25)'); altarGlow.addColorStop(1,'transparent');
+      ctx.fillStyle=altarGlow; ctx.beginPath(); ctx.arc(0,0,ar*1.2,0,Math.PI*2); ctx.fill();
     }
     ctx.restore();
   });
