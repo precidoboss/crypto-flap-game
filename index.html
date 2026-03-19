@@ -16,8 +16,10 @@ body{background:#000;color:var(--green);font-family:'Share Tech Mono',monospace;
 
 /* SPLASH SCREEN */
 #splashScreen{position:fixed;top:0;left:0;width:100%;height:100%;z-index:500;cursor:pointer;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-#splashScreen img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;}
+#splashCanvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;}
+#splashScreen img{max-width:420px;max-height:80vh;width:auto;height:auto;object-fit:contain;display:block;}
 #splashScreen.hidden{display:none;}
+@keyframes splashBlink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* INTRO UPGRADES */
 .intro-polybius-logo{max-width:340px;width:80%;margin-bottom:8px;filter:drop-shadow(0 0 30px rgba(0,255,65,0.6));}
@@ -268,7 +270,10 @@ body{background:#000;color:var(--green);font-family:'Share Tech Mono',monospace;
 
 <!-- SPLASH SCREEN -->
 <div id="splashScreen" onclick="dismissSplash()">
-  <img src="https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/file_00000000c9ac71f88e2119dbc77f76f3.png" alt="POLYBIUS" onerror="this.parentElement.style.background='#000';this.style.display='none'"/>
+  <canvas id="splashCanvas"></canvas>
+  <img id="splashCenterImg" src="https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/file_00000000c9ac71f88e2119dbc77f76f3.png" alt="POLYBIUS" onerror="this.style.display='none'"
+    style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:420px;max-height:80vh;width:auto;height:auto;object-fit:contain;pointer-events:none;z-index:2;"/>
+  <div style="position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:4px;color:rgba(0,255,65,0.6);z-index:3;animation:splashBlink 1.5s infinite;">CLICK ANYWHERE TO ENTER</div>
 </div>
 
 <!-- INTRO -->
@@ -588,7 +593,156 @@ window.onerror=function(msg,src,line,col,err){
 // ==================== SPLASH ====================
 function dismissSplash(){
   document.getElementById('splashScreen').classList.add('hidden');
+  splashRunning=false;
 }
+
+// ==================== SPLASH ANIMATION ====================
+let splashRunning=true;
+(function initSplashAnim(){
+  const sc=document.getElementById('splashCanvas');
+  if(!sc) return;
+  sc.width=window.innerWidth; sc.height=window.innerHeight;
+  window.addEventListener('resize',()=>{sc.width=window.innerWidth;sc.height=window.innerHeight;});
+  const sctx=sc.getContext('2d');
+
+  // Load sprite for splash
+  const splashSprite=new Image();
+  splashSprite.crossOrigin='anonymous';
+  splashSprite.src='https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/Gemini_Generated_Image_xikg39xikg39xikg-removebg-preview.png';
+
+  let charX=-80; // start off-screen left
+  let frame=0, frameT=0;
+  const COLS=4, ROWS=4;
+  const CHAR_W=90, CHAR_H=110;
+  const WALK_ROW=0; // front-facing walk row
+  const FLOOR_Y=()=>sc.height*0.72;
+  const DOOR_X=()=>sc.width*0.78; // door on right side
+  const START_X=-80;
+  let phase='walk'; // walk | enter | reset
+
+  // Draw pixel-art door on splash
+  function drawSplashDoor(c,x,y){
+    const W=44,H=68;
+    const p=0.6+Math.sin(Date.now()*.003)*.4;
+    // Door glow
+    const dg=c.createRadialGradient(x,y,0,x,y,80);
+    dg.addColorStop(0,`rgba(0,255,65,${0.15*p})`); dg.addColorStop(1,'transparent');
+    c.fillStyle=dg; c.beginPath(); c.arc(x,y,80,0,Math.PI*2); c.fill();
+    // Frame
+    c.fillStyle='#2a2218'; c.fillRect(x-W/2-5,y-H/2-5,W+10,H+10);
+    c.fillStyle=`rgba(0,20,5,0.9)`; c.fillRect(x-W/2,y-H/2,W,H);
+    // Glowing border
+    c.strokeStyle=`rgba(0,255,65,${p})`; c.lineWidth=2;
+    c.strokeRect(x-W/2,y-H/2,W,H);
+    // Scanline
+    const sl=Math.round(Math.sin(Date.now()*.004)*H*.3);
+    c.fillStyle=`rgba(0,255,65,${0.2*p})`;
+    c.fillRect(x-W/2,y+sl,W,2);
+    // NEXT LEVEL label
+    c.font='bold 9px "Orbitron",sans-serif';
+    c.fillStyle=`rgba(0,255,65,${p})`; c.textAlign='center';
+    c.fillText('ENTER',x,y+H/2+16);
+  }
+
+  // Draw pixel floor strip
+  function drawFloor(c){
+    const fy=FLOOR_Y();
+    // Floor strip
+    c.fillStyle='#1e1a14'; c.fillRect(0,fy-10,sc.width,120);
+    // Tile grid
+    c.strokeStyle='rgba(8,6,4,0.8)'; c.lineWidth=1.5;
+    for(let tx=0;tx<sc.width;tx+=80){
+      c.beginPath(); c.moveTo(tx,fy-10); c.lineTo(tx,fy+110); c.stroke();
+    }
+    c.beginPath(); c.moveTo(0,fy-10); c.lineTo(sc.width,fy-10); c.stroke();
+    c.beginPath(); c.moveTo(0,fy+55); c.lineTo(sc.width,fy+55); c.stroke();
+    // Top highlight row
+    c.fillStyle='rgba(60,50,35,0.4)'; c.fillRect(0,fy-10,sc.width,3);
+    // Floor fade top
+    const fg=c.createLinearGradient(0,fy-60,0,fy-10);
+    fg.addColorStop(0,'rgba(0,0,0,1)'); fg.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=fg; c.fillRect(0,fy-60,sc.width,50);
+    // Floor fade bottom
+    const fb=c.createLinearGradient(0,fy+60,0,fy+120);
+    fb.addColorStop(0,'rgba(0,0,0,0)'); fb.addColorStop(1,'rgba(0,0,0,1)');
+    c.fillStyle=fb; c.fillRect(0,fy+60,sc.width,60);
+  }
+
+  // Floating void particles on splash
+  const voids=Array.from({length:30},()=>({
+    x:Math.random()*2000, y:Math.random()*600,
+    vx:(Math.random()-.5)*.3, vy:(Math.random()-.5)*.2,
+    size:2+Math.random()*4, alpha:Math.random()*.4,
+    hue:[120,270,300][Math.floor(Math.random()*3)]
+  }));
+
+  function animSplash(){
+    if(!splashRunning) return;
+    sctx.clearRect(0,0,sc.width,sc.height);
+
+    // Void particles
+    voids.forEach(v=>{
+      v.x+=v.vx; v.y+=v.vy;
+      if(v.x<0) v.x=sc.width; if(v.x>sc.width) v.x=0;
+      const vg=sctx.createRadialGradient(v.x,v.y,0,v.x,v.y,v.size*3);
+      vg.addColorStop(0,`hsla(${v.hue},100%,60%,${v.alpha})`);
+      vg.addColorStop(1,'transparent');
+      sctx.fillStyle=vg; sctx.beginPath(); sctx.arc(v.x,v.y,v.size*3,0,Math.PI*2); sctx.fill();
+    });
+
+    // Floor
+    drawFloor(sctx);
+
+    // Door
+    drawSplashDoor(sctx, DOOR_X(), FLOOR_Y()-14);
+
+    // Character walk animation
+    frameT++;
+    if(frameT>7){ frameT=0; frame=(frame+1)%COLS; }
+
+    if(phase==='walk'){
+      charX+=2.2;
+      if(charX>DOOR_X()-20) phase='enter';
+    } else if(phase==='enter'){
+      // Shrink into door
+      charX+=1.5;
+      if(charX>DOOR_X()+60){ phase='reset'; charX=START_X; }
+    } else {
+      charX=START_X; phase='walk';
+    }
+
+    // Shadow
+    const shadowAlpha=phase==='enter'?Math.max(0,0.35-(charX-DOOR_X()+20)/80*.35):0.35;
+    sctx.fillStyle=`rgba(0,0,0,${shadowAlpha})`;
+    sctx.beginPath(); sctx.ellipse(charX+CHAR_W/2,FLOOR_Y()+10,CHAR_W*.4,CHAR_H*.1,0,0,Math.PI*2); sctx.fill();
+
+    // Character sprite
+    if(splashSprite.complete && splashSprite.naturalWidth>0){
+      const fw=Math.floor(splashSprite.width/COLS);
+      const fh=Math.floor(splashSprite.height/ROWS);
+      const enterScale=phase==='enter'?Math.max(0.3,1-(charX-DOOR_X()+20)/80):1;
+      sctx.save();
+      if(phase==='enter'){
+        sctx.globalAlpha=enterScale;
+        sctx.translate(charX+CHAR_W/2, FLOOR_Y()-CHAR_H/2);
+        sctx.scale(enterScale,enterScale);
+        sctx.drawImage(splashSprite, frame*fw, WALK_ROW*fh, fw, fh, -CHAR_W/2,-CHAR_H/2, CHAR_W, CHAR_H);
+      } else {
+        sctx.drawImage(splashSprite, frame*fw, WALK_ROW*fh, fw, fh, charX, FLOOR_Y()-CHAR_H, CHAR_W, CHAR_H);
+      }
+      sctx.restore();
+    } else {
+      // Fallback green goblin silhouette
+      sctx.fillStyle='#2a8a20';
+      sctx.fillRect(charX+10,FLOOR_Y()-CHAR_H,CHAR_W-20,CHAR_H);
+      sctx.beginPath(); sctx.arc(charX+CHAR_W/2,FLOOR_Y()-CHAR_H-12,16,0,Math.PI*2);
+      sctx.fill();
+    }
+
+    requestAnimationFrame(animSplash);
+  }
+  animSplash();
+})();
 
 // ==================== ASSET IMAGES ====================
 function mkImg(src){const i=new Image();i.crossOrigin='anonymous';i.src=src;return i;}
@@ -968,8 +1122,8 @@ function spawnDoor(){
   const angle=Math.random()*Math.PI*2;
   const dist=600+Math.random()*400;
   door={
-    worldX:((WORLD_W/2+Math.cos(angle)*dist)%WORLD_W+WORLD_W)%WORLD_W,
-    worldY:((WORLD_H/2+Math.sin(angle)*dist)%WORLD_H+WORLD_H)%WORLD_H,
+    worldX:Math.max(WORLD_W/2-680,Math.min(WORLD_W/2+680,WORLD_W/2+Math.cos(angle)*dist)),
+    worldY:Math.max(WORLD_H/2-480,Math.min(WORLD_H/2+480,WORLD_H/2+Math.sin(angle)*dist)),
     pulse:0
   };
   doorUnlocked=false; doorEntered=false;
@@ -1161,10 +1315,11 @@ class Enemy{
     const t=ENEMY_TYPES[Math.floor(Math.random()*ENEMY_TYPES.length)];
     Object.assign(this,t);
     this.maxHp=this.hp;
+    // Spawn inside room but away from player
     const angle=Math.random()*Math.PI*2;
-    const dist=500+Math.random()*250;
-    this.worldX=((camX+Math.cos(angle)*dist)%WORLD_W+WORLD_W)%WORLD_W;
-    this.worldY=((camY+Math.sin(angle)*dist)%WORLD_H+WORLD_H)%WORLD_H;
+    const dist=350+Math.random()*300;
+    this.worldX=Math.max(WORLD_W/2-740, Math.min(WORLD_W/2+740, WORLD_W/2+Math.cos(angle)*dist));
+    this.worldY=Math.max(WORLD_H/2-540, Math.min(WORLD_H/2+540, WORLD_H/2+Math.sin(angle)*dist));
     this.pulse=Math.random()*Math.PI*2;
     this.glitchOffset=0; this.glitchTimer=0;
     this.hitTimer=0; this.deathTimer=0;
@@ -1183,8 +1338,9 @@ class Enemy{
     if(this.tag==='WRAITH'){this.angle+=.008;jx=Math.cos(this.angle)*0.8;jy=Math.sin(this.angle)*0.8;}
     this.worldX+=((dx/dist)*this.speed+jx);
     this.worldY+=((dy/dist)*this.speed+jy);
-    this.worldX=((this.worldX%WORLD_W)+WORLD_W)%WORLD_W;
-    this.worldY=((this.worldY%WORLD_H)+WORLD_H)%WORLD_H;
+    // Bounce off room walls
+    this.worldX=Math.max(WORLD_W/2-760, Math.min(WORLD_W/2+760, this.worldX));
+    this.worldY=Math.max(WORLD_H/2-560, Math.min(WORLD_H/2+560, this.worldY));
     // Glitch flicker displacement
     this.glitchTimer++;
     if(this.glitchTimer>8){this.glitchTimer=0;this.glitchOffset=(Math.random()-.5)*6;}
@@ -1716,8 +1872,9 @@ function declineTrade(){
 // ==================== FRAGMENT CLASS ====================
 class Fragment{
   constructor(){
-    this.worldX=Math.random()*WORLD_W;
-    this.worldY=Math.random()*WORLD_H;
+    // Spawn inside the room
+    this.worldX=WORLD_W/2+(Math.random()-.5)*1400;
+    this.worldY=WORLD_H/2+(Math.random()-.5)*1000;
     this.vx=(Math.random()-.5)*.5;
     this.vy=(Math.random()-.5)*.5;
     this.size=16+Math.random()*24;
@@ -1747,10 +1904,13 @@ class Fragment{
   }
   update(){
     this.worldX+=this.vx; this.worldY+=this.vy;
-    if(this.worldX<0) this.worldX=WORLD_W;
-    if(this.worldX>WORLD_W) this.worldX=0;
-    if(this.worldY<0) this.worldY=WORLD_H;
-    if(this.worldY>WORLD_H) this.worldY=0;
+    // Bounce inside room
+    const rxMin=WORLD_W/2-760,rxMax=WORLD_W/2+760;
+    const ryMin=WORLD_H/2-560,ryMax=WORLD_H/2+560;
+    if(this.worldX<rxMin){this.worldX=rxMin;this.vx=Math.abs(this.vx);}
+    if(this.worldX>rxMax){this.worldX=rxMax;this.vx=-Math.abs(this.vx);}
+    if(this.worldY<ryMin){this.worldY=ryMin;this.vy=Math.abs(this.vy);}
+    if(this.worldY>ryMax){this.worldY=ryMax;this.vy=-Math.abs(this.vy);}
     this.rotation+=this.rotSpeed;
     this.pulse+=this.pulseSpeed;
     if(this.glitch) this.glitchTimer+=.1;
@@ -1974,28 +2134,100 @@ function renderWorld(){
   // --- BASE GROUND ---
   ctx.fillStyle='#1a1510'; ctx.fillRect(0,0,W,H);
 
-  // Cobblestone tiles
+  // --- ROOM WALLS (border around play area) ---
+  const ROOM_W=1600, ROOM_H=1200, WALL=48;
+  const roomSX = WORLD_W/2 - camX + cx;
+  const roomSY = WORLD_H/2 - camY + cy;
+  // Outer darkness (void beyond room)
+  ctx.fillStyle='#060408'; ctx.fillRect(0,0,W,H);
+  // Room floor (visible dark stone)
+  ctx.fillStyle='#1e1a14';
+  ctx.fillRect(roomSX-ROOM_W/2,roomSY-ROOM_H/2,ROOM_W,ROOM_H);
+
+  // Cobblestone tiles (much brighter so they're visible)
   worldTiles.forEach(t=>{
     const sx=t.x-camX+cx, sy=t.y-camY+cy;
     if(sx<-80||sx>W+80||sy<-80||sy>H+80) return;
-    const base=Math.floor(28*t.light);
-    ctx.fillStyle=`rgb(${base+4},${base+2},${base-2})`;
+    const base=Math.floor(52+18*t.light); // 52–70 range, clearly visible
+    ctx.fillStyle=`rgb(${base+6},${base+2},${base-4})`;
     ctx.fillRect(sx,sy,t.w,t.h);
-    // Tile grout lines
-    ctx.strokeStyle=`rgba(10,8,6,0.7)`; ctx.lineWidth=1.5;
+    // Grout lines — dark gap between tiles
+    ctx.strokeStyle='rgba(8,6,4,0.9)'; ctx.lineWidth=1.5;
     ctx.strokeRect(sx+.75,sy+.75,t.w-1.5,t.h-1.5);
-    // Subtle inner highlight top-left
-    ctx.strokeStyle=`rgba(60,50,35,0.4)`; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(sx+2,sy+t.h-2); ctx.lineTo(sx+2,sy+2); ctx.lineTo(sx+t.w-2,sy+2); ctx.stroke();
-    // Crack
+    // Top-left highlight (light source from top-left)
+    ctx.strokeStyle=`rgba(90,75,50,0.5)`; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(sx+2,sy+t.h-3); ctx.lineTo(sx+2,sy+2); ctx.lineTo(sx+t.w-3,sy+2); ctx.stroke();
+    // Bottom-right shadow
+    ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(sx+t.w-2,sy+2); ctx.lineTo(sx+t.w-2,sy+t.h-2); ctx.lineTo(sx+2,sy+t.h-2); ctx.stroke();
     if(t.crack){
       ctx.save(); ctx.translate(sx+t.w/2,sy+t.h/2); ctx.rotate(t.crackAngle);
-      ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(-15,0); ctx.lineTo(0,3); ctx.lineTo(15,-2); ctx.stroke();
+      ctx.strokeStyle='rgba(0,0,0,0.7)'; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(0,4); ctx.lineTo(18,-2); ctx.stroke();
       ctx.restore();
     }
-    // Moss patch
-    if(t.moss){ ctx.fillStyle='rgba(30,60,15,0.25)'; ctx.fillRect(sx+2,sy+2,t.w-4,t.h-4); }
+    if(t.moss){ ctx.fillStyle='rgba(40,80,20,0.3)'; ctx.fillRect(sx+3,sy+3,t.w-6,t.h-6); }
+  });
+
+  // Room walls — thick stone blocks around perimeter
+  const rx=roomSX-ROOM_W/2, ry=roomSY-ROOM_H/2;
+  const drawWallBlock=(x,y,w,h)=>{
+    // Base stone
+    ctx.fillStyle='#2a2218'; ctx.fillRect(x,y,w,h);
+    // Top highlight
+    ctx.fillStyle='rgba(80,65,40,0.6)'; ctx.fillRect(x,y,w,4);
+    // Left highlight
+    ctx.fillStyle='rgba(70,55,35,0.4)'; ctx.fillRect(x,y,4,h);
+    // Bottom shadow
+    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(x,y+h-4,w,4);
+    // Right shadow
+    ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(x+w-4,y,4,h);
+    // Stone block seams every 80px
+    ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1;
+    for(let bx=x;bx<x+w;bx+=80){
+      ctx.beginPath(); ctx.moveTo(bx,y); ctx.lineTo(bx,y+h); ctx.stroke();
+    }
+    for(let by=y;by<y+h;by+=48){
+      ctx.beginPath(); ctx.moveTo(x,by); ctx.lineTo(x+w,by); ctx.stroke();
+    }
+    // Moss/decay patches
+    ctx.fillStyle='rgba(30,50,10,0.2)';
+    ctx.fillRect(x+10,y+h*.3,20,12);
+    ctx.fillRect(x+w-30,y+h*.6,18,10);
+  };
+  // Top wall
+  drawWallBlock(rx-WALL, ry-WALL, ROOM_W+WALL*2, WALL);
+  // Bottom wall
+  drawWallBlock(rx-WALL, ry+ROOM_H, ROOM_W+WALL*2, WALL);
+  // Left wall
+  drawWallBlock(rx-WALL, ry, WALL, ROOM_H);
+  // Right wall
+  drawWallBlock(rx+ROOM_W, ry, WALL, ROOM_H);
+
+  // Wall torches (glowing lights at wall midpoints)
+  const torches=[
+    {x:rx+ROOM_W*.25, y:ry},
+    {x:rx+ROOM_W*.75, y:ry},
+    {x:rx+ROOM_W*.25, y:ry+ROOM_H},
+    {x:rx+ROOM_W*.75, y:ry+ROOM_H},
+    {x:rx,            y:ry+ROOM_H*.33},
+    {x:rx,            y:ry+ROOM_H*.66},
+    {x:rx+ROOM_W,     y:ry+ROOM_H*.33},
+    {x:rx+ROOM_W,     y:ry+ROOM_H*.66},
+  ];
+  const tt=Date.now()*.003;
+  torches.forEach(tr=>{
+    const flicker=0.7+Math.sin(tt*3+tr.x)*.3;
+    const tg=ctx.createRadialGradient(tr.x,tr.y,0,tr.x,tr.y,80*flicker);
+    tg.addColorStop(0,`rgba(255,180,60,${0.25*flicker})`);
+    tg.addColorStop(.4,`rgba(255,120,20,${0.1*flicker})`);
+    tg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=tg; ctx.beginPath(); ctx.arc(tr.x,tr.y,80*flicker,0,Math.PI*2); ctx.fill();
+    // Torch bracket pixel art
+    ctx.fillStyle=`rgba(255,160,40,${0.8*flicker})`;
+    ctx.fillRect(tr.x-3,tr.y-2,6,8);
+    ctx.fillStyle=`rgba(255,220,100,${flicker})`;
+    ctx.fillRect(tr.x-2,tr.y-5,4,4);
   });
 
   // Decals
@@ -2258,9 +2490,10 @@ function gameLoop(){
   if(keys.d){velX+=SPEED;moving=true;}
   velX*=FRICTION; velY*=FRICTION;
   camX+=velX; camY+=velY;
-  // Wrap world
-  camX=((camX%WORLD_W)+WORLD_W)%WORLD_W;
-  camY=((camY%WORLD_H)+WORLD_H)%WORLD_H;
+  // Clamp camera to room bounds (no wrap — room-based)
+  const ROOM_HALF_W=800, ROOM_HALF_H=600;
+  camX=Math.max(WORLD_W/2-ROOM_HALF_W, Math.min(WORLD_W/2+ROOM_HALF_W, camX));
+  camY=Math.max(WORLD_H/2-ROOM_HALF_H, Math.min(WORLD_H/2+ROOM_HALF_H, camY));
 
   // Move sound
   if(moving&&Date.now()-lastMoveSound>400){lastMoveSound=Date.now();/* playHum(); */}
