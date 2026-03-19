@@ -15,8 +15,8 @@
 body{background:#000;color:var(--green);font-family:'Share Tech Mono',monospace;overflow:hidden;width:100vw;height:100vh;cursor:none;}
 
 /* SPLASH SCREEN */
-#splashScreen{position:fixed;top:0;left:0;width:100%;height:100%;z-index:500;cursor:pointer;background:#000;display:flex;align-items:center;justify-content:center;}
-#splashScreen img{width:100%;height:100%;object-fit:cover;}
+#splashScreen{position:fixed;top:0;left:0;width:100%;height:100%;z-index:500;cursor:pointer;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+#splashScreen img{width:100vw;height:100vh;object-fit:cover;object-position:center;display:block;}
 #splashScreen.hidden{display:none;}
 
 /* INTRO UPGRADES */
@@ -575,16 +575,18 @@ function dismissSplash(){
 }
 
 // ==================== ASSET IMAGES ====================
-const SPRITE_IMG=new Image(); SPRITE_IMG.src='https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/Gemini_Generated_Image_xikg39xikg39xikg-removebg-preview.png';
-const FRAG_IMGS=[new Image(),new Image(),new Image(),new Image()];
-FRAG_IMGS[0].src='https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/G-9krYtWQAE82a6-removebg-preview.png';
-FRAG_IMGS[1].src='https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/G__1FtYXgAA-0eP-removebg-preview.png';
-FRAG_IMGS[2].src='https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/HBNMLnQa8AAd_LV-removebg-preview.png';
-FRAG_IMGS[3].src='https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/HBUdTplbAAASw3G-removebg-preview.png';
-const GOGGLE_LOGO_IMG=new Image(); GOGGLE_LOGO_IMG.src='https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/image-removebg-preview%20(4).png';
+function mkImg(src){const i=new Image();i.crossOrigin='anonymous';i.src=src;return i;}
+const SPRITE_IMG=mkImg('https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/Gemini_Generated_Image_xikg39xikg39xikg-removebg-preview.png');
+const FRAG_IMGS=[
+  mkImg('https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/G-9krYtWQAE82a6-removebg-preview.png'),
+  mkImg('https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/G__1FtYXgAA-0eP-removebg-preview.png'),
+  mkImg('https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/HBNMLnQa8AAd_LV-removebg-preview.png'),
+  mkImg('https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/HBUdTplbAAASw3G-removebg-preview.png'),
+];
+const GOGGLE_LOGO_IMG=mkImg('https://raw.githubusercontent.com/precidoboss/my-game-sprites/main/image-removebg-preview%20(4).png');
 
 // Sprite sheet config: 4 rows (front,back,left,right), 4 cols each
-const SPRITE_ROWS={front:0,back:1,left:2,right:3};
+const SPRITE_ROWS={front:0,back:1,left:3,right:2};
 const SPRITE_COLS=4;
 let spriteReady=false;
 SPRITE_IMG.onload=()=>{spriteReady=true;};
@@ -595,12 +597,11 @@ const SPRITE_FH=()=>spriteReady?Math.floor(SPRITE_IMG.height/4):80;
 
 // Get direction row based on angle
 function getSpriteRow(angle){
-  // angle 0=right, PI/2=down, PI=left, -PI/2=up
   const deg=((angle*180/Math.PI)%360+360)%360;
   if(deg>315||deg<=45)  return SPRITE_ROWS.right;
-  if(deg>45&&deg<=135)  return SPRITE_ROWS.front;
-  if(deg>135&&deg<=225) return SPRITE_ROWS.left;
-  return SPRITE_ROWS.back;
+  if(deg>45&&deg<=135)  return SPRITE_ROWS.front;  // facing down = front
+  if(deg>135&&deg<=225) return SPRITE_ROWS.left;   // facing left
+  return SPRITE_ROWS.back;                          // facing up = back
 }
 
 // ==================== GOGGLE SCAN CANVAS ====================
@@ -696,14 +697,24 @@ function drawGoggleScanOverlay(){
     gsctx.restore();
   }
 
-  // Goggle logo in LEFT lens when goggles first turned on
-  if(GOGGLE_LOGO_IMG.complete&&goggleMode){
-    const llx=(280/1000)*gsc.width;
-    const lly=(300/600)*gsc.height;
-    const ls=lr*.9;
-    gsctx.save(); gsctx.globalAlpha=0.18;
-    gsctx.drawImage(GOGGLE_LOGO_IMG,llx-ls,lly-ls,ls*2,ls*2);
-    gsctx.restore();
+  // Goggle logo at TOP CENTER of goggle frame — always shown when goggles on
+  if(goggleMode){
+    const topX=gsc.width/2;
+    const topY=gsc.height*0.07; // very top
+    const logoW=gsc.width*0.22;
+    const logoH=logoW*0.5;
+    if(GOGGLE_LOGO_IMG.complete && GOGGLE_LOGO_IMG.naturalWidth>0){
+      gsctx.save();
+      gsctx.globalAlpha=0.9;
+      gsctx.drawImage(GOGGLE_LOGO_IMG, topX-logoW/2, topY-logoH/2, logoW, logoH);
+      gsctx.restore();
+    } else {
+      // Text fallback
+      gsctx.fillStyle='rgba(255,170,0,0.7)';
+      gsctx.font='bold 14px "Orbitron",sans-serif';
+      gsctx.textAlign='center'; gsctx.textBaseline='middle';
+      gsctx.fillText('POLYBIUS', topX, topY);
+    }
   }
 }
 
@@ -744,6 +755,32 @@ function playLegendary(){
 }
 function playMove(){playTone(200+Math.random()*50,'sine',0.04,0.015);}
 function playStreak(n){playTone(440+n*110,'sine',0.15,0.07);}
+
+// Laser shoot sound — zap with descending pitch
+function playLaserShot(boosted){
+  resumeAudio();
+  const t=AC.currentTime;
+  const o=AC.createOscillator(), g=AC.createGain();
+  o.connect(g); g.connect(AC.destination);
+  o.type='sawtooth';
+  o.frequency.setValueAtTime(boosted?1200:900,t);
+  o.frequency.exponentialRampToValueAtTime(boosted?300:150,t+0.12);
+  g.gain.setValueAtTime(0.08,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+  o.start(t); o.stop(t+0.12);
+  // Crackle layer
+  playNoise(0.06,0.03);
+}
+
+// Scan lock build tick sound
+function playScanLockTick(pct){
+  if(pct%15<1) playTone(300+pct*5,'sine',0.04,0.025);
+}
+
+// Scan active loop beep
+function playScanActive(pct){
+  if(pct%10<1.5) playTone(500+pct*4,'square',0.04,0.03);
+}
 
 // ==================== DATA ====================
 const OUTCOMES=[
@@ -1345,7 +1382,7 @@ function shoot(){
   // Pixel art muzzle flash on canvas
   muzzleFlashTimer=6;
   muzzleFlashAngle=angle;
-  playTone(600+Math.random()*300,'square',.04,.035);
+  playLaserShot(boosted);
 }
 let muzzleFlashTimer=0, muzzleFlashAngle=0;
 function drawMuzzleFlash(){
@@ -1725,19 +1762,20 @@ class Fragment{
       c.restore();
     }
 
-    // Draw fragment IMAGE on top if loaded
-    if(this.fragImg && this.fragImg.complete && this.fragImg.naturalWidth>0){
-      c.save(); c.translate(sx,sy);
-      const pm2=1+Math.sin(this.pulse)*.1;
-      const iw=this.size*3*pm2, ih=this.size*3*pm2;
-      // Bounce vertically
-      const bounce=Math.sin(this.pulse*1.2)*4;
-      c.rotate(this.rotation*0.3); // gentle rotation
-      c.globalAlpha=0.92+Math.sin(this.pulse)*.08;
-      c.drawImage(this.fragImg,-iw/2,-ih/2+bounce,iw,ih);
-      c.globalAlpha=1;
-      c.restore();
-    }
+    // Draw fragment IMAGE on top — always attempt, fall back gracefully
+    try{
+      if(this.fragImg){
+        c.save(); c.translate(sx,sy);
+        const pm2=1+Math.sin(this.pulse)*.12;
+        const iw=this.size*3.2*pm2, ih=this.size*3.2*pm2;
+        const bounce=Math.sin(this.pulse*1.3)*5;
+        c.rotate(Math.sin(this.pulse*.4)*.08); // gentle rock
+        c.globalAlpha=0.9+Math.sin(this.pulse)*.1;
+        c.drawImage(this.fragImg,-iw/2,-ih/2+bounce,iw,ih);
+        c.globalAlpha=1;
+        c.restore();
+      }
+    }catch(e){/* CORS block - image still draws via fallback crystal below */}
   }
   get hitRadius(){return this.size*2;}
   distToScreen(mx,my){return Math.hypot(this.screenX()-mx,this.screenY()-my);}
@@ -2121,6 +2159,7 @@ function checkHover(){
     if(hovered===targetFrag){
       // Same fragment — build lock
       lockHold=Math.min(lockHold+1, LOCK_REQUIRED);
+      playScanLockTick(lockHold);
       if(lockHold>=LOCK_REQUIRED) lockedFragName=hovered.isLegendary?'⚠ LEGENDARY FRAGMENT':'DCU FRAGMENT';
     } else {
       // New fragment
@@ -2187,6 +2226,7 @@ function beginScan(){
   scanInterval=setInterval(()=>{
     scanProgress+=1.3;
     playScanBeep(scanProgress);
+    playScanActive(scanProgress);
     if(currentOutcome.corrupt>.35&&Math.random()<currentOutcome.corrupt*.06&&!cspike){
       cspike=true; playCorrupt();
       document.getElementById('corruptOverlay').classList.add('active');
