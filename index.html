@@ -16,7 +16,7 @@ body{background:#000;color:var(--green);font-family:'Share Tech Mono',monospace;
 
 /* SPLASH SCREEN */
 #splashScreen{position:fixed;top:0;left:0;width:100%;height:100%;z-index:500;cursor:pointer;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-#splashScreen img{width:100vw;height:100vh;object-fit:cover;object-position:center;display:block;}
+#splashScreen img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;}
 #splashScreen.hidden{display:none;}
 
 /* INTRO UPGRADES */
@@ -459,10 +459,26 @@ body{background:#000;color:var(--green);font-family:'Share Tech Mono',monospace;
 
 <!-- HUD ELEMENTS -->
 <div id="topHud">
-  <div>SESSION <span id="sessionId">--</span></div>
-  <div>FRAGS <span id="fragCount">0</span></div>
+  <div>LEVEL <span id="levelNum">1</span></div>
+  <div>VOID PTS <span id="fragCount">0</span></div>
+  <div>KILLS <span id="killCount">0</span></div>
   <div>DEPTH <span id="voidDepth">∞</span></div>
   <div>TIME <span id="sessionTime">00:00</span></div>
+</div>
+<!-- LEVEL PROGRESS -->
+<div id="levelProgress" style="position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:30;font-family:Orbitron,sans-serif;font-size:8px;letter-spacing:2px;color:var(--green-dim);text-align:center;">
+  <div style="display:flex;gap:16px;justify-content:center;margin-bottom:3px;">
+    <span>FRAGS <span id="lvlFrags" style="color:var(--green)">0</span>/<span id="lvlFragsNeed">5</span></span>
+    <span>KILLS <span id="lvlKills" style="color:var(--red)">0</span>/<span id="lvlKillsNeed">3</span></span>
+    <span id="doorStatus" style="color:var(--amber);display:none">⬛ DOOR OPEN — ENTER TO ADVANCE</span>
+  </div>
+</div>
+<!-- LEVEL TRANSITION OVERLAY -->
+<div id="levelOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:150;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+  <div style="font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:6px;color:var(--green-dim)">VOID LAYER CLEARED</div>
+  <div style="font-family:VT323,monospace;font-size:72px;color:var(--green);text-shadow:0 0 30px var(--green)" id="levelBig">LEVEL 2</div>
+  <div style="font-family:Share Tech Mono,monospace;font-size:12px;color:rgba(0,255,65,.5);letter-spacing:3px" id="levelDesc">DESCENDING DEEPER...</div>
+  <div style="font-family:VT323,monospace;font-size:20px;color:var(--amber)" id="levelCountdown">3</div>
 </div>
 <div id="scoreDisplay">VOID CREDITS<span class="score-val" id="scoreVal">0</span></div>
 <div id="streakDisplay">STREAK<span class="streak-val" id="streakVal">×0</span></div>
@@ -809,6 +825,15 @@ let mouseX=window.innerWidth/2, mouseY=window.innerHeight/2;
 let targetFrag=null, scanning=false, scanProgress=0, scanInterval=null;
 let grabAllowed=false, currentOutcome=null, whisperTimeout=null;
 let goggleMode=false, goggleTransition=0;
+
+// ==================== LEVEL STATE ====================
+let currentLevel=1;
+let levelFragsNeeded=()=>3+currentLevel*2;   // frags to collect to unlock door
+let levelKillsNeeded=()=>2+currentLevel;      // kills needed
+let levelFragsGot=0, levelKillsGot=0;
+let doorUnlocked=false, doorEntered=false;
+let door=null; // {worldX,worldY}
+let levelTransitioning=false;
 let playerDir=0, playerStep=0, playerStepTimer=0;
 let lockHold=0, LOCK_REQUIRED=60;
 let lockedFragName='';
@@ -934,6 +959,163 @@ function generateWorld(){
       rotation:Math.random()*Math.PI*2
     });
   }
+  spawnDoor();
+}
+
+// ==================== DOOR / LEVEL SYSTEM ====================
+function spawnDoor(){
+  // Place door far from player start
+  const angle=Math.random()*Math.PI*2;
+  const dist=600+Math.random()*400;
+  door={
+    worldX:((WORLD_W/2+Math.cos(angle)*dist)%WORLD_W+WORLD_W)%WORLD_W,
+    worldY:((WORLD_H/2+Math.sin(angle)*dist)%WORLD_H+WORLD_H)%WORLD_H,
+    pulse:0
+  };
+  doorUnlocked=false; doorEntered=false;
+  document.getElementById('doorStatus').style.display='none';
+}
+
+function drawDoor(c){
+  if(!door) return;
+  const sx=door.worldX-camX+canvas.width/2;
+  const sy=door.worldY-camY+canvas.height/2;
+  if(sx<-80||sx>canvas.width+80||sy<-80||sy>canvas.height+80) return;
+  door.pulse+=0.04;
+  const p=0.6+Math.sin(door.pulse)*.4;
+  const locked=!doorUnlocked;
+  const col=locked?'rgba(100,100,100,':'rgba(0,255,65,';
+
+  c.save(); c.translate(sx,sy);
+
+  // Door glow
+  if(!locked){
+    const dg=c.createRadialGradient(0,0,0,0,0,60*p);
+    dg.addColorStop(0,'rgba(0,255,65,0.25)'); dg.addColorStop(1,'transparent');
+    c.fillStyle=dg; c.beginPath(); c.arc(0,0,60*p,0,Math.PI*2); c.fill();
+  }
+
+  // Door frame - pixel art portal
+  const W=28, H=44;
+  // Frame outline
+  c.fillStyle=locked?'#2a2a2a':'#1a3a1a';
+  c.fillRect(-W/2-4,-H/2-4,W+8,H+8);
+  // Door body
+  c.fillStyle=locked?'#111':col+'0.15)';
+  c.fillRect(-W/2,-H/2,W,H);
+  // Frame border pixels
+  c.fillStyle=locked?'#555':'#00ff41';
+  // Top
+  c.fillRect(-W/2-4,-H/2-4,W+8,4);
+  // Bottom
+  c.fillRect(-W/2-4,H/2,W+8,4);
+  // Left
+  c.fillRect(-W/2-4,-H/2-4,4,H+8);
+  // Right
+  c.fillRect(W/2,-H/2-4,4,H+8);
+  // Door panels (2 pixel art panels inside)
+  if(!locked){
+    c.fillStyle='rgba(0,255,65,0.08)';
+    c.fillRect(-W/2+2,-H/2+2,(W-4)/2-1,H-4);
+    c.fillRect(-W/2+2+(W-4)/2+1,-H/2+2,(W-4)/2-1,H-4);
+    // Scanline through door
+    const sl=Math.round(Math.sin(door.pulse*3)*H*.3);
+    c.fillStyle=`rgba(0,255,65,${0.2+Math.sin(door.pulse)*.1})`;
+    c.fillRect(-W/2,-H/2+H/2+sl,W,2);
+  }
+  // Lock icon when locked
+  if(locked){
+    c.fillStyle='#555';
+    c.fillRect(-3,-4,6,5);
+    c.beginPath(); c.arc(0,-4,4,Math.PI,0); c.strokeStyle='#555'; c.lineWidth=2; c.stroke();
+  }
+  // Door label
+  c.font='bold 8px "Orbitron",sans-serif';
+  c.textAlign='center'; c.fillStyle=locked?'rgba(150,150,150,0.6)':`rgba(0,255,65,${p})`;
+  c.fillText(locked?'LOCKED':'NEXT LEVEL',0,H/2+16);
+  // Level number
+  if(!locked){
+    c.font='14px "VT323",monospace';
+    c.fillStyle=`rgba(0,255,65,${p})`;
+    c.fillText(`→ LVL ${currentLevel+1}`,0,H/2+28);
+  }
+
+  c.restore();
+
+  // Arrow indicator pointing to door (top HUD)
+  const dx=door.worldX-camX, dy=door.worldY-camY;
+  const dist=Math.hypot(dx,dy);
+  if(dist>200){
+    const ang=Math.atan2(dy,dx);
+    const ix=canvas.width/2+Math.cos(ang)*Math.min(dist*.4,180);
+    const iy=canvas.height/2+Math.sin(ang)*Math.min(dist*.4,180);
+    c.save(); c.translate(ix,iy); c.rotate(ang);
+    c.fillStyle=`rgba(0,255,65,${locked?0.2:0.7+Math.sin(door.pulse)*.2})`;
+    c.beginPath(); c.moveTo(8,0); c.lineTo(-4,-5); c.lineTo(-4,5); c.closePath(); c.fill();
+    c.restore();
+  }
+}
+
+function checkDoorEntry(){
+  if(!door||!doorUnlocked||levelTransitioning) return;
+  const dist=Math.hypot(door.worldX-camX, door.worldY-camY);
+  if(dist<40){
+    levelTransitioning=true;
+    advanceLevel();
+  }
+}
+
+function checkLevelProgress(){
+  // Update displays
+  document.getElementById('lvlFrags').textContent=levelFragsGot;
+  document.getElementById('lvlFragsNeed').textContent=levelFragsNeeded();
+  document.getElementById('lvlKills').textContent=levelKillsGot;
+  document.getElementById('lvlKillsNeed').textContent=levelKillsNeeded();
+  // Unlock door when both objectives met
+  if(!doorUnlocked && levelFragsGot>=levelFragsNeeded() && levelKillsGot>=levelKillsNeeded()){
+    doorUnlocked=true;
+    document.getElementById('doorStatus').style.display='inline';
+    playTone(660,'sine',.3,.1); setTimeout(()=>playTone(880,'sine',.3,.08),150);
+    setTimeout(()=>playTone(1100,'sine',.4,.07),300);
+  }
+}
+
+function advanceLevel(){
+  currentLevel++;
+  const ol=document.getElementById('levelOverlay');
+  const lb=document.getElementById('levelBig');
+  const ld=document.getElementById('levelDesc');
+  const lc=document.getElementById('levelCountdown');
+  lb.textContent='LEVEL '+currentLevel;
+  ld.textContent=`FRAGS NEEDED: ${levelFragsNeeded()} | KILLS: ${levelKillsNeeded()} | ENEMIES MORE FREQUENT`;
+  ol.style.display='flex';
+  playLegendary();
+  // Countdown 3..2..1
+  let cd=3;
+  lc.textContent=cd;
+  const timer=setInterval(()=>{
+    cd--;
+    if(cd>0){ lc.textContent=cd; playTone(440,'sine',.1,.06); }
+    else{
+      clearInterval(timer);
+      ol.style.display='none';
+      // Reset level state
+      levelFragsGot=0; levelKillsGot=0;
+      enemies=[];
+      // Increase fragments and enemies
+      fragments=[];
+      const newFrags=Math.min(20, 14+currentLevel*2);
+      for(let i=0;i<newFrags;i++) spawnFragment();
+      // Respawn door in new position
+      spawnDoor();
+      document.getElementById('levelNum').textContent=currentLevel;
+      document.getElementById('lvlFragsNeed').textContent=levelFragsNeeded();
+      document.getElementById('lvlKillsNeed').textContent=levelKillsNeeded();
+      document.getElementById('doorStatus').style.display='none';
+      levelTransitioning=false;
+      gameActive=true;
+    }
+  },1000);
 }
 
 // ==================== GOGGLE TOGGLE ====================
@@ -1175,8 +1357,6 @@ class Bullet{
     this.angle=angle;
     // Trail history
     this.trail=[];
-    // Assign random fragment image
-    this.fragImg=FRAG_IMGS[Math.floor(Math.random()*FRAG_IMGS.length)];
   }
   screenX(){return this.worldX-camX+canvas.width/2;}
   screenY(){return this.worldY-camY+canvas.height/2;}
@@ -1419,9 +1599,11 @@ function updateCombat(){
         const dmg=activeBoosts['POWER']?2:1;
         e.hp-=dmg; e.hitTimer=6;
         if(e.hp<=0){
-          enemies.splice(i,1); enemiesKilled++;
+          enemies.splice(i,1); enemiesKilled++; levelKillsGot++;
           score+=e.score; document.getElementById('scoreVal').textContent=score;
+          document.getElementById('killCount').textContent=enemiesKilled;
           spawnDeathPixels(e);
+          checkLevelProgress();
         }
         return false;
       }
@@ -1475,11 +1657,12 @@ function playerDeath(){
 let enemySpawnTimer=0;
 function tickEnemySpawn(){
   enemySpawnTimer++;
-  const rate=Math.max(240,500-fragCount*8); // much slower: ~8s base, min ~4s
+  const rate=Math.max(200,480-(currentLevel*20)); // gets faster each level
   if(enemySpawnTimer>=rate){
     enemySpawnTimer=0;
-    const count=1+Math.floor(fragCount/12); // fewer at a time
-    if(enemies.length<10){ // hard cap
+    const cap=8+currentLevel*2; // more enemies allowed each level
+    const count=1+Math.floor(currentLevel/3);
+    if(enemies.length<cap){
       for(let i=0;i<count;i++) enemies.push(new Enemy());
     }
   }
@@ -1559,6 +1742,8 @@ class Fragment{
       this.shape.push({a:(i/pts)*Math.PI*2, r:.6+Math.random()*.4});
     }
     this.trail=[];
+    // Random fragment image
+    this.fragImg=FRAG_IMGS[Math.floor(Math.random()*FRAG_IMGS.length)];
   }
   update(){
     this.worldX+=this.vx; this.worldY+=this.vy;
@@ -2105,6 +2290,10 @@ function gameLoop(){
   updateCombat();
   tickEnemySpawn();
 
+  // Door
+  drawDoor(ctx);
+  checkDoorEntry();
+
   // Draw player at screen center
   drawPlayer();
 
@@ -2277,9 +2466,10 @@ function showReveal(o,early){
     document.getElementById('cursor').className='';
     setTimeout(()=>spawnFragment(),2000);
   }
-  fragCount++; document.getElementById('fragCount').textContent=fragCount;
+  fragCount++; levelFragsGot++; document.getElementById('fragCount').textContent=fragCount;
   collectedFrags.push(o);
   checkTradeReady();
+  checkLevelProgress();
 
   // Streak
   let streakBonus=0;
@@ -2379,6 +2569,7 @@ function resetGame(){
   document.getElementById('summaryModal').classList.remove('show');
   score=0; fragCount=0; streak=0; maxStreak=0; sessionLog=[];
   fragments=[]; enemies=[]; bullets=[]; collectedFrags=[]; boosts=[]; activeBoosts={};
+  currentLevel=1; levelFragsGot=0; levelKillsGot=0;
   playerHP=maxHP; enemiesKilled=0; enemySpawnTimer=0;
   camX=WORLD_W/2; camY=WORLD_H/2; velX=0; velY=0;
   initMist();
@@ -2407,6 +2598,11 @@ function startGame(){
   initMist();
   enemies=[]; bullets=[]; collectedFrags=[]; boosts=[]; activeBoosts={};
   playerHP=maxHP; updateHealthBar();
+  currentLevel=1; levelFragsGot=0; levelKillsGot=0;
+  document.getElementById('levelNum').textContent='1';
+  document.getElementById('lvlFragsNeed').textContent=levelFragsNeeded();
+  document.getElementById('lvlKillsNeed').textContent=levelKillsNeeded();
+  document.getElementById('killCount').textContent='0';
   document.getElementById('fbCount').textContent='0';
   document.getElementById('fbFill').style.width='0%';
   for(let i=0;i<14;i++) spawnFragment();
