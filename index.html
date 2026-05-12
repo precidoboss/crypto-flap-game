@@ -560,22 +560,59 @@ async function loadAll() {
     setProgress(30, 'Fetching Transfer events (this may take a moment)...');
 
     // Get all Transfer events to find all addresses that ever held tokens
-    const filter = token.filters.Transfer();
     const latestBlock = await provider.getBlockNumber();
-    const fromBlock = Math.max(0, latestBlock - 50000); // last ~50k blocks
 
-    let events = [];
-    try {
-      events = await token.queryFilter(filter, fromBlock, latestBlock);
-    } catch(e) {
-      // If range too large, try smaller
+    // Fuji RPC typically supports ~2048 blocks per getLogs call; chunk it
+    const CHUNK = 2000;
+    const LOOK_BACK = 100000; // scan up to 100k blocks back
+    const scanFrom = Math.max(0, latestBlock - LOOK_BACK);
+
+    // Build raw getLogs filter for Transfer(address,address,uint256)
+    const transferTopic = ethers.id("Transfer(address,address,uint256)");
+    const iface = new ethers.Interface(ERC20_ABI);
+
+    let rawLogs = [];
+    let chunkStart = scanFrom;
+    let chunksDone = 0;
+    const totalChunks = Math.ceil((latestBlock - scanFrom) / CHUNK);
+
+    while (chunkStart <= latestBlock) {
+      const chunkEnd = Math.min(chunkStart + CHUNK - 1, latestBlock);
       try {
-        const fb2 = Math.max(0, latestBlock - 10000);
-        events = await token.queryFilter(filter, fb2, latestBlock);
-      } catch(e2) {
-        events = [];
+        const logs = await provider.getLogs({
+          address: TOKEN_ADDR,
+          topics: [transferTopic],
+          fromBlock: chunkStart,
+          toBlock: chunkEnd,
+        });
+        rawLogs = rawLogs.concat(logs);
+      } catch(e) {
+        // skip failed chunk
+      }
+      chunksDone++;
+      chunkStart = chunkEnd + 1;
+      if (chunksDone % 5 === 0) {
+        const pct = 30 + Math.round((chunksDone / totalChunks) * 25);
+        setProgress(pct, `Scanning blocks... chunk ${chunksDone}/${totalChunks} (${rawLogs.length} events so far)`);
       }
     }
+
+    // Parse logs with the interface
+    const events = rawLogs.map(log => {
+      try {
+        const parsed = iface.parseLog(log);
+        return {
+          ...log,
+          args: {
+            from: parsed.args[0],
+            to:   parsed.args[1],
+            value: parsed.args[2],
+          },
+          transactionHash: log.transactionHash,
+          blockNumber: log.blockNumber,
+        };
+      } catch(e) { return null; }
+    }).filter(Boolean);
 
     setProgress(55, `Found ${events.length} transfer events. Collecting addresses...`);
 
@@ -593,10 +630,19 @@ async function loadAll() {
 
     setProgress(65, `Querying balances for ${addrs.length} addresses...`);
 
-    // Batch balance queries
-    const balances = await Promise.all(
-      addrs.map(a => token.balanceOf(a).then(b => parseFloat(ethers.formatUnits(b, dec))).catch(()=>0))
-    );
+    // Batch balance queries in groups of 20 to avoid overwhelming the RPC
+    const BATCH_SIZE = 20;
+    const balances = [];
+    for (let bi = 0; bi < addrs.length; bi += BATCH_SIZE) {
+      const slice = addrs.slice(bi, bi + BATCH_SIZE);
+      const bals = await Promise.all(
+        slice.map(a => token.balanceOf(a).then(b => parseFloat(ethers.formatUnits(b, dec))).catch(()=>0))
+      );
+      balances.push(...bals);
+      if (bi % 100 === 0 && bi > 0) {
+        setProgress(65 + Math.round((bi / addrs.length) * 15), `Querying balances... ${bi}/${addrs.length}`);
+      }
+    }
 
     setProgress(80, 'Computing analytics...');
 
