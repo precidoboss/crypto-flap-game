@@ -543,6 +543,7 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('browse')">🎮 Browse Passes</button>
     <button class="tab" onclick="switchTab('deposit')">📥 Deposit</button>
+    <button class="tab" onclick="switchTab('history')">📜 History</button>
     <button class="tab" id="adminTab" onclick="switchTab('admin')" style="display:none;">⚙️ Admin</button>
   </div>
 
@@ -604,6 +605,30 @@
             <div style="font-size:13px;color:var(--text);margin-top:4px;">Passes land in the vault instantly ✓</div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Tab -->
+  <div id="tab-history" style="display:none;" class="panel panel-full">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div class="panel-head" style="margin-bottom:0;">Transaction History</div>
+      <button id="historyRefreshBtn" onclick="loadTransactionHistory()"
+        style="background:transparent;border:1px solid var(--border);color:var(--steel);
+          padding:6px 14px;border-radius:6px;font-family:'Space Grotesk',sans-serif;
+          font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;
+          transition:border-color 0.15s,color 0.15s;">
+        <span id="historyRefreshIcon">↻</span> Refresh
+      </button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button class="tab active" id="historyFilterAll" onclick="setHistoryFilter('all')" style="padding:6px 16px;font-size:12px;">All</button>
+      <button class="tab" id="historyFilterDeposit" onclick="setHistoryFilter('deposit')" style="padding:6px 16px;font-size:12px;">Deposits</button>
+      <button class="tab" id="historyFilterClaim" onclick="setHistoryFilter('claim')" style="padding:6px 16px;font-size:12px;">Claims</button>
+    </div>
+    <div id="historyList" style="display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
+        Connect your wallet to view your transaction history.
       </div>
     </div>
   </div>
@@ -773,7 +798,8 @@ const BANK_ABI = [
 const ERC1155_ABI = [
   "function isApprovedForAll(address owner,address operator) view returns (bool)",
   "function setApprovalForAll(address operator,bool approved)",
-  "function balanceOf(address account,uint256 id) view returns (uint256)"
+  "function balanceOf(address account,uint256 id) view returns (uint256)",
+  "function safeTransferFrom(address from,address to,uint256 id,uint256 amount,bytes data)"
 ];
 
 // ── State ───────────────────────────────────────────────────────────────────
@@ -803,15 +829,17 @@ function toast(msg, type = '') {
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 function switchTab(name) {
-  ['browse','deposit','admin'].forEach(t => {
+  ['browse','deposit','history','admin'].forEach(t => {
     const el = document.getElementById('tab-' + t);
+    if (!el) return;
     el.style.display = 'none'; el.classList.remove('visible');
   });
   const el = document.getElementById('tab-' + name);
   el.style.display = 'block'; el.classList.add('visible');
-  document.querySelectorAll('.tab').forEach((b, i) => {
-    b.classList.toggle('active', ['browse','deposit','admin'][i] === name);
+  document.querySelectorAll('.tabs > .tab').forEach((b, i) => {
+    b.classList.toggle('active', ['browse','deposit','history','admin'][i] === name);
   });
+  if (name === 'history') loadTransactionHistory();
 }
 
 // ── Wallet Modal ─────────────────────────────────────────────────────────────
@@ -992,7 +1020,7 @@ async function detectWalletPasses() {
 
   // ── 1. Scan known GAMEPASS_CONTRACT via balanceOfBatch ────────────────────
   try {
-    const gpContract = new ethers.Contract(GAMEPASS_CONTRACT, ERC1155_BATCH_ABI, getReadProvider());
+    const gpContract = new ethers.Contract(GAMEPASS_CONTRACT, ERC1155_BATCH_ABI, (await getReadProvider()));
     const accounts   = GAMEPASS_SCAN_IDS.map(() => walletAddress);
     const balances   = await gpContract.balanceOfBatch(accounts, GAMEPASS_SCAN_IDS);
 
@@ -1016,7 +1044,7 @@ async function detectWalletPasses() {
   } catch(batchErr) {
     // Fallback: individual balanceOf if batch not supported
     try {
-      const gpContract = new ethers.Contract(GAMEPASS_CONTRACT, ERC1155_ABI, getReadProvider());
+      const gpContract = new ethers.Contract(GAMEPASS_CONTRACT, ERC1155_ABI, (await getReadProvider()));
       for (let i = 0; i < 20; i++) {
         try {
           const bal = Number(await gpContract.balanceOf(walletAddress, i));
@@ -1045,7 +1073,7 @@ async function detectWalletPasses() {
   for (const contractAddr of otherContracts) {
     const contractPasses = passes.filter(p => p.tokenContract.toLowerCase() === contractAddr);
     try {
-      const c = new ethers.Contract(contractAddr, ERC1155_BATCH_ABI, getReadProvider());
+      const c = new ethers.Contract(contractAddr, ERC1155_BATCH_ABI, (await getReadProvider()));
       const accounts = contractPasses.map(() => walletAddress);
       const ids      = contractPasses.map(p => Number(p.tokenId));
       const balances = await c.balanceOfBatch(accounts, ids);
@@ -1061,7 +1089,7 @@ async function detectWalletPasses() {
     } catch(e) {
       for (const p of contractPasses) {
         try {
-          const c = new ethers.Contract(contractAddr, ERC1155_ABI, getReadProvider());
+          const c = new ethers.Contract(contractAddr, ERC1155_ABI, (await getReadProvider()));
           const bal = Number(await c.balanceOf(walletAddress, p.tokenId));
           if (bal > 0) {
             const passIdx2 = passes.findIndex(pp =>
@@ -1072,6 +1100,45 @@ async function detectWalletPasses() {
           }
         } catch(e2) {}
       }
+    }
+  }
+
+  // ── 3. Scan any contract recognized by the Grotto Games API ──────────────
+  // This lets users deposit ANY pass linked to a Grotto game, even if it's
+  // never been registered in the bank or seen by the bank before.
+  await fetchGrottoGames(); // ensure games are loaded
+  const grottoContracts = new Set();
+  for (const g of grottoGames) {
+    for (const field of ['license_address','token_address','licenseAddress','tokenAddress','contractAddress','contract_address']) {
+      const addr = g[field];
+      if (addr && typeof addr === 'string' && addr.startsWith('0x')) {
+        grottoContracts.add(addr.toLowerCase());
+      }
+    }
+  }
+  // Exclude contracts already scanned above
+  const alreadyScanned = new Set([
+    GAMEPASS_CONTRACT.toLowerCase(),
+    ...passes.map(p => p.tokenContract.toLowerCase())
+  ]);
+  const newContracts = [...grottoContracts].filter(c => !alreadyScanned.has(c));
+
+  for (const contractAddr of newContracts) {
+    try {
+      const c = new ethers.Contract(contractAddr, ERC1155_BATCH_ABI, (await getReadProvider()));
+      const accounts = GAMEPASS_SCAN_IDS.map(() => walletAddress);
+      const balances = await c.balanceOfBatch(accounts, GAMEPASS_SCAN_IDS);
+      for (let i = 0; i < balances.length; i++) {
+        const bal = Number(balances[i]);
+        if (bal > 0) {
+          const game = getGameByContract(contractAddr);
+          const name = game ? (game.title || game.name || `Pass #${i}`) : `Pass #${i}`;
+          const imgURI = getGameImageUrl(game) || '';
+          chips.push({ name, balance: bal, tokenId: i, tokenContract: contractAddr, source: 'grotto-discovery', imgURI, passIndex: null });
+        }
+      }
+    } catch(e) {
+      // Not an ERC1155, or balanceOfBatch unsupported — skip silently
     }
   }
 
@@ -1108,9 +1175,10 @@ function enableButtons() {
 let rawBankPasses = [];
 let readProvider;  // dedicated read-only provider — always available after ethers loads
 
-function getReadProvider() {
-  if (readProvider) return readProvider;
+async function getReadProvider() {
   if (provider) return provider;
+  if (readProvider) return readProvider;
+  await loadEthers(); // guarantee window.ethers exists before constructing provider
   readProvider = new ethers.JsonRpcProvider(GROTTO_RPC);
   return readProvider;
 }
@@ -1128,7 +1196,7 @@ function addressToTopic(addr) {
 // Scans TransferSingle/TransferBatch logs where `to` == BANK_ADDRESS, across
 // all contracts on the chain. No hardcoded contract address needed.
 async function discoverBankPasses() {
-  const rp = getReadProvider();
+  const rp = await getReadProvider();
   const discovered = new Map(); // key: `${contract}-${tokenId}` -> {tokenContract, tokenId}
   const toTopic = addressToTopic(BANK_ADDRESS);
 
@@ -1183,7 +1251,7 @@ async function discoverBankPasses() {
 }
 
 async function loadPasses() {
-  const rp = getReadProvider();
+  const rp = await getReadProvider();
 
   // 1. getAllPasses from bank contract (registered passes)
   try {
@@ -1436,6 +1504,7 @@ async function claimPass(index) {
     const tx = await bankContract.requestPass(index);
     await tx.wait();
     toast('Pass claimed! Check your wallet ✓', 'ok');
+    logTransaction({ type: 'claim', passName: resolvePassNameByIndex(index), amount: 1, address: walletAddress, txHash: tx.hash });
     await loadPasses();
     await updateStats();
   } catch(e) {
@@ -1470,7 +1539,7 @@ function populateDepositPanel() {
       ? `<img src="${p.imgURI}" onerror="this.parentElement.innerHTML='🎮'">`
       : '🎮';
     const unregTag = p.passIndex === null
-      ? `<span class="deposit-unregistered-tag">Not registered — cannot deposit yet</span>`
+      ? `<span class="deposit-unregistered-tag">Pending registration</span>`
       : '';
     return `
     <div class="deposit-card">
@@ -1481,9 +1550,9 @@ function populateDepositPanel() {
         <div class="deposit-card-balance">You hold: ${p.balance}</div>
       </div>
       <div class="deposit-card-controls">
-        <input type="number" class="deposit-amount-input" id="depAmt-${i}" min="1" max="${p.balance}" value="${Math.min(1, p.balance)}" ${p.passIndex === null ? 'disabled' : ''}/>
-        <button class="deposit-max-btn" onclick="setDepositMax(${i})" ${p.passIndex === null ? 'disabled' : ''}>MAX</button>
-        <button class="deposit-send-btn" onclick="depositPassAmount(${i})" ${p.passIndex === null ? 'disabled' : ''}>Deposit</button>
+        <input type="number" class="deposit-amount-input" id="depAmt-${i}" min="1" max="${p.balance}" value="${Math.min(1, p.balance)}"/>
+        <button class="deposit-max-btn" onclick="setDepositMax(${i})">MAX</button>
+        <button class="deposit-send-btn" onclick="depositPassAmount(${i})">Deposit</button>
       </div>
     </div>`;
   }).join('');
@@ -1498,7 +1567,6 @@ window.setDepositMax = setDepositMax;
 
 async function depositPassAmount(i) {
   const p = myWalletPasses[i];
-  if (p.passIndex === null) return toast('This pass is not registered yet — ask the admin to register it', 'warn');
 
   const input = document.getElementById(`depAmt-${i}`);
   const amt = parseInt(input.value);
@@ -1514,21 +1582,32 @@ async function depositPassAmount(i) {
   try {
     const tokenContract = new ethers.Contract(p.tokenContract, ERC1155_ABI, signer);
 
-    // Check approval
-    const approved = await tokenContract.isApprovedForAll(walletAddress, BANK_ADDRESS);
-    if (!approved) {
-      toast('Approving bank contract…', 'warn');
-      btn.textContent = 'Approving…';
-      const appTx = await tokenContract.setApprovalForAll(BANK_ADDRESS, true);
-      await appTx.wait();
-      toast('Approved ✓ Now depositing…', 'ok');
-    }
+    if (p.passIndex !== null) {
+      // Registered pass — use the bank's deposit() which requires prior approval
+      const approved = await tokenContract.isApprovedForAll(walletAddress, BANK_ADDRESS);
+      if (!approved) {
+        toast('Approving bank contract…', 'warn');
+        btn.textContent = 'Approving…';
+        const appTx = await tokenContract.setApprovalForAll(BANK_ADDRESS, true);
+        await appTx.wait();
+        toast('Approved ✓ Now depositing…', 'ok');
+      }
 
-    toast(`Depositing ${amt}× ${p.name}…`, 'warn');
-    btn.textContent = 'Depositing…';
-    const tx = await bankContract.deposit(p.passIndex, amt);
-    await tx.wait();
-    toast(`${amt}× ${p.name} deposited ✓`, 'ok');
+      toast(`Depositing ${amt}× ${p.name}…`, 'warn');
+      btn.textContent = 'Depositing…';
+      const tx = await bankContract.deposit(p.passIndex, amt);
+      await tx.wait();
+      toast(`${amt}× ${p.name} deposited ✓`, 'ok');
+    } else {
+      // Unregistered / Grotto-recognized pass — direct transfer to bank.
+      // Admin can then use "Register All Detected Passes" to make it claimable.
+      toast(`Sending ${amt}× ${p.name} to vault…`, 'warn');
+      btn.textContent = 'Sending…';
+      const tx = await tokenContract.safeTransferFrom(walletAddress, BANK_ADDRESS, p.tokenId, amt, "0x");
+      await tx.wait();
+      toast(`${amt}× ${p.name} sent to vault ✓ (awaiting registration)`, 'ok');
+      logTransaction({ type: 'deposit', passName: p.name, tokenId: p.tokenId, amount: amt, address: walletAddress, txHash: tx.hash, pending: true });
+    }
 
     await loadPasses();
     await updateStats();
@@ -1541,6 +1620,180 @@ async function depositPassAmount(i) {
   }
 }
 window.depositPassAmount = depositPassAmount;
+
+// ── Transaction History ────────────────────────────────────────────────────────
+// Reads on-chain PassDeposited / PassRequested events for the connected wallet,
+// plus any locally-tracked raw transfers (logTransaction), and renders a unified feed.
+
+let historyEntries = [];
+let historyFilter = 'all';
+const LOCAL_TX_KEY = 'gamepass_local_tx_log';
+
+// Track a transaction that isn't covered by bank contract events (e.g. raw
+// safeTransferFrom deposits of unregistered passes). Persisted in localStorage
+// so it survives refresh, keyed per-wallet.
+function logTransaction(entry) {
+  try {
+    const all = JSON.parse(localStorage.getItem(LOCAL_TX_KEY) || '{}');
+    const key = (entry.address || walletAddress || '').toLowerCase();
+    if (!all[key]) all[key] = [];
+    all[key].unshift({ ...entry, timestamp: Date.now() });
+    // Keep last 200 entries per wallet
+    all[key] = all[key].slice(0, 200);
+    localStorage.setItem(LOCAL_TX_KEY, JSON.stringify(all));
+  } catch(e) { console.warn('[PassBank] logTransaction failed:', e.message); }
+}
+
+function getLocalTransactions() {
+  if (!walletAddress) return [];
+  try {
+    const all = JSON.parse(localStorage.getItem(LOCAL_TX_KEY) || '{}');
+    return all[walletAddress.toLowerCase()] || [];
+  } catch(e) { return []; }
+}
+
+function resolvePassNameByIndex(passIndex) {
+  const p = passes[passIndex];
+  if (!p) return `Pass #${passIndex}`;
+  const game = getGameByContract(p.tokenContract);
+  return p.name || (game ? (game.title || game.name) : null) || `Pass #${p.tokenId}`;
+}
+
+async function loadTransactionHistory() {
+  const list = document.getElementById('historyList');
+  if (!list) return;
+
+  if (!walletAddress) {
+    list.innerHTML = `<div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
+      Connect your wallet to view your transaction history.
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = `<div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
+    🔍 Scanning your transaction history…
+  </div>`;
+
+  const rp = await getReadProvider();
+  const readBank = new ethers.Contract(BANK_ADDRESS, BANK_ABI, rp);
+  const userTopic = ethers.zeroPadValue(walletAddress, 32);
+  const entries = [];
+
+  // ── PassDeposited(passIndex, depositor, amount) ──────────────────────────
+  try {
+    const depositFilter = {
+      address: BANK_ADDRESS,
+      topics: [
+        ethers.id("PassDeposited(uint256,address,uint256)"),
+        null,
+        userTopic
+      ],
+      fromBlock: 0, toBlock: 'latest'
+    };
+    const logs = await rp.getLogs(depositFilter);
+    for (const log of logs) {
+      const passIndex = Number(BigInt(log.topics[1]));
+      const amount = Number(BigInt(log.data));
+      const block = await rp.getBlock(log.blockNumber);
+      entries.push({
+        type: 'deposit',
+        passName: resolvePassNameByIndex(passIndex),
+        amount,
+        txHash: log.transactionHash,
+        timestamp: block ? block.timestamp * 1000 : Date.now(),
+        blockNumber: log.blockNumber
+      });
+    }
+  } catch(e) {
+    console.warn('[PassBank] PassDeposited log scan failed:', e.message);
+  }
+
+  // ── PassRequested(passIndex, claimer) ────────────────────────────────────
+  try {
+    const claimFilter = {
+      address: BANK_ADDRESS,
+      topics: [
+        ethers.id("PassRequested(uint256,address)"),
+        null,
+        userTopic
+      ],
+      fromBlock: 0, toBlock: 'latest'
+    };
+    const logs = await rp.getLogs(claimFilter);
+    for (const log of logs) {
+      const passIndex = Number(BigInt(log.topics[1]));
+      const block = await rp.getBlock(log.blockNumber);
+      entries.push({
+        type: 'claim',
+        passName: resolvePassNameByIndex(passIndex),
+        amount: 1,
+        txHash: log.transactionHash,
+        timestamp: block ? block.timestamp * 1000 : Date.now(),
+        blockNumber: log.blockNumber
+      });
+    }
+  } catch(e) {
+    console.warn('[PassBank] PassRequested log scan failed:', e.message);
+  }
+
+  // ── Locally-tracked raw transfers (unregistered pass deposits) ──────────
+  for (const local of getLocalTransactions()) {
+    entries.push(local);
+  }
+
+  // Sort newest first
+  entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  historyEntries = entries;
+  renderHistory();
+}
+
+function setHistoryFilter(filter) {
+  historyFilter = filter;
+  document.querySelectorAll('#historyFilterAll,#historyFilterDeposit,#historyFilterClaim').forEach(b => b.classList.remove('active'));
+  const map = { all: 'historyFilterAll', deposit: 'historyFilterDeposit', claim: 'historyFilterClaim' };
+  document.getElementById(map[filter])?.classList.add('active');
+  renderHistory();
+}
+window.setHistoryFilter = setHistoryFilter;
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!list) return;
+
+  const filtered = historyFilter === 'all'
+    ? historyEntries
+    : historyEntries.filter(e => e.type === historyFilter);
+
+  if (!filtered.length) {
+    list.innerHTML = `<div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
+      No ${historyFilter === 'all' ? 'transactions' : historyFilter + 's'} found for this wallet yet.
+    </div>`;
+    return;
+  }
+
+  const explorer = 'https://subnets.avax.network/thegrotto';
+
+  list.innerHTML = filtered.map(e => {
+    const isDeposit = e.type === 'deposit';
+    const icon = isDeposit ? '📥' : '🎁';
+    const label = isDeposit ? 'Deposited' : 'Claimed';
+    const color = isDeposit ? 'var(--cyan)' : 'var(--success)';
+    const date = e.timestamp ? new Date(e.timestamp).toLocaleString() : '—';
+    const pendingTag = e.pending ? `<span class="deposit-unregistered-tag">Pending registration</span>` : '';
+
+    return `
+    <div class="deposit-card">
+      <div class="deposit-card-img" style="font-size:20px;">${icon}</div>
+      <div class="deposit-card-info">
+        <div class="deposit-card-name">${label} ${e.amount}× ${e.passName}${pendingTag}</div>
+        <div class="deposit-card-meta">${date}</div>
+      </div>
+      <div class="deposit-card-controls">
+        ${e.txHash ? `<a href="${explorer}/tx/${e.txHash}" target="_blank" style="font-size:11px;color:${color};text-decoration:none;font-family:'JetBrains Mono',monospace;">View Tx ↗</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
