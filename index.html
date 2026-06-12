@@ -686,6 +686,7 @@ const GROTTO_CHAIN_ID = 36463; // Grotto L1
 const ADMIN_ADDRESS   = "0x46914D5DC59598801e435AF2a08928Da87C60dF0";
 const GROTTO_API      = "https://api.enterthegrotto.xyz";
 const GROTTO_RPC      = "https://subnets.avax.network/thegrotto/mainnet/rpc";
+const GROTTO_EXPLORER_API = "https://grottoexplorer.xyz/api/v2";
 
 const BANK_ABI = [
   "function getAllPasses() view returns (tuple(address tokenContract,uint256 tokenId,uint256 balance,string name,string imageURI,string gameId,bool active)[])",
@@ -837,15 +838,20 @@ let gamesLoaded = false;
 
 async function fetchGrottoGames(force = false) {
   if (gamesLoaded && !force) return grottoGames;
-  // Try multiple endpoints — the API returns different shapes
+  grottoGames = [];
+  const seen = new Set();
+
+  // Use search/detailed with broad query — confirmed working endpoint from airdropper.js
+  // Try a wildcard-ish approach: fetch popular/recent/summaries which list all games directly
   const endpoints = [
     `${GROTTO_API}/api/games/summaries`,
     `${GROTTO_API}/api/games/popular`,
     `${GROTTO_API}/api/games/recent`,
+    `${GROTTO_API}/api/games/upcoming`,
+    `${GROTTO_API}/api/games/on-sale`,
     `${GROTTO_API}/api/games/`,
   ];
-  const seen = new Set();
-  grottoGames = [];
+
   for (const url of endpoints) {
     try {
       const res = await fetch(url);
@@ -860,32 +866,53 @@ async function fetchGrottoGames(force = false) {
           grottoGames.push(g);
         }
       }
-    } catch(e) { console.warn('[PassBank] games endpoint failed:', url, e.message); }
+    } catch(e) {
+      console.warn('[PassBank] games endpoint failed:', url, e.message);
+    }
   }
+
   gamesLoaded = true;
   console.log('[PassBank] Loaded', grottoGames.length, 'unique games from Grotto API');
+  if (grottoGames.length > 0) {
+    console.log('[PassBank] Sample game object (first result):', JSON.stringify(grottoGames[0], null, 2));
+    console.log('[PassBank] All keys on first game:', Object.keys(grottoGames[0]));
+  }
   return grottoGames;
 }
 
-// Resolve image URL for a game object — tries all known field names
+// Resolve image URL for a game object — uses thumbnail_url (confirmed Grotto API field)
 function getGameImageUrl(game) {
   if (!game) return null;
-  // Try all common image field names the Grotto API might use
-  const raw = game.coverImage || game.cover_image || game.coverUrl || game.cover
+  // thumbnail_url is the confirmed field used across the Grotto ecosystem (search results)
+  let raw = game.thumbnail_url || game.thumbnailUrl
+    || game.coverImage || game.cover_image || game.coverUrl || game.cover
     || game.imageUrl || game.image_url || game.image || game.thumbnail
-    || game.thumbnailUrl || game.banner || game.bannerUrl || game.logoUrl || game.logo
+    || game.banner || game.bannerUrl || game.logoUrl || game.logo
     || (game.images && (game.images.cover || game.images.thumbnail || game.images[0]))
     || null;
-  if (!raw) return null;
-  if (typeof raw === 'object') return raw.url || raw.src || null;
-  // If relative path, prefix with Grotto API base
-  if (raw.startsWith('http')) return raw;
-  return `https://enterthegrotto.xyz${raw.startsWith('/') ? '' : '/'}${raw}`;
-}
 
+  if (!raw) return null;
+  if (typeof raw === 'object') raw = raw.url || raw.src || null;
+  if (!raw) return null;
+  if (raw.startsWith('http')) return raw;
+  if (raw.startsWith('ipfs://')) return 'https://ipfs.io/ipfs/' + raw.slice(7);
+  // Relative path — prefix with Grotto API base (assets are served from the API)
+  return `${GROTTO_API}${raw.startsWith('/') ? '' : '/'}${raw}`;
+}
 function getGameById(id) {
   if (!id) return null;
   return grottoGames.find(g => String(g.id) === String(id) || g.slug === id) || null;
+}
+
+// Find a game whose license/token contract matches a given address — used to
+// auto-link unregistered passes (no gameId set) to their Grotto game listing
+function getGameByContract(address) {
+  if (!address) return null;
+  const target = address.toLowerCase();
+  return grottoGames.find(g => {
+    const candidates = [g.license_address, g.token_address, g.licenseAddress, g.tokenAddress, g.contractAddress, g.contract_address];
+    return candidates.some(c => c && c.toLowerCase() === target);
+  }) || null;
 }
 // Scan token IDs 0–99 on the known game pass contract
 const GAMEPASS_SCAN_IDS = Array.from({ length: 100 }, (_, i) => i);
@@ -1166,7 +1193,10 @@ async function renderPassCards() {
     }
 
     // Fetch linked game from Grotto Gateway (uses local cache)
-    const gameInfo = p.gameId ? await fetchGameInfo(p.gameId) : null;
+    // Prefer explicit gameId, fall back to matching by contract address (for unregistered passes)
+    const gameInfo = p.gameId
+      ? await fetchGameInfo(p.gameId)
+      : getGameByContract(p.tokenContract);
     const gameImgUrl = getGameImageUrl(gameInfo);
     const gameTitle  = gameInfo ? (gameInfo.title || gameInfo.name || p.gameId) : null;
 
