@@ -1,1236 +1,1517 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AVIATOR — Grotto Crash Game</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aviator — Fuji Testnet</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
-
-  :root {
-    --bg:       #080c14;
-    --surface:  #0e1420;
-    --panel:    #121926;
-    --border:   #1e2d42;
-    --accent:   #e8423a;
-    --accent2:  #ff6b35;
-    --win:      #22d47a;
-    --sky:      #3a8ef6;
-    --muted:    #4a607a;
-    --text:     #d4e1f0;
-    --textdim:  #7a9ab8;
-    --mono:     'Space Mono', monospace;
-    --sans:     'Space Grotesk', sans-serif;
+  :root{
+    --bg-0:#06070c;
+    --bg-1:#0b0f1c;
+    --bg-2:#121829;
+    --panel:#0e1322;
+    --line:rgba(255,255,255,0.07);
+    --line-strong:rgba(255,255,255,0.14);
+    --gold:#f5a623;
+    --gold-dim:#a9741b;
+    --cyan:#4ee1ff;
+    --cyan-dim:#1c5a6b;
+    --crash:#ff4757;
+    --crash-dim:#7a1f27;
+    --win:#5be38a;
+    --text-0:#eef1f7;
+    --text-1:#9aa4bd;
+    --text-2:#5e6781;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
   }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *{box-sizing:border-box; margin:0; padding:0;}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
-    overflow-x: hidden;
+  body{
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(78,225,255,0.06), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(245,166,35,0.05), transparent 60%),
+      linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+    color:var(--text-0);
+    font-family:var(--font-body);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
   }
 
-  /* ── HEADER ── */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 24px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+  /* ───────── HEADER ───────── */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 28px;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .brand-mark{
+    width:36px; height:36px;
+    border:1px solid var(--line-strong);
+    border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold);
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:18px;
+    background:rgba(245,166,35,0.06);
+  }
+  .brand-text h1{
+    font-family:var(--font-display);
+    font-size:18px;
+    font-weight:700;
+    letter-spacing:0.5px;
+  }
+  .brand-text p{
+    font-size:11px;
+    color:var(--text-2);
+    font-family:var(--font-mono);
+    letter-spacing:1px;
+    text-transform:uppercase;
+    margin-top:2px;
   }
 
-  .logo {
-    font-family: var(--mono);
-    font-size: 1.2rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+  .wallet-area{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .pill{
+    font-family:var(--font-mono);
+    font-size:12px;
+    padding:7px 12px;
+    border:1px solid var(--line-strong);
+    border-radius:20px;
+    color:var(--text-1);
+    display:flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
+  }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--text-2);}
+  .pill.live .dot{background:var(--win); box-shadow:0 0 6px var(--win);}
+  .pill.warn .dot{background:var(--crash); box-shadow:0 0 6px var(--crash);}
+
+  button{
+    font-family:var(--font-display);
+    font-weight:600;
+    cursor:pointer;
+    border:none;
+    transition:transform .12s ease, opacity .12s ease, background .15s ease;
+  }
+  button:active{transform:scale(0.97);}
+  button:disabled{opacity:0.4; cursor:not-allowed; transform:none;}
+
+  .btn-primary{
+    background:var(--gold);
+    color:#1a1305;
+    padding:10px 18px;
+    border-radius:8px;
+    font-size:13px;
+    letter-spacing:0.3px;
+  }
+  .btn-primary:hover:not(:disabled){background:#ffb53d;}
+
+  .btn-ghost{
+    background:transparent;
+    border:1px solid var(--line-strong);
+    color:var(--text-0);
+    padding:10px 16px;
+    border-radius:8px;
+    font-size:13px;
+  }
+  .btn-ghost:hover:not(:disabled){background:rgba(255,255,255,0.04); border-color:var(--cyan-dim);}
+
+  /* ───────── LAYOUT ───────── */
+  .layout{
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:0;
+    max-width:1400px;
+    margin:0 auto;
+  }
+  @media (max-width: 1000px){
+    .layout{grid-template-columns:1fr;}
   }
 
-  .logo span { color: var(--textdim); -webkit-text-fill-color: var(--textdim); font-size: 0.7rem; letter-spacing: 0.05em; display: block; }
-
-  .header-right { display: flex; gap: 10px; align-items: center; }
-
-  .pill {
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    padding: 6px 14px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--panel);
-    color: var(--textdim);
-    cursor: pointer;
-    transition: all .2s;
+  /* ───────── GAME PANEL ───────── */
+  .game-panel{
+    padding:24px;
+    border-right:1px solid var(--line);
+    min-height:0;
   }
-  .pill:hover { border-color: var(--accent); color: var(--text); }
-  .pill.connected { border-color: var(--win); color: var(--win); }
+  @media (max-width: 1000px){ .game-panel{border-right:none; border-bottom:1px solid var(--line);} }
 
-  /* ── LAYOUT ── */
-  .app { display: grid; grid-template-columns: 1fr 340px; gap: 0; min-height: calc(100vh - 57px); }
-
-  .main { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-  .sidebar { background: var(--surface); border-left: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
-
-  /* ── FLIGHT STAGE ── */
-  .flight-stage {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    height: 320px;
-    position: relative;
-    overflow: hidden;
+  .sky{
+    position:relative;
+    width:100%;
+    aspect-ratio: 16/9;
+    border-radius:14px;
+    overflow:hidden;
+    border:1px solid var(--line-strong);
+    background:
+      radial-gradient(circle at 70% 20%, rgba(78,225,255,0.07), transparent 45%),
+      linear-gradient(180deg, #0d1426 0%, #060a14 70%, #04060d 100%);
   }
-
-  .stage-sky {
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg, #040b1a 0%, #0a1628 60%, #0d2040 100%);
+  .stars{position:absolute; inset:0; opacity:0.5;}
+  .star{
+    position:absolute; width:2px; height:2px; background:#fff; border-radius:50%;
+    animation: twinkle 3s ease-in-out infinite;
   }
+  @keyframes twinkle{ 0%,100%{opacity:0.15;} 50%{opacity:0.9;} }
 
-  /* Stars */
-  .stars { position: absolute; inset: 0; }
-  .star { position: absolute; background: white; border-radius: 50%; animation: twinkle 3s infinite; }
+  .grid-lines{position:absolute; inset:0; opacity:0.35;}
+  .grid-lines line{stroke:var(--line);}
+  .grid-lines text{fill:var(--text-2); font-family:var(--font-mono); font-size:9px;}
 
-  @keyframes twinkle { 0%,100%{opacity:.3} 50%{opacity:1} }
+  .flight-path{ fill:none; stroke:var(--gold); stroke-width:2.5; stroke-linecap:round; filter: drop-shadow(0 0 6px rgba(245,166,35,0.55)); }
+  .flight-area{ fill: rgba(245,166,35,0.10); }
 
-  /* Ground */
-  .ground {
-    position: absolute; bottom: 0; left: 0; right: 0; height: 50px;
-    background: linear-gradient(180deg, #0a1e35 0%, #071527 100%);
-    border-top: 1px solid #1a3050;
+  .plane{
+    position:absolute;
+    width:64px; height:64px;
+    transform-origin:50% 50%;
+    transition: left .12s linear, bottom .12s linear, transform .12s ease;
+    filter: drop-shadow(0 0 10px rgba(245,166,35,0.35));
+    z-index:5;
   }
-
-  .ground-grid {
-    position: absolute; inset: 0;
-    background-image: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(30,80,130,.3) 40px, rgba(30,80,130,.3) 41px);
+  .plane svg{width:100%; height:100%; display:block;}
+  .plane.crashed{ animation: shake .4s ease; }
+  @keyframes shake{
+    0%,100%{transform: translate(0,0) rotate(var(--rot,0deg));}
+    20%{transform: translate(-6px,4px) rotate(calc(var(--rot,0deg) + 8deg));}
+    40%{transform: translate(6px,-4px) rotate(calc(var(--rot,0deg) - 10deg));}
+    60%{transform: translate(-4px,2px) rotate(calc(var(--rot,0deg) + 6deg));}
+    80%{transform: translate(3px,-2px) rotate(calc(var(--rot,0deg) - 4deg));}
   }
 
-  /* Multiplier display */
-  .multiplier-display {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -60%);
-    text-align: center;
-    z-index: 10;
+  .explosion{
+    position:absolute;
+    width:120px; height:120px;
+    transform:translate(-50%,-50%) scale(0);
+    pointer-events:none;
+    z-index:6;
+  }
+  .explosion.go{ animation: pop .55s ease-out forwards; }
+  @keyframes pop{
+    0%{transform:translate(-50%,-50%) scale(0); opacity:1;}
+    60%{transform:translate(-50%,-50%) scale(1.15); opacity:1;}
+    100%{transform:translate(-50%,-50%) scale(1.5); opacity:0;}
   }
 
-  .mult-value {
-    font-family: var(--mono);
-    font-size: 5rem;
-    font-weight: 700;
-    line-height: 1;
-    transition: color .3s;
+  .multiplier-display{
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    text-align:center;
+    z-index:4;
+    pointer-events:none;
+  }
+  .multiplier-display .num{
+    font-family:var(--font-display);
+    font-size:clamp(40px, 8vw, 76px);
+    font-weight:700;
+    letter-spacing:-1px;
+    color:var(--cyan);
+    text-shadow: 0 0 24px rgba(78,225,255,0.45);
+    transition: color .2s ease;
+  }
+  .multiplier-display .num.crashed{ color:var(--crash); text-shadow:0 0 24px rgba(255,71,87,0.5); }
+  .multiplier-display .num.win{ color:var(--win); text-shadow:0 0 24px rgba(91,227,138,0.5); }
+  .multiplier-display .label{
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--text-1);
+    margin-top:4px;
   }
 
-  .mult-value.flying { color: var(--win); text-shadow: 0 0 40px rgba(34,212,122,.4); }
-  .mult-value.crashed { color: var(--accent); text-shadow: 0 0 40px rgba(232,66,58,.5); }
-  .mult-value.waiting { color: var(--textdim); }
-
-  .mult-label {
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.15em;
-    color: var(--textdim);
-    margin-top: 4px;
+  .phase-banner{
+    position:absolute;
+    top:14px; left:14px; right:14px;
+    display:flex; justify-content:space-between; align-items:center;
+    z-index:7;
   }
-
-  /* Plane */
-  .plane {
-    position: absolute;
-    font-size: 2rem;
-    transition: none;
-    filter: drop-shadow(0 0 12px rgba(58,142,246,.8));
-    z-index: 20;
-  }
-
-  /* Trail */
-  .trail {
-    position: absolute;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(58,142,246,.6));
-    transform-origin: right center;
-    z-index: 19;
-    pointer-events: none;
-  }
-
-  /* Round badge */
-  .round-badge {
-    position: absolute;
-    top: 12px; left: 12px;
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    padding: 4px 10px;
-    background: rgba(14,20,32,.8);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--textdim);
-  }
-
-  /* Status bar */
-  .status-bar {
-    position: absolute;
-    top: 12px; right: 12px;
-    display: flex; gap: 6px;
-  }
-
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--muted);
-    animation: none;
-  }
-  .status-dot.open { background: var(--win); animation: pulse 1.5s infinite; }
-  .status-dot.closed { background: var(--accent2); }
-  .status-dot.settled { background: var(--accent); }
-
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-  /* History pills */
-  .history-row {
-    display: flex; gap: 6px; flex-wrap: wrap;
-  }
-
-  .history-pill {
-    font-family: var(--mono);
-    font-size: 0.68rem;
-    padding: 3px 9px;
-    border-radius: 4px;
-    border: 1px solid;
-  }
-  .history-pill.low { border-color: rgba(232,66,58,.4); color: var(--accent); background: rgba(232,66,58,.07); }
-  .history-pill.mid { border-color: rgba(255,107,53,.4); color: var(--accent2); background: rgba(255,107,53,.07); }
-  .history-pill.high { border-color: rgba(34,212,122,.4); color: var(--win); background: rgba(34,212,122,.07); }
-
-  /* ── BET PANEL ── */
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px;
-  }
-
-  .panel-title {
-    font-size: 0.7rem;
-    letter-spacing: 0.12em;
-    color: var(--textdim);
-    text-transform: uppercase;
-    margin-bottom: 14px;
-    font-family: var(--mono);
-  }
-
-  .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
-
-  .form-group { flex: 1; }
-  .form-group label {
-    display: block;
-    font-size: 0.68rem;
-    color: var(--textdim);
-    margin-bottom: 5px;
-    font-family: var(--mono);
-    letter-spacing: 0.05em;
-  }
-
-  .form-input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 0.9rem;
-    padding: 9px 12px;
-    border-radius: 7px;
-    outline: none;
-    transition: border-color .2s;
-  }
-  .form-input:focus { border-color: var(--sky); }
-  .form-input::placeholder { color: var(--muted); }
-
-  .quick-btns { display: flex; gap: 6px; margin-top: 5px; }
-  .qbtn {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    padding: 4px 8px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--textdim);
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .qbtn:hover { border-color: var(--sky); color: var(--sky); }
-
-  .btn {
-    width: 100%;
-    padding: 13px;
-    border-radius: 8px;
-    border: none;
-    font-family: var(--mono);
-    font-size: 0.9rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    cursor: pointer;
-    transition: all .2s;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: white;
-  }
-  .btn-primary:hover { opacity: .85; transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: .35; cursor: not-allowed; transform: none; }
-
-  .btn-sky {
-    background: linear-gradient(135deg, #1d5fad, var(--sky));
-    color: white;
-  }
-  .btn-sky:hover { opacity: .85; }
-
-  .btn-outline {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--textdim);
-  }
-  .btn-outline:hover { border-color: var(--win); color: var(--win); }
-
-  .btn-win {
-    background: linear-gradient(135deg, #15803d, var(--win));
-    color: #030f08;
-    font-weight: 700;
-  }
-
-  /* ── SIDEBAR ── */
-  .section-title {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
-  .wallet-card {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-  }
-
-  .wallet-addr {
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    color: var(--sky);
-    word-break: break-all;
-    margin-bottom: 6px;
-  }
-
-  .balance-row {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 4px;
-  }
-
-  .balance-label { font-size: 0.65rem; color: var(--textdim); }
-  .balance-val { font-family: var(--mono); font-size: 0.85rem; color: var(--text); font-weight: 600; }
-  .balance-val.wins { color: var(--win); }
-
-  .divider { height: 1px; background: var(--border); }
-
-  /* Bets list */
-  .bets-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
-
-  .bet-item {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 10px;
-    font-family: var(--mono);
-    font-size: 0.7rem;
-  }
-
-  .bet-item-top { display: flex; justify-content: space-between; margin-bottom: 3px; }
-  .bet-item-addr { color: var(--textdim); }
-  .bet-item-won { color: var(--win); }
-  .bet-item-lost { color: var(--accent); }
-  .bet-item-pending { color: var(--muted); }
-  .bet-item-bottom { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.65rem; }
-
-  /* Toast */
-  #toast {
-    position: fixed;
-    bottom: 24px; right: 24px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 18px;
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    max-width: 300px;
-    z-index: 999;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: all .3s;
-    pointer-events: none;
-  }
-  #toast.show { opacity: 1; transform: translateY(0); }
-  #toast.win { border-color: var(--win); color: var(--win); }
-  #toast.err { border-color: var(--accent); color: var(--accent); }
-  #toast.info { border-color: var(--sky); color: var(--sky); }
-
-  /* Modal */
-  .modal-bg {
-    position: fixed; inset: 0;
-    background: rgba(4,8,16,.85);
+  .phase-tag{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    padding:6px 12px;
+    border-radius:6px;
+    border:1px solid var(--line-strong);
+    background:rgba(6,7,12,0.65);
     backdrop-filter: blur(4px);
-    z-index: 200;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity .3s;
   }
-  .modal-bg.open { opacity: 1; pointer-events: all; }
+  .phase-tag.betting{color:var(--win); border-color:rgba(91,227,138,0.35);}
+  .phase-tag.flying{color:var(--cyan); border-color:rgba(78,225,255,0.35);}
+  .phase-tag.settling, .phase-tag.cooldown{color:var(--gold); border-color:rgba(245,166,35,0.35);}
 
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 28px;
-    width: 420px;
-    max-width: 95vw;
-    transform: scale(.95);
-    transition: transform .3s;
-  }
-  .modal-bg.open .modal { transform: scale(1); }
-
-  .modal-title {
-    font-family: var(--mono);
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 6px;
-    color: var(--text);
-  }
-  .modal-sub { font-size: 0.78rem; color: var(--textdim); margin-bottom: 20px; }
-
-  .modal-section { margin-bottom: 18px; }
-  .modal-section h4 {
-    font-family: var(--mono);
-    font-size: 0.68rem;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 8px;
+  .countdown{
+    font-family:var(--font-mono);
+    font-size:22px;
+    font-weight:700;
+    color:var(--text-0);
+    background:rgba(6,7,12,0.65);
+    backdrop-filter: blur(4px);
+    border:1px solid var(--line-strong);
+    border-radius:6px;
+    padding:6px 14px;
   }
 
-  .key-box {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px;
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--accent2);
-    word-break: break-all;
-    margin-bottom: 6px;
+  /* round meta strip */
+  .round-strip{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+    flex-wrap:wrap;
+  }
+  .meta-card{
+    flex:1;
+    min-width:120px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 14px;
+  }
+  .meta-card .k{
+    font-family:var(--font-mono);
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--text-2);
+    margin-bottom:4px;
+  }
+  .meta-card .v{
+    font-family:var(--font-display);
+    font-size:18px;
+    font-weight:700;
+  }
+  .meta-card .v.mono{font-family:var(--font-mono); font-size:13px; word-break:break-all; color:var(--text-1);}
+
+  /* history strip */
+  .history{
+    display:flex;
+    gap:8px;
+    margin-top:16px;
+    overflow-x:auto;
+    padding-bottom:6px;
+  }
+  .history-chip{
+    flex-shrink:0;
+    font-family:var(--font-mono);
+    font-size:12px;
+    font-weight:700;
+    padding:6px 10px;
+    border-radius:6px;
+    border:1px solid var(--line-strong);
+  }
+  .history-chip.low{color:var(--crash); border-color:rgba(255,71,87,0.3); background:rgba(255,71,87,0.06);}
+  .history-chip.mid{color:var(--gold); border-color:rgba(245,166,35,0.3); background:rgba(245,166,35,0.06);}
+  .history-chip.high{color:var(--cyan); border-color:rgba(78,225,255,0.3); background:rgba(78,225,255,0.06);}
+  .history-chip.moon{color:var(--win); border-color:rgba(91,227,138,0.3); background:rgba(91,227,138,0.06);}
+
+  /* ───────── ACTION LOG ───────── */
+  .log-section h2{
+    font-family:var(--font-display);
+    font-size:14px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--text-1);
+    margin:24px 0 10px;
+  }
+  .log-box{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    max-height:160px;
+    overflow-y:auto;
+    font-family:var(--font-mono);
+    font-size:12px;
+  }
+  .log-row{
+    padding:8px 14px;
+    border-bottom:1px solid var(--line);
+    color:var(--text-1);
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .log-row:last-child{border-bottom:none;}
+  .log-row .t{color:var(--text-2); flex-shrink:0;}
+  .log-row.win-row{color:var(--win);}
+  .log-row.lose-row{color:var(--crash);}
+
+  /* ───────── SIDEBAR ───────── */
+  .sidebar{
+    padding:24px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
   }
 
-  .warning-box {
-    background: rgba(232,66,58,.07);
-    border: 1px solid rgba(232,66,58,.3);
-    border-radius: 6px;
-    padding: 10px;
-    font-size: 0.72rem;
-    color: rgba(232,66,58,.8);
-    margin-bottom: 14px;
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px;
+  }
+  .card h3{
+    font-family:var(--font-display);
+    font-size:13px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--text-1);
+    margin-bottom:14px;
+    display:flex; align-items:center; justify-content:space-between;
   }
 
-  .modal-btns { display: flex; gap: 8px; }
-  .modal-btns .btn { flex: 1; padding: 10px; font-size: 0.78rem; }
-
-  /* Operator panel */
-  .op-btn {
-    display: flex; gap: 8px; flex-wrap: wrap;
+  /* bet form */
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--text-2);
+    margin-bottom:6px;
   }
-  .op-btn .btn { flex: 1; padding: 9px; font-size: 0.72rem; min-width: 100px; }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .app { grid-template-columns: 1fr; }
-    .sidebar { border-left: none; border-top: 1px solid var(--border); }
-    .mult-value { font-size: 3.5rem; }
-    .flight-stage { height: 240px; }
+  .field input{
+    width:100%;
+    background:var(--bg-2);
+    border:1px solid var(--line-strong);
+    border-radius:8px;
+    padding:10px 12px;
+    color:var(--text-0);
+    font-family:var(--font-mono);
+    font-size:14px;
+    outline:none;
   }
+  .field input:focus{border-color:var(--cyan-dim);}
+  .field .hint{font-size:11px; color:var(--text-2); margin-top:5px; font-family:var(--font-mono);}
+
+  .quick-row{display:flex; gap:6px; margin-top:8px;}
+  .quick-row button{
+    flex:1;
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    color:var(--text-1);
+    border-radius:6px;
+    padding:6px 0;
+    font-size:11px;
+    font-family:var(--font-mono);
+  }
+  .quick-row button:hover{border-color:var(--cyan-dim); color:var(--cyan);}
+
+  .payout-preview{
+    margin-top:6px;
+    padding:10px 12px;
+    border-radius:8px;
+    background:rgba(78,225,255,0.05);
+    border:1px solid rgba(78,225,255,0.15);
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--cyan);
+    display:flex; justify-content:space-between;
+  }
+
+  .full-btn{width:100%; padding:13px; border-radius:9px; font-size:14px; letter-spacing:0.5px;}
+
+  .status-msg{
+    margin-top:10px;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    line-height:1.5;
+    padding:10px 12px;
+    border-radius:8px;
+    display:none;
+  }
+  .status-msg.show{display:block;}
+  .status-msg.info{background:rgba(78,225,255,0.06); color:var(--cyan); border:1px solid rgba(78,225,255,0.18);}
+  .status-msg.error{background:rgba(255,71,87,0.06); color:var(--crash); border:1px solid rgba(255,71,87,0.18);}
+  .status-msg.success{background:rgba(91,227,138,0.06); color:var(--win); border:1px solid rgba(91,227,138,0.18);}
+
+  /* vault */
+  .vault-row{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
+  .vault-row .k{font-family:var(--font-mono); font-size:11px; color:var(--text-2); letter-spacing:1px; text-transform:uppercase;}
+  .vault-row .v{font-family:var(--font-display); font-size:17px; font-weight:700;}
+  .vault-row .v.gold{color:var(--gold);}
+
+  /* current bet display */
+  .my-bet{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 12px;
+    background:var(--bg-2);
+    border-radius:8px;
+    border:1px solid var(--line-strong);
+    font-family:var(--font-mono);
+    font-size:12px;
+    margin-top:8px;
+  }
+  .badge{
+    font-family:var(--font-mono);
+    font-size:10px;
+    padding:2px 8px;
+    border-radius:10px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+  }
+  .badge.pending{background:rgba(245,166,35,0.12); color:var(--gold);}
+  .badge.won{background:rgba(91,227,138,0.12); color:var(--win);}
+  .badge.lost{background:rgba(255,71,87,0.12); color:var(--crash);}
+
+  /* fairness link */
+  .fair-link{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--cyan);
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .fair-link:hover{text-decoration:underline;}
+
+  /* temp wallet notice */
+  .temp-banner{
+    background:linear-gradient(90deg, rgba(245,166,35,0.10), rgba(78,225,255,0.06));
+    border:1px solid rgba(245,166,35,0.25);
+    border-radius:10px;
+    padding:14px 16px;
+    font-size:12.5px;
+    line-height:1.6;
+    color:var(--text-1);
+  }
+  .temp-banner b{color:var(--gold);}
+  .temp-banner code{
+    font-family:var(--font-mono);
+    background:rgba(0,0,0,0.3);
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:11px;
+    color:var(--text-0);
+    word-break:break-all;
+  }
+
+  /* modal */
+  .modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(4,5,9,0.75);
+    backdrop-filter: blur(3px);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:100;
+    padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal{
+    background:var(--bg-2);
+    border:1px solid var(--line-strong);
+    border-radius:14px;
+    padding:24px;
+    max-width:420px;
+    width:100%;
+  }
+  .modal h3{font-family:var(--font-display); font-size:16px; margin-bottom:10px;}
+  .modal p{font-size:13px; color:var(--text-1); line-height:1.6; margin-bottom:14px;}
+  .modal .row{display:flex; gap:10px; margin-top:14px;}
+  .modal .row button{flex:1;}
+
+  .scroll-hide::-webkit-scrollbar{width:6px; height:6px;}
+  .scroll-hide::-webkit-scrollbar-thumb{background:var(--line-strong); border-radius:3px;}
+
+  footer{
+    text-align:center;
+    padding:20px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--text-2);
+    border-top:1px solid var(--line);
+  }
+  footer a{color:var(--cyan); text-decoration:none;}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
-  <div class="logo">
-    ✈ AVIATOR
-    <span>FUJI TESTNET · AVAX CRASH GAME</span>
+  <div class="brand">
+    <div class="brand-mark">A</div>
+    <div class="brand-text">
+      <h1>Aviator</h1>
+      <p>Fuji Testnet · On-chain crash game</p>
+    </div>
   </div>
-  <div class="header-right">
-    <div id="networkBadge" class="pill" style="display:none;"></div>
-    <button class="pill" id="walletBtn" onclick="openWalletModal()">Connect Wallet</button>
-    <button class="pill" onclick="showTempWalletModal()" title="Create test wallet">+ Test Wallet</button>
+  <div class="wallet-area">
+    <div class="pill" id="networkPill"><span class="dot"></span><span id="networkLabel">Not connected</span></div>
+    <div class="pill" id="balancePill" style="display:none;"><span id="balanceLabel">0 AVAX</span></div>
+    <button class="btn-ghost" id="tempWalletBtn">Use test wallet</button>
+    <button class="btn-primary" id="connectBtn">Connect wallet</button>
   </div>
 </header>
 
-<!-- MAIN APP -->
-<div class="app">
-  <div class="main">
+<div class="layout">
 
-    <!-- FLIGHT STAGE -->
-    <div class="flight-stage" id="flightStage">
-      <div class="stage-sky" id="stageSky">
-        <div class="stars" id="starsLayer"></div>
+  <!-- ───────── GAME PANEL ───────── -->
+  <div class="game-panel">
+    <div class="sky" id="sky">
+      <svg class="grid-lines" id="gridLines" viewBox="0 0 700 394" preserveAspectRatio="none"></svg>
+      <div class="stars" id="stars"></div>
+
+      <svg id="pathSvg" viewBox="0 0 700 394" preserveAspectRatio="none" style="position:absolute; inset:0;">
+        <path class="flight-area" id="flightArea" d=""></path>
+        <path class="flight-path" id="flightPath" d=""></path>
+      </svg>
+
+      <div class="plane" id="plane">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <g id="planeGroup">
+            <path d="M50 8 L58 40 L92 58 L60 62 L58 78 L70 88 L52 84 L50 92 L48 84 L30 88 L42 78 L40 62 L8 58 L42 40 Z"
+                  fill="#f5a623" stroke="#7a5414" stroke-width="1.5"/>
+            <circle cx="50" cy="44" r="6" fill="#4ee1ff" opacity="0.9"/>
+          </g>
+        </svg>
       </div>
-      <div class="ground"><div class="ground-grid"></div></div>
 
-      <div class="round-badge" id="roundBadge">ROUND #—</div>
-
-      <div class="status-bar">
-        <div class="status-dot" id="statusDot"></div>
-        <span id="statusLabel" style="font-family:var(--mono);font-size:.62rem;color:var(--muted);">IDLE</span>
+      <div class="explosion" id="explosion">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="20" fill="#ff4757" opacity="0.85"/>
+          <circle cx="50" cy="50" r="35" fill="#ff4757" opacity="0.35"/>
+          <circle cx="50" cy="50" r="48" fill="#ff4757" opacity="0.12"/>
+        </svg>
       </div>
 
       <div class="multiplier-display">
-        <div class="mult-value waiting" id="multValue">—</div>
-        <div class="mult-label" id="multLabel">WAITING</div>
+        <div class="num" id="multNum">1.00x</div>
+        <div class="label" id="multLabel">Waiting for round</div>
       </div>
 
-      <div class="plane" id="plane" style="bottom:60px;left:60px;">✈</div>
-    </div>
-
-    <!-- HISTORY -->
-    <div class="panel">
-      <div class="panel-title">Recent Crashes</div>
-      <div class="history-row" id="historyRow">
-        <span style="font-size:.72rem;color:var(--muted);font-family:var(--mono);">No history yet</span>
+      <div class="phase-banner">
+        <div class="phase-tag betting" id="phaseTag">Loading…</div>
+        <div class="countdown" id="countdownTag">--</div>
       </div>
     </div>
 
-    <!-- BET PANEL -->
-    <div class="panel">
-      <div class="panel-title">Place Bet</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>BET AMOUNT (AVAX)</label>
-          <input class="form-input" id="betAmount" type="number" step="0.01" min="0.01" placeholder="0.10">
-          <div class="quick-btns">
-            <button class="qbtn" onclick="setAmount(.01)">0.01</button>
-            <button class="qbtn" onclick="setAmount(.05)">0.05</button>
-            <button class="qbtn" onclick="setAmount(.1)">0.1</button>
-            <button class="qbtn" onclick="setAmount(.5)">0.5</button>
-            <button class="qbtn" onclick="setAmount(1)">1</button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>TARGET CASHOUT (×)</label>
-          <input class="form-input" id="targetMult" type="number" step="0.01" min="1.01" placeholder="2.00">
-          <div class="quick-btns">
-            <button class="qbtn" onclick="setTarget(1.5)">1.5×</button>
-            <button class="qbtn" onclick="setTarget(2)">2×</button>
-            <button class="qbtn" onclick="setTarget(5)">5×</button>
-            <button class="qbtn" onclick="setTarget(10)">10×</button>
-          </div>
-        </div>
+    <div class="round-strip">
+      <div class="meta-card">
+        <div class="k">Round</div>
+        <div class="v" id="roundId">—</div>
       </div>
-
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-family:var(--mono);font-size:.7rem;color:var(--textdim);">Potential win:</span>
-        <span style="font-family:var(--mono);font-size:.85rem;color:var(--win);" id="potentialWin">— AVAX</span>
+      <div class="meta-card">
+        <div class="k">Total wagered</div>
+        <div class="v" id="totalWagered">—</div>
       </div>
-
-      <button class="btn btn-primary" id="placeBetBtn" onclick="placeBet()" disabled>
-        Place Bet
-      </button>
-    </div>
-
-    <!-- CLAIM WINNINGS -->
-    <div class="panel">
-      <div class="panel-title">Winnings</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div>
-          <div style="font-size:.7rem;color:var(--textdim);margin-bottom:3px;">Claimable Balance</div>
-          <div style="font-family:var(--mono);font-size:1.4rem;color:var(--win);" id="vaultBalance">0.000 AVAX</div>
-        </div>
-        <button class="btn btn-win" style="width:auto;padding:11px 22px;" onclick="claimWinnings()" id="claimBtn">
-          Claim
-        </button>
+      <div class="meta-card">
+        <div class="k">Bets placed</div>
+        <div class="v" id="betsCount">—</div>
+      </div>
+      <div class="meta-card">
+        <div class="k">Fairness</div>
+        <div class="v mono" id="committedHash">—</div>
       </div>
     </div>
 
+    <div class="history" id="history"></div>
+
+    <div class="log-section">
+      <h2>Activity log</h2>
+      <div class="log-box scroll-hide" id="log"></div>
+    </div>
   </div>
 
-  <!-- SIDEBAR -->
+  <!-- ───────── SIDEBAR ───────── -->
   <div class="sidebar">
 
-    <!-- WALLET INFO -->
-    <div>
-      <div class="section-title">Wallet</div>
-      <div class="wallet-card" id="walletCard">
-        <div style="font-size:.75rem;color:var(--muted);font-family:var(--mono);">Not connected</div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- CONTRACT INFO -->
-    <div>
-      <div class="section-title">Contract</div>
-      <div class="wallet-card">
-        <div style="font-size:.62rem;color:var(--textdim);margin-bottom:4px;font-family:var(--mono);">ADDRESS</div>
-        <div style="font-family:var(--mono);font-size:.65rem;color:var(--sky);word-break:break-all;margin-bottom:10px;">0x11a58fdDd2641b0C40fe771592DCe4fdB1eC88e9</div>
-        <div class="balance-row">
-          <span class="balance-label">CONTRACT BALANCE</span>
-          <span class="balance-val" id="contractBal">—</span>
-        </div>
-        <div class="balance-row">
-          <span class="balance-label">CURRENT ROUND</span>
-          <span class="balance-val" id="sideRound">—</span>
-        </div>
-        <div class="balance-row">
-          <span class="balance-label">ROUND OPEN</span>
-          <span class="balance-val" id="sideOpen">—</span>
-        </div>
-        <div class="balance-row">
-          <span class="balance-label">MIN BET</span>
-          <span class="balance-val" id="sideMin">—</span>
-        </div>
-        <div class="balance-row">
-          <span class="balance-label">MAX BET</span>
-          <span class="balance-val" id="sideMax">—</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- ROUND BETS -->
-    <div style="flex:1;">
-      <div class="section-title">Current Round Bets <span id="betCount" style="color:var(--sky);">0</span></div>
-      <div class="bets-list" id="betsList">
-        <div style="font-size:.7rem;color:var(--muted);font-family:var(--mono);">No bets yet</div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- OPERATOR PANEL -->
-    <div id="operatorPanel" style="display:none;">
-      <div class="section-title">⚙ Operator Controls</div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:.65rem;color:var(--textdim);font-family:var(--mono);display:block;margin-bottom:5px;">CRASH MULTIPLIER</label>
-        <input class="form-input" id="crashMult" type="number" step="0.01" min="1.00" placeholder="2.45" style="margin-bottom:8px;">
-      </div>
-      <div class="op-btn">
-        <button class="btn btn-outline" onclick="closeRoundForBets()" style="min-width:unset;flex:1;">Close Bets</button>
-        <button class="btn btn-primary" onclick="settleRound()" style="min-width:unset;flex:1;">Settle Round</button>
-      </div>
+    <div class="temp-banner" id="tempBanner" style="display:none;">
+      <b>Test wallet active.</b> A fresh wallet was generated in your browser for quick testing.
+      It has <b>0 AVAX</b> — fund it from the Fuji faucet to play. Private key stays only in this tab and is lost on refresh.
       <div style="margin-top:8px;">
-        <button class="btn btn-sky" onclick="depositLiquidity()" style="font-size:.72rem;padding:9px;">+ Deposit Liquidity</button>
+        Address: <code id="tempAddr">—</code>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn-ghost" id="faucetBtn" style="padding:6px 10px; font-size:11px;">Open Fuji faucet</button>
+        <button class="btn-ghost" id="exportKeyBtn" style="padding:6px 10px; font-size:11px;">Export private key</button>
       </div>
     </div>
 
-    <div class="divider" id="opDivider" style="display:none;"></div>
+    <div class="card">
+      <h3>Place bet <span style="font-size:10px; color:var(--text-2);" id="phaseHint"></span></h3>
+      <div class="field">
+        <label for="betAmount">Bet amount (AVAX)</label>
+        <input type="number" id="betAmount" placeholder="0.01" step="0.001" min="0" />
+        <div class="quick-row">
+          <button data-amt="0.005">0.005</button>
+          <button data-amt="0.01">0.01</button>
+          <button data-amt="0.05">0.05</button>
+          <button data-amt="0.1">0.1</button>
+        </div>
+        <div class="hint" id="betLimitHint">Min — / Max —</div>
+      </div>
+      <div class="field">
+        <label for="targetMult">Cash-out target (×)</label>
+        <input type="number" id="targetMult" placeholder="2.00" step="0.01" min="1.01" max="100" value="2.00" />
+        <div class="quick-row">
+          <button data-mult="1.5">1.5x</button>
+          <button data-mult="2">2x</button>
+          <button data-mult="5">5x</button>
+          <button data-mult="10">10x</button>
+        </div>
+      </div>
+      <div class="payout-preview">
+        <span>Potential payout</span>
+        <span id="payoutPreview">0.000 AVAX</span>
+      </div>
+      <button class="btn-primary full-btn" id="placeBetBtn" style="margin-top:14px;">Connect wallet to play</button>
+      <div class="status-msg" id="betStatus"></div>
 
-    <!-- REFRESH -->
-    <button class="btn btn-outline" onclick="refreshAll()" style="padding:9px;font-size:.72rem;">↻ Refresh Data</button>
+      <div id="myBetBox"></div>
+    </div>
+
+    <div class="card">
+      <h3>Round controls</h3>
+      <p style="font-size:12px; color:var(--text-1); line-height:1.6; margin-bottom:12px;">
+        Rounds advance automatically, but every step is permissionless — anyone can trigger it
+        for a small AVAX reward.
+      </p>
+      <button class="btn-ghost full-btn" id="advanceBtn" style="margin-bottom:8px;">Waiting…</button>
+      <div class="status-msg" id="advanceStatus"></div>
+    </div>
+
+    <div class="card">
+      <h3>Your vault</h3>
+      <div class="vault-row"><span class="k">Claimable</span><span class="v gold" id="vaultAmount">— AVAX</span></div>
+      <div class="vault-row"><span class="k">Lifetime wagered</span><span class="v" id="lifetimeWagered" style="font-size:13px;">—</span></div>
+      <div class="vault-row"><span class="k">Lifetime won</span><span class="v" id="lifetimeWon" style="font-size:13px;">—</span></div>
+      <div class="vault-row"><span class="k">Rounds played</span><span class="v" id="roundsPlayed" style="font-size:13px;">—</span></div>
+      <button class="btn-primary full-btn" id="claimBtn" style="margin-top:12px;">Claim winnings</button>
+      <div class="status-msg" id="claimStatus"></div>
+    </div>
+
+    <div class="card">
+      <h3>Verify fairness</h3>
+      <p style="font-size:12px; color:var(--text-1); line-height:1.6; margin-bottom:10px;">
+        Crash multipliers are committed on-chain before reveal. Check the last settled round's seed
+        against its committed hash.
+      </p>
+      <button class="btn-ghost full-btn" id="verifyBtn">Verify last round</button>
+      <div class="status-msg" id="verifyStatus"></div>
+    </div>
 
   </div>
 </div>
 
-<!-- TOAST -->
-<div id="toast"></div>
+<footer>
+  Contract <a href="https://testnet.snowtrace.io/address/0x035d248bacE4e34aABFE3373D2451b6c19CCAa94" target="_blank" rel="noopener">0x035d...Aa94</a>
+  on Avalanche Fuji Testnet · This is a testnet game using AVAX with no real-world value.
+</footer>
 
-<!-- WALLET MODAL -->
-<div class="modal-bg" id="walletModal">
+<!-- ───────── EXPORT KEY MODAL ───────── -->
+<div class="modal-overlay" id="exportModal">
   <div class="modal">
-    <div class="modal-title">Connect Wallet</div>
-    <div class="modal-sub">Choose how to connect to Aviator on Fuji Testnet.</div>
-
-    <div class="modal-section">
-      <h4>Browser Wallet</h4>
-      <button class="btn btn-sky" onclick="connectMetaMask()" style="margin-bottom:8px;">🦊 Connect MetaMask / Rabby</button>
-      <button class="btn btn-outline" onclick="connectMetaMask()" style="font-size:.78rem;padding:10px;">🔐 WalletConnect (via MetaMask)</button>
-    </div>
-
-    <div class="modal-section">
-      <h4>Import Private Key</h4>
-      <input class="form-input" id="importKey" placeholder="0x... private key" style="margin-bottom:8px;" type="password">
-      <button class="btn btn-primary" onclick="importPrivateKey()">Import & Connect</button>
-    </div>
-
-    <div class="modal-btns" style="margin-top:14px;">
-      <button class="btn btn-outline" onclick="closeModal('walletModal')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- TEMP WALLET MODAL -->
-<div class="modal-bg" id="tempWalletModal">
-  <div class="modal">
-    <div class="modal-title">Test Wallet</div>
-    <div class="modal-sub">Create a temporary browser wallet for testing. No extension needed.</div>
-
-    <div class="warning-box">
-      ⚠ This wallet is stored only in your browser session. Never use real funds. Back up the private key if you want to reuse it.
-    </div>
-
-    <div id="tempWalletInfo" style="display:none;">
-      <div class="modal-section">
-        <h4>Address</h4>
-        <div class="key-box" id="tempAddr"></div>
-      </div>
-      <div class="modal-section">
-        <h4>Private Key (keep secret)</h4>
-        <div class="key-box" id="tempKey" style="cursor:pointer;" onclick="copyTempKey()" title="Click to copy"></div>
-        <div style="font-size:.65rem;color:var(--muted);margin-top:4px;">Click to copy · Fund this address on <a href="https://faucet.avax.network/" target="_blank" style="color:var(--sky);">AVAX Faucet</a></div>
-      </div>
-    </div>
-
-    <div class="modal-btns">
-      <button class="btn btn-primary" onclick="createTempWallet()">Generate New Wallet</button>
-      <button class="btn btn-win" id="useTempBtn" onclick="useTempWallet()" style="display:none;">Use This Wallet</button>
-      <button class="btn btn-outline" onclick="closeModal('tempWalletModal')">Close</button>
+    <h3>Test wallet private key</h3>
+    <p>This key only exists in your browser tab. Save it if you want to reuse this wallet —
+    refreshing the page will lose it permanently. Never use this wallet for real funds.</p>
+    <div style="background:var(--bg-0); border:1px solid var(--line-strong); border-radius:8px; padding:10px; font-family:var(--font-mono); font-size:11px; word-break:break-all; color:var(--cyan);" id="exportKeyText"></div>
+    <div class="row">
+      <button class="btn-ghost" id="copyKeyBtn">Copy key</button>
+      <button class="btn-primary" id="closeExportBtn">Done</button>
     </div>
   </div>
 </div>
 
 <script>
-// ── CONTRACT ──────────────────────────────────────────────
-const CONTRACT_ADDRESS = "0x11a58fdDd2641b0C40fe771592DCe4fdB1eC88e9";
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const CONTRACT_ADDRESS = "0x035d248bacE4e34aABFE3373D2451b6c19CCAa94";
 const FUJI_CHAIN_ID = 43113;
+const FUJI_CHAIN_ID_HEX = "0xa869";
 const FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
+const FAUCET_URL = "https://core.app/tools/testnet-faucet/?subnet=c&token=c";
 
 const ABI = [
+  "function placeBet(uint32 _targetMultiplier) external payable",
+  "function triggerFlight() external",
+  "function settleRound() external",
+  "function openNextRound() external",
+  "function claimWinnings() external",
   "function currentRoundId() view returns (uint256)",
-  "function isRoundOpen() view returns (bool)",
-  "function gameOperator() view returns (address)",
+  "function getCurrentRound() view returns (tuple(uint256 roundId, uint8 phase, uint256 betWindowStart, uint256 flightStart, uint256 flightDuration, uint256 settledAt, uint32 crashMultiplier, bytes32 committedHash, bytes32 crashSeed, uint256 totalBetsAmount, uint256 totalPayout, uint256 treasuryFee, bool settled))",
+  "function bettingTimeLeft() view returns (uint256)",
+  "function flightTimeLeft() view returns (uint256)",
+  "function cooldownTimeLeft() view returns (uint256)",
+  "function getRoundBets(uint256) view returns (tuple(address player, uint256 amount, uint32 targetMultiplier, bool resolved, bool won, uint256 payout)[])",
+  "function getRecentRounds(uint256 count) view returns (tuple(uint256 roundId, uint8 phase, uint256 betWindowStart, uint256 flightStart, uint256 flightDuration, uint256 settledAt, uint32 crashMultiplier, bytes32 committedHash, bytes32 crashSeed, uint256 totalBetsAmount, uint256 totalPayout, uint256 treasuryFee, bool settled)[])",
+  "function canBet(address player) view returns (bool, string)",
+  "function effectiveMaxBet() view returns (uint256)",
   "function minBetAmount() view returns (uint256)",
-  "function maxBetAmount() view returns (uint256)",
-  "function playerVault(address) view returns (uint256)",
-  "function rounds(uint256) view returns (uint256 roundId, uint32 crashMultiplier, bool settled, uint256 totalBetsAmount)",
-  "function getRoundBets(uint256) view returns (tuple(address player, uint256 amount, uint32 targetMultiplier, bool resolved, bool won)[])",
-  "function placeBet(uint32 targetMultiplier) payable",
-  "function settleAndStartNextRound(uint32 crashMultiplier)",
-  "function claimWinnings()",
-  "function closeRoundForBets()",
-  "function depositLiquidity() payable",
-  "function withdrawLiquidity(uint256 amount)",
-  "function setOperator(address newOperator)",
-  "function setBetLimits(uint256 min, uint256 max)",
-  "event RoundStarted(uint256 indexed roundId)",
-  "event BetPlaced(address indexed player, uint256 indexed roundId, uint256 amount, uint32 targetMultiplier)",
-  "event RoundSettled(uint256 indexed roundId, uint32 crashMultiplier, uint256 totalPayout)",
-  "event WinningsClaimed(address indexed player, uint256 amount)"
+  "function getPlayerStats(address player) view returns (uint256 vault, uint256 totalWon, uint256 totalWagered, uint256 roundsPlayed)",
+  "function hasBetThisRound(address, uint256) view returns (bool)",
+  "function verifyRound(uint256 _roundId) view returns (bool valid, bytes32 expectedHash, bytes32 committedHash_)",
+  "function playerVault(address) view returns (uint256)"
 ];
 
-// ── STATE ─────────────────────────────────────────────────
-let provider = null;
-let signer = null;
-let contract = null;
-let readContract = null;
+const PHASE_NAMES = ["Betting", "Flying", "Settling", "Cooldown"];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let provider = null;       // read-only or browser provider
+let signer = null;         // signer (injected wallet or temp wallet)
+let contract = null;       // contract with signer (if available)
+let readContract = null;   // contract with read-only provider
 let userAddress = null;
-let isOperator = false;
-let tempWallet = null;
-let crashHistory = [];
-let planeAnim = null;
-let planeX = 60, planeY = 60;
-let currentMult = 1.0;
-let gamePhase = "waiting"; // waiting | flying | crashed
+let isTempWallet = false;
+let tempWalletInstance = null;
 
-// ── INIT ──────────────────────────────────────────────────
-window.addEventListener('load', () => {
-  generateStars();
-  initReadContract();
-  updatePotentialWin();
-  document.getElementById('betAmount').addEventListener('input', updatePotentialWin);
-  document.getElementById('targetMult').addEventListener('input', updatePotentialWin);
-  setInterval(refreshAll, 10000);
-});
+let currentRound = null;
+let myBet = null;          // bet data for current round, if any
+let animFrame = null;
+let animStart = null;
+let lastPhase = null;
+let crashHandled = false;
 
-function initReadContract() {
-  const readProvider = new ethers.JsonRpcProvider(FUJI_RPC);
-  readContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, readProvider);
-  refreshAll();
+/* read-only provider always available so the UI works before connect */
+const readProvider = new ethers.providers.JsonRpcProvider(FUJI_RPC);
+readContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, readProvider);
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+function fmtAvax(wei, decimals=4){
+  if (wei === undefined || wei === null) return "—";
+  return parseFloat(ethers.utils.formatEther(wei)).toFixed(decimals);
+}
+function multFromRaw(raw){
+  return (Number(raw) / 100);
+}
+function shortAddr(addr){
+  return addr.slice(0,6) + "…" + addr.slice(-4);
+}
+function log(msg, cls=""){
+  const box = document.getElementById("log");
+  const row = document.createElement("div");
+  row.className = "log-row " + cls;
+  const time = new Date().toLocaleTimeString();
+  row.innerHTML = `<span>${msg}</span><span class="t">${time}</span>`;
+  box.prepend(row);
+  while (box.children.length > 50) box.removeChild(box.lastChild);
+}
+function setStatus(el, msg, type){
+  el.textContent = msg;
+  el.className = "status-msg show " + type;
+  if (!msg) el.classList.remove("show");
 }
 
-// ── STARS ─────────────────────────────────────────────────
-function generateStars() {
-  const layer = document.getElementById('starsLayer');
-  for (let i = 0; i < 60; i++) {
-    const s = document.createElement('div');
-    s.className = 'star';
-    const size = Math.random() * 2 + 1;
-    s.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*85}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*3}s;`;
-    layer.appendChild(s);
+/* ============================================================
+   STARFIELD + GRID
+   ============================================================ */
+function buildStars(){
+  const container = document.getElementById("stars");
+  for (let i=0; i<60; i++){
+    const s = document.createElement("div");
+    s.className = "star";
+    s.style.left = Math.random()*100 + "%";
+    s.style.top = Math.random()*70 + "%";
+    s.style.animationDelay = (Math.random()*3) + "s";
+    s.style.width = s.style.height = (Math.random()*2 + 1) + "px";
+    container.appendChild(s);
   }
 }
+function buildGrid(){
+  const svg = document.getElementById("gridLines");
+  let html = "";
+  // horizontal lines = multiplier levels
+  const levels = [1, 2, 5, 10, 25, 50];
+  levels.forEach((lvl, i) => {
+    const y = 394 - (i * 60 + 30);
+    html += `<line x1="0" y1="${y}" x2="700" y2="${y}" stroke-dasharray="3,5"/>`;
+    html += `<text x="8" y="${y-4}">${lvl}x</text>`;
+  });
+  svg.innerHTML = html;
+}
+buildStars();
+buildGrid();
 
-// ── WALLET CONNECT ────────────────────────────────────────
-function openWalletModal() { openModal('walletModal'); }
-
-async function connectMetaMask() {
-  if (!window.ethereum) { showToast("No wallet detected. Install MetaMask.", "err"); return; }
-  try {
-    await window.ethereum.request({ method: 'eth_requestAccounts' });
-    const p = new ethers.BrowserProvider(window.ethereum);
-    const network = await p.getNetwork();
-    if (Number(network.chainId) !== FUJI_CHAIN_ID) {
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0xA869' }]
-        });
-      } catch {
-        await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
+/* ============================================================
+   WALLET CONNECTION — INJECTED (MetaMask / Core etc.)
+   ============================================================ */
+async function ensureFujiNetwork(eth){
+  const chainId = await eth.request({ method: "eth_chainId" });
+  if (chainId !== FUJI_CHAIN_ID_HEX){
+    try {
+      await eth.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: FUJI_CHAIN_ID_HEX }]
+      });
+    } catch (switchErr){
+      if (switchErr.code === 4902){
+        await eth.request({
+          method: "wallet_addEthereumChain",
           params: [{
-            chainId: '0xA869',
-            chainName: 'Avalanche Fuji Testnet',
-            nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+            chainId: FUJI_CHAIN_ID_HEX,
+            chainName: "Avalanche Fuji Testnet",
+            nativeCurrency: { name: "AVAX", symbol: "AVAX", decimals: 18 },
             rpcUrls: [FUJI_RPC],
-            blockExplorerUrls: ['https://testnet.snowtrace.io/']
+            blockExplorerUrls: ["https://testnet.snowtrace.io/"]
           }]
         });
+      } else {
+        throw switchErr;
       }
     }
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
+  }
+}
+
+async function connectInjectedWallet(){
+  if (!window.ethereum){
+    setStatus(document.getElementById("betStatus"), "No browser wallet found. Install MetaMask/Core, or use the test wallet instead.", "error");
+    return;
+  }
+  try {
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    await ensureFujiNetwork(window.ethereum);
+
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer = provider.getSigner();
     userAddress = await signer.getAddress();
     contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    await onWalletConnected();
-    closeModal('walletModal');
-  } catch (e) {
-    showToast("Connection failed: " + e.message, "err");
+    isTempWallet = false;
+
+    document.getElementById("tempBanner").style.display = "none";
+    onWalletConnected();
+
+    window.ethereum.removeAllListeners?.("accountsChanged");
+    window.ethereum.on?.("accountsChanged", () => window.location.reload());
+    window.ethereum.on?.("chainChanged", () => window.location.reload());
+
+  } catch (err){
+    console.error(err);
+    setStatus(document.getElementById("betStatus"), "Connection failed: " + (err.message || err), "error");
   }
 }
 
-async function importPrivateKey() {
-  const key = document.getElementById('importKey').value.trim();
-  if (!key) { showToast("Enter a private key", "err"); return; }
-  try {
-    const p = new ethers.JsonRpcProvider(FUJI_RPC);
-    const w = new ethers.Wallet(key, p);
-    provider = p;
-    signer = w;
-    userAddress = w.address;
-    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    await onWalletConnected();
-    closeModal('walletModal');
-    showToast("Wallet imported: " + shortAddr(userAddress), "info");
-  } catch (e) {
-    showToast("Invalid private key", "err");
-  }
-}
+/* ============================================================
+   TEMP BROWSER WALLET
+   ============================================================ */
+function createTempWallet(){
+  const wallet = ethers.Wallet.createRandom();
+  tempWalletInstance = wallet.connect(readProvider);
 
-async function useTempWallet() {
-  if (!tempWallet) return;
-  const p = new ethers.JsonRpcProvider(FUJI_RPC);
-  const w = tempWallet.connect(p);
-  provider = p;
-  signer = w;
-  userAddress = w.address;
+  provider = readProvider;
+  signer = tempWalletInstance;
+  userAddress = wallet.address;
   contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-  await onWalletConnected();
-  closeModal('tempWalletModal');
-  showToast("Test wallet active!", "info");
+  isTempWallet = true;
+
+  document.getElementById("tempAddr").textContent = userAddress;
+  document.getElementById("tempBanner").style.display = "block";
+
+  onWalletConnected();
+  log("Generated temporary test wallet " + shortAddr(userAddress), "");
 }
 
-async function onWalletConnected() {
-  document.getElementById('walletBtn').textContent = shortAddr(userAddress);
-  document.getElementById('walletBtn').classList.add('connected');
-  document.getElementById('networkBadge').textContent = "FUJI";
-  document.getElementById('networkBadge').style.display = '';
-  document.getElementById('placeBetBtn').disabled = false;
-  await checkOperator();
-  await refreshAll();
-  showToast("Connected: " + shortAddr(userAddress), "win");
+/* ============================================================
+   SHARED — AFTER CONNECT
+   ============================================================ */
+async function onWalletConnected(){
+  document.getElementById("connectBtn").textContent = shortAddr(userAddress);
+  document.getElementById("connectBtn").classList.remove("btn-primary");
+  document.getElementById("connectBtn").classList.add("btn-ghost");
+  document.getElementById("tempWalletBtn").style.display = isTempWallet ? "inline-block" : "none";
+
+  const net = isTempWallet ? "Test wallet · Fuji" : "Connected · Fuji";
+  document.getElementById("networkLabel").textContent = net;
+  document.getElementById("networkPill").classList.add("live");
+
+  document.getElementById("balancePill").style.display = "flex";
+  document.getElementById("placeBetBtn").disabled = false;
+  document.getElementById("placeBetBtn").textContent = "Place bet";
+
+  await refreshBalance();
+  await refreshPlayerStats();
+  startBalancePolling();
 }
 
-async function checkOperator() {
+async function refreshBalance(){
+  if (!userAddress) return;
   try {
-    const op = await readContract.gameOperator();
-    const owner = await readContract.owner?.().catch(() => null);
-    isOperator = userAddress.toLowerCase() === op.toLowerCase() || (owner && userAddress.toLowerCase() === owner.toLowerCase());
-    document.getElementById('operatorPanel').style.display = isOperator ? '' : 'none';
-    document.getElementById('opDivider').style.display = isOperator ? '' : 'none';
-  } catch {}
+    const bal = await readProvider.getBalance(userAddress);
+    document.getElementById("balanceLabel").textContent = fmtAvax(bal, 4) + " AVAX";
+  } catch(e){ /* ignore */ }
+}
+let balanceInterval = null;
+function startBalancePolling(){
+  if (balanceInterval) clearInterval(balanceInterval);
+  balanceInterval = setInterval(refreshBalance, 8000);
 }
 
-// ── TEMP WALLET ───────────────────────────────────────────
-function showTempWalletModal() { openModal('tempWalletModal'); }
-
-function createTempWallet() {
-  tempWallet = ethers.Wallet.createRandom();
-  document.getElementById('tempAddr').textContent = tempWallet.address;
-  document.getElementById('tempKey').textContent = tempWallet.privateKey;
-  document.getElementById('tempWalletInfo').style.display = '';
-  document.getElementById('useTempBtn').style.display = '';
-}
-
-function copyTempKey() {
-  if (!tempWallet) return;
-  navigator.clipboard.writeText(tempWallet.privateKey);
-  showToast("Private key copied!", "info");
-}
-
-// ── CONTRACT READS ────────────────────────────────────────
-async function refreshAll() {
+async function refreshPlayerStats(){
+  if (!userAddress) return;
   try {
-    const [roundId, isOpen, minBet, maxBet] = await Promise.all([
-      readContract.currentRoundId(),
-      readContract.isRoundOpen(),
-      readContract.minBetAmount(),
-      readContract.maxBetAmount()
-    ]);
+    const stats = await readContract.getPlayerStats(userAddress);
+    document.getElementById("vaultAmount").textContent = fmtAvax(stats.vault, 4) + " AVAX";
+    document.getElementById("lifetimeWagered").textContent = fmtAvax(stats.totalWagered, 3) + " AVAX";
+    document.getElementById("lifetimeWon").textContent = fmtAvax(stats.totalWon, 3) + " AVAX";
+    document.getElementById("roundsPlayed").textContent = stats.roundsPlayed.toString();
+    document.getElementById("claimBtn").disabled = stats.vault.isZero();
+  } catch(e){ console.error(e); }
+}
 
-    const rid = Number(roundId);
-    const open = Boolean(isOpen);
+/* ============================================================
+   ROUND DATA POLLING
+   ============================================================ */
+async function refreshRoundData(){
+  try {
+    const r = await readContract.getCurrentRound();
+    const phaseChanged = !currentRound || currentRound.phase !== r.phase || currentRound.roundId.toString() !== r.roundId.toString();
+    currentRound = r;
 
-    document.getElementById('roundBadge').textContent = `ROUND #${rid}`;
-    document.getElementById('sideRound').textContent = `#${rid}`;
-    document.getElementById('sideOpen').textContent = open ? '✓ OPEN' : '✗ CLOSED';
-    document.getElementById('sideOpen').style.color = open ? 'var(--win)' : 'var(--accent)';
-    document.getElementById('sideMin').textContent = parseFloat(ethers.formatEther(minBet)).toFixed(3) + ' AVAX';
-    document.getElementById('sideMax').textContent = parseFloat(ethers.formatEther(maxBet)).toFixed(1) + ' AVAX';
-
-    // Contract balance
-    const readProvider = new ethers.JsonRpcProvider(FUJI_RPC);
-    const bal = await readProvider.getBalance(CONTRACT_ADDRESS);
-    document.getElementById('contractBal').textContent = parseFloat(ethers.formatEther(bal)).toFixed(4) + ' AVAX';
-
-    // Round info
-    const round = await readContract.rounds(rid);
-    const settled = round.settled;
-
-    if (!open && !settled) {
-      setGamePhase("waiting");
-    } else if (open && !settled) {
-      setGamePhase("flying");
+    if (phaseChanged){
+      onPhaseChange(r);
     }
 
-    // Bets
-    const bets = await readContract.getRoundBets(rid);
-    renderBets(bets, settled, Number(round.crashMultiplier));
+    updateMetaPanel(r);
+    updateBetLimits();
 
-    // Round history — load previous
-    if (rid > 1 && crashHistory.length < 10) {
-      for (let i = Math.max(1, rid - 1); i < rid && crashHistory.length < 10; i++) {
-        try {
-          const r = await readContract.rounds(i);
-          if (r.settled && r.crashMultiplier > 0) {
-            const m = Number(r.crashMultiplier) / 100;
-            if (!crashHistory.find(h => h.id === i)) {
-              crashHistory.unshift({ id: i, m });
-            }
-          }
-        } catch {}
+    if (userAddress){
+      try {
+        myBet = null;
+        const has = await readContract.hasBetThisRound(userAddress, r.roundId);
+        if (has){
+          const bets = await readContract.getRoundBets(r.roundId);
+          myBet = bets.find(b => b.player.toLowerCase() === userAddress.toLowerCase());
+        }
+      } catch(e){ /* ignore */ }
+    }
+    renderMyBet(r);
+    updateBettingButtonState(r);
+
+  } catch(e){
+    console.error("refreshRoundData error", e);
+    document.getElementById("networkLabel").textContent = "RPC error — retrying…";
+  }
+}
+
+function onPhaseChange(r){
+  crashHandled = false;
+  const phase = r.phase;
+
+  if (phase === 0){ // BETTING — new round opened
+    document.getElementById("explosion").classList.remove("go");
+    document.getElementById("plane").classList.remove("crashed");
+    resetFlightVisual();
+    if (lastPhase !== null && lastPhase !== 0){
+      loadHistory();
+      refreshPlayerStats();
+    }
+  }
+  if (phase === 1){ // FLYING — animate
+    startFlightAnimation(r);
+  }
+  if (phase === 2){ // SETTLING — show crash result
+    showCrashResult(r);
+  }
+  lastPhase = phase;
+}
+
+/* ============================================================
+   META / UI UPDATES
+   ============================================================ */
+function updateMetaPanel(r){
+  document.getElementById("roundId").textContent = "#" + r.roundId.toString();
+  document.getElementById("totalWagered").textContent = fmtAvax(r.totalBetsAmount, 3) + " AVAX";
+
+  const phaseTag = document.getElementById("phaseTag");
+  const phaseName = PHASE_NAMES[r.phase] || "—";
+  phaseTag.textContent = phaseName;
+  phaseTag.className = "phase-tag " + ["betting","flying","settling","cooldown"][r.phase];
+
+  document.getElementById("phaseHint").textContent =
+    r.phase === 0 ? "· Betting open" : r.phase === 1 ? "· In flight" : "· Round settling";
+
+  // committed hash (short)
+  const hash = r.committedHash;
+  document.getElementById("committedHash").textContent =
+    hash && hash !== "0x" + "0".repeat(64) ? hash.slice(0,8) + "…" + hash.slice(-6) : "—";
+
+  // bets count
+  readContract.getRoundBets(r.roundId).then(bets => {
+    document.getElementById("betsCount").textContent = bets.length + " / 50";
+  }).catch(()=>{});
+
+  updateCountdown(r);
+}
+
+let countdownInterval = null;
+function updateCountdown(r){
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(async () => {
+    try {
+      let label = "--";
+      if (r.phase === 0){
+        const left = await readContract.bettingTimeLeft();
+        const n = Number(left);
+        label = n > 0 ? n + "s" : "Locking…";
+        if (n === 0){ refreshRoundData(); }
+      } else if (r.phase === 1){
+        const left = await readContract.flightTimeLeft();
+        const n = Number(left);
+        label = n > 0 ? n + "s" : "Crashing…";
+        if (n === 0){ refreshRoundData(); }
+      } else if (r.phase === 2){
+        const left = await readContract.cooldownTimeLeft();
+        const n = Number(left);
+        label = n > 0 ? n + "s" : "Opening…";
+        if (n === 0){ refreshRoundData(); }
       }
-      renderHistory();
-    }
+      document.getElementById("countdownTag").textContent = label;
+      updateAdvanceButton(r, label);
+    } catch(e){}
+  }, 1000);
 
-    // User vault
-    if (userAddress) {
-      const vault = await readContract.playerVault(userAddress);
-      document.getElementById('vaultBalance').textContent = parseFloat(ethers.formatEther(vault)).toFixed(4) + ' AVAX';
+  // run immediately too
+  document.getElementById("countdownTag").dispatchEvent(new Event("noop"));
+}
 
-      // User wallet balance
-      const userBal = await readProvider.getBalance(userAddress);
-      updateWalletCard(userAddress, userBal);
-    }
-
-    updateStatus(open, settled);
-
-  } catch (e) {
-    console.warn("Refresh error:", e);
+function updateAdvanceButton(r, label){
+  const btn = document.getElementById("advanceBtn");
+  if (r.phase === 0){
+    btn.textContent = label === "Locking…" ? "Trigger flight" : "Betting in progress…";
+    btn.disabled = label !== "Locking…";
+    btn.dataset.action = "trigger";
+  } else if (r.phase === 1){
+    btn.textContent = label === "Crashing…" ? "Settle round" : "Flight in progress…";
+    btn.disabled = label !== "Crashing…";
+    btn.dataset.action = "settle";
+  } else if (r.phase === 2 || r.phase === 3){
+    btn.textContent = label === "Opening…" ? "Open next round" : "Cooldown…";
+    btn.disabled = label !== "Opening…";
+    btn.dataset.action = "open";
   }
 }
 
-function setGamePhase(phase) {
-  gamePhase = phase;
-  const multEl = document.getElementById('multValue');
-  const labelEl = document.getElementById('multLabel');
-  const plane = document.getElementById('plane');
-
-  if (phase === "waiting") {
-    multEl.className = 'mult-value waiting';
-    multEl.textContent = '—';
-    labelEl.textContent = 'WAITING FOR ROUND';
-    cancelAnimationFrame(planeAnim);
-    plane.style.bottom = '60px';
-    plane.style.left = '60px';
-  } else if (phase === "flying") {
-    multEl.className = 'mult-value flying';
-    labelEl.textContent = 'FLYING ✈';
-    startPlaneAnimation();
-  } else if (phase === "crashed") {
-    multEl.className = 'mult-value crashed';
-    labelEl.textContent = '💥 CRASHED';
-    cancelAnimationFrame(planeAnim);
-  }
+async function updateBetLimits(){
+  try {
+    const min = await readContract.minBetAmount();
+    const max = await readContract.effectiveMaxBet();
+    document.getElementById("betLimitHint").textContent =
+      `Min ${fmtAvax(min,4)} AVAX · Max ${fmtAvax(max,4)} AVAX`;
+  } catch(e){}
 }
 
-function startPlaneAnimation() {
-  const stage = document.getElementById('flightStage');
-  const plane = document.getElementById('plane');
-  const multEl = document.getElementById('multValue');
-  const start = Date.now();
-  currentMult = 1.0;
-
-  function tick() {
-    const elapsed = (Date.now() - start) / 1000;
-    currentMult = 1 + elapsed * 0.3;
-    multEl.textContent = currentMult.toFixed(2) + '×';
-
-    const w = stage.offsetWidth - 80;
-    const h = stage.offsetHeight - 120;
-    const progress = Math.min(elapsed / 15, 1);
-    const x = 60 + progress * w * 0.7;
-    const y = 60 + progress * h * 0.65;
-
-    plane.style.left = x + 'px';
-    plane.style.bottom = (60 + y) + 'px';
-
-    if (gamePhase === "flying") {
-      planeAnim = requestAnimationFrame(tick);
-    }
-  }
-  tick();
-}
-
-function updateStatus(open, settled) {
-  const dot = document.getElementById('statusDot');
-  const label = document.getElementById('statusLabel');
-  dot.className = 'status-dot';
-
-  if (settled && !open) {
-    // old state — shouldn't persist; show open for new round
-    dot.classList.add('open');
-    label.textContent = 'OPEN';
-  } else if (open) {
-    dot.classList.add('open');
-    label.textContent = 'OPEN';
-  } else {
-    dot.classList.add('closed');
-    label.textContent = 'CLOSED';
-  }
-}
-
-function renderBets(bets, settled, crashMult) {
-  const list = document.getElementById('betsList');
-  document.getElementById('betCount').textContent = bets.length;
-
-  if (bets.length === 0) {
-    list.innerHTML = '<div style="font-size:.7rem;color:var(--muted);font-family:var(--mono);">No bets yet</div>';
+function renderMyBet(r){
+  const box = document.getElementById("myBetBox");
+  if (!myBet){
+    box.innerHTML = "";
     return;
   }
-
-  list.innerHTML = bets.map(b => {
-    const amt = parseFloat(ethers.formatEther(b.amount)).toFixed(3);
-    const tgt = (Number(b.targetMultiplier) / 100).toFixed(2);
-    const addr = shortAddr(b.player);
-    let statusClass = 'bet-item-pending';
-    let statusText = `→ ${tgt}×`;
-    if (b.resolved) {
-      if (b.won) { statusClass = 'bet-item-won'; statusText = '✓ WON'; }
-      else { statusClass = 'bet-item-lost'; statusText = '✗ LOST'; }
-    }
-    return `<div class="bet-item">
-      <div class="bet-item-top">
-        <span class="bet-item-addr">${addr}</span>
-        <span class="${statusClass}">${statusText}</span>
-      </div>
-      <div class="bet-item-bottom">
-        <span>${amt} AVAX</span>
-        <span>cashout ${tgt}×</span>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderHistory() {
-  const row = document.getElementById('historyRow');
-  if (crashHistory.length === 0) {
-    row.innerHTML = '<span style="font-size:.72rem;color:var(--muted);font-family:var(--mono);">No history yet</span>';
-    return;
+  let badge = `<span class="badge pending">Pending</span>`;
+  if (myBet.resolved){
+    badge = myBet.won ? `<span class="badge won">Won ${fmtAvax(myBet.payout,4)} AVAX</span>` : `<span class="badge lost">Lost</span>`;
   }
-  row.innerHTML = crashHistory.slice(-12).map(h => {
-    const cls = h.m < 1.5 ? 'low' : h.m < 3 ? 'mid' : 'high';
-    return `<div class="history-pill ${cls}">${h.m.toFixed(2)}×</div>`;
-  }).join('');
-}
-
-function updateWalletCard(addr, bal) {
-  const card = document.getElementById('walletCard');
-  const balStr = parseFloat(ethers.formatEther(bal)).toFixed(4);
-  card.innerHTML = `
-    <div class="wallet-addr">${addr}</div>
-    <div class="balance-row">
-      <span class="balance-label">AVAX BALANCE</span>
-      <span class="balance-val">${balStr} AVAX</span>
+  box.innerHTML = `
+    <div class="my-bet">
+      <span>Your bet: ${fmtAvax(myBet.amount,4)} AVAX @ ${multFromRaw(myBet.targetMultiplier).toFixed(2)}x</span>
+      ${badge}
     </div>
   `;
 }
 
-// ── PLACE BET ─────────────────────────────────────────────
-function setAmount(v) { document.getElementById('betAmount').value = v; updatePotentialWin(); }
-function setTarget(v) { document.getElementById('targetMult').value = v; updatePotentialWin(); }
-
-function updatePotentialWin() {
-  const amt = parseFloat(document.getElementById('betAmount').value) || 0;
-  const tgt = parseFloat(document.getElementById('targetMult').value) || 0;
-  const win = amt * tgt;
-  document.getElementById('potentialWin').textContent = win > 0 ? win.toFixed(4) + ' AVAX' : '— AVAX';
+function updateBettingButtonState(r){
+  const btn = document.getElementById("placeBetBtn");
+  if (!userAddress){
+    btn.textContent = "Connect wallet to play";
+    btn.disabled = true;
+    return;
+  }
+  if (r.phase !== 0){
+    btn.textContent = "Betting closed this round";
+    btn.disabled = true;
+    return;
+  }
+  if (myBet){
+    btn.textContent = "Bet placed — good luck!";
+    btn.disabled = true;
+    return;
+  }
+  btn.textContent = "Place bet";
+  btn.disabled = false;
 }
 
-async function placeBet() {
-  if (!contract) { showToast("Connect wallet first", "err"); return; }
-  const amt = parseFloat(document.getElementById('betAmount').value);
-  const tgt = parseFloat(document.getElementById('targetMult').value);
-  if (!amt || amt <= 0) { showToast("Enter a valid bet amount", "err"); return; }
-  if (!tgt || tgt < 1.01) { showToast("Target must be ≥ 1.01×", "err"); return; }
+/* ============================================================
+   FLIGHT PATH ANIMATION
+   ============================================================ */
+const SKY_W = 700, SKY_H = 394;
+const MARGIN = 40;
 
-  const targetScaled = Math.round(tgt * 100);
+function resetFlightVisual(){
+  document.getElementById("flightPath").setAttribute("d", "");
+  document.getElementById("flightArea").setAttribute("d", "");
+  document.getElementById("multNum").textContent = "1.00x";
+  document.getElementById("multNum").className = "num";
+  document.getElementById("multLabel").textContent = "Betting open — place your bet";
+  const plane = document.getElementById("plane");
+  plane.style.left = MARGIN + "px";
+  plane.style.bottom = MARGIN + "px";
+  plane.style.transform = "rotate(0deg)";
+  plane.style.setProperty("--rot", "0deg");
+}
 
+// curve: multiplier(t) for t in [0,1] -> models exponential-ish growth toward crashMult
+function curveMultiplier(t, crashMult){
+  // ease so it accelerates like the real game
+  const eased = Math.pow(t, 1.6);
+  return 1 + (crashMult - 1) * eased;
+}
+
+function multiplierToXY(mult, crashMult){
+  const maxMult = Math.max(crashMult, 1.01);
+  // x progresses with time fraction (computed by caller), y by multiplier curve
+  const norm = Math.min((mult - 1) / (maxMult - 1 || 1), 1);
+  const x = MARGIN + norm * (SKY_W - MARGIN*2);
+  // y: log-ish scale so big multipliers don't go off-screen instantly
+  const yNorm = Math.log(1 + norm * 9) / Math.log(10); // 0..1 log curve
+  const y = SKY_H - MARGIN - yNorm * (SKY_H - MARGIN*2);
+  return {x, y};
+}
+
+function startFlightAnimation(r){
+  const crashMult = multFromRaw(r.crashMultiplier);
+  const durationMs = Number(r.flightDuration) * 1000;
+  const startTime = Number(r.flightStart) * 1000;
+
+  document.getElementById("multLabel").textContent = "Flying — cash out before crash";
+  document.getElementById("multNum").className = "num";
+
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  function frame(){
+    const now = Date.now();
+    let elapsed = now - startTime;
+    if (elapsed < 0) elapsed = 0;
+    let t = Math.min(elapsed / durationMs, 1);
+
+    const curMult = curveMultiplier(t, crashMult);
+    const {x, y} = multiplierToXY(curMult, crashMult);
+
+    // draw path up to this point
+    drawPathTo(t, crashMult);
+
+    // position plane
+    const plane = document.getElementById("plane");
+    plane.style.left = (x - 32) + "px";
+    plane.style.bottom = (SKY_H - y - 32) + "px";
+
+    // rotation follows trajectory slope
+    const dt = 0.01;
+    const {x: x2, y: y2} = multiplierToXY(curveMultiplier(Math.min(t+dt,1), crashMult), crashMult);
+    const angle = Math.atan2(-(y2-y), (x2-x)) * (180/Math.PI);
+    const rot = Math.max(-35, Math.min(0, -Math.abs(angle)*0.6));
+    plane.style.transform = `rotate(${rot}deg)`;
+    plane.style.setProperty("--rot", rot + "deg");
+
+    document.getElementById("multNum").textContent = curMult.toFixed(2) + "x";
+
+    if (t < 1){
+      animFrame = requestAnimationFrame(frame);
+    }
+  }
+  animFrame = requestAnimationFrame(frame);
+}
+
+function drawPathTo(tEnd, crashMult){
+  const steps = 40;
+  let d = "";
+  let areaD = "";
+  for (let i=0; i<=steps; i++){
+    const t = (tEnd * i) / steps;
+    const m = curveMultiplier(t, crashMult);
+    const {x,y} = multiplierToXY(m, crashMult);
+    if (i===0){ d += `M ${x} ${y}`; areaD += `M ${x} ${SKY_H}  L ${x} ${y}`; }
+    else { d += ` L ${x} ${y}`; areaD += ` L ${x} ${y}`; }
+  }
+  const lastT = tEnd;
+  const lastM = curveMultiplier(lastT, crashMult);
+  const last = multiplierToXY(lastM, crashMult);
+  areaD += ` L ${last.x} ${SKY_H} Z`;
+
+  document.getElementById("flightPath").setAttribute("d", d);
+  document.getElementById("flightArea").setAttribute("d", areaD);
+}
+
+function showCrashResult(r){
+  if (crashHandled) return;
+  crashHandled = true;
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  const crashMult = multFromRaw(r.crashMultiplier);
+  drawPathTo(1, crashMult);
+
+  const {x,y} = multiplierToXY(crashMult, crashMult);
+  const plane = document.getElementById("plane");
+  plane.style.left = (x - 32) + "px";
+  plane.style.bottom = (SKY_H - y - 32) + "px";
+  plane.classList.add("crashed");
+
+  const explosion = document.getElementById("explosion");
+  explosion.style.left = x + "px";
+  explosion.style.top = (SKY_H - y) + "px";
+  explosion.classList.remove("go");
+  void explosion.offsetWidth; // restart animation
+  explosion.classList.add("go");
+
+  const numEl = document.getElementById("multNum");
+  numEl.textContent = crashMult.toFixed(2) + "x";
+
+  let won = null;
+  if (myBet){
+    won = myBet.won !== undefined ? myBet.won : (crashMult >= multFromRaw(myBet.targetMultiplier));
+  }
+
+  if (won === true){
+    numEl.className = "num win";
+    document.getElementById("multLabel").textContent = "You won! Settling round…";
+    log(`Round #${r.roundId} crashed at ${crashMult.toFixed(2)}x — you cashed out`, "win-row");
+  } else if (won === false){
+    numEl.className = "num crashed";
+    document.getElementById("multLabel").textContent = "Crashed — settling round…";
+    log(`Round #${r.roundId} crashed at ${crashMult.toFixed(2)}x — bet lost`, "lose-row");
+  } else {
+    numEl.className = "num crashed";
+    document.getElementById("multLabel").textContent = "Crashed — settling round…";
+    log(`Round #${r.roundId} crashed at ${crashMult.toFixed(2)}x`, "");
+  }
+}
+
+/* ============================================================
+   HISTORY
+   ============================================================ */
+async function loadHistory(){
   try {
-    const btn = document.getElementById('placeBetBtn');
-    btn.disabled = true;
-    btn.textContent = 'Placing...';
-
-    const tx = await contract.placeBet(targetScaled, {
-      value: ethers.parseEther(amt.toString())
+    const cur = await readContract.currentRoundId();
+    const count = cur.toNumber ? Math.min(cur.toNumber(), 15) : Math.min(Number(cur), 15);
+    if (count < 1) return;
+    const rounds = await readContract.getRecentRounds(count);
+    const container = document.getElementById("history");
+    container.innerHTML = "";
+    rounds.slice().reverse().forEach(r => {
+      if (!r.settled) return;
+      const mult = multFromRaw(r.crashMultiplier);
+      const chip = document.createElement("div");
+      let cls = "low";
+      if (mult >= 20) cls = "moon";
+      else if (mult >= 5) cls = "high";
+      else if (mult >= 2) cls = "mid";
+      chip.className = "history-chip " + cls;
+      chip.textContent = mult.toFixed(2) + "x";
+      chip.title = "Round #" + r.roundId.toString();
+      container.appendChild(chip);
     });
-    showToast("Bet submitted! Waiting...", "info");
-    await tx.wait();
-    showToast(`Bet placed: ${amt} AVAX @ ${tgt}×`, "win");
-    refreshAll();
-  } catch (e) {
-    showToast(parseError(e), "err");
-  } finally {
-    const btn = document.getElementById('placeBetBtn');
-    btn.disabled = false;
-    btn.textContent = 'Place Bet';
-  }
+  } catch(e){ console.error("history error", e); }
 }
 
-// ── CLAIM ─────────────────────────────────────────────────
-async function claimWinnings() {
-  if (!contract) { showToast("Connect wallet first", "err"); return; }
-  try {
-    const btn = document.getElementById('claimBtn');
-    btn.disabled = true;
-    btn.textContent = 'Claiming...';
-    const tx = await contract.claimWinnings();
-    await tx.wait();
-    showToast("Winnings claimed! 🎉", "win");
-    refreshAll();
-  } catch (e) {
-    showToast(parseError(e), "err");
-  } finally {
-    const btn = document.getElementById('claimBtn');
-    btn.disabled = false;
-    btn.textContent = 'Claim';
-  }
-}
-
-// ── OPERATOR ──────────────────────────────────────────────
-async function closeRoundForBets() {
-  if (!contract) return;
-  try {
-    const tx = await contract.closeRoundForBets();
-    await tx.wait();
-    showToast("Round closed for bets", "info");
-    setGamePhase("crashed");
-    refreshAll();
-  } catch (e) {
-    showToast(parseError(e), "err");
-  }
-}
-
-async function settleRound() {
-  if (!contract) return;
-  const v = parseFloat(document.getElementById('crashMult').value);
-  if (!v || v < 1) { showToast("Enter crash multiplier ≥ 1.00", "err"); return; }
-  const scaled = Math.round(v * 100);
-  try {
-    const tx = await contract.settleAndStartNextRound(scaled);
-    showToast("Settling round...", "info");
-    await tx.wait();
-
-    // Add to history
-    crashHistory.push({ id: Date.now(), m: v });
-    renderHistory();
-
-    setGamePhase("crashed");
-    setTimeout(() => {
-      setGamePhase("flying");
-      gamePhase = "flying";
-    }, 2000);
-
-    showToast(`Round settled @ ${v.toFixed(2)}× crash`, "win");
-    refreshAll();
-  } catch (e) {
-    showToast(parseError(e), "err");
-  }
-}
-
-async function depositLiquidity() {
-  if (!contract) return;
-  const amt = prompt("Amount of AVAX to deposit:");
-  if (!amt) return;
-  try {
-    const tx = await contract.depositLiquidity({ value: ethers.parseEther(amt) });
-    await tx.wait();
-    showToast(`Deposited ${amt} AVAX`, "win");
-    refreshAll();
-  } catch (e) {
-    showToast(parseError(e), "err");
-  }
-}
-
-// ── HELPERS ───────────────────────────────────────────────
-function shortAddr(a) { return a ? a.slice(0,6) + '…' + a.slice(-4) : ''; }
-
-function parseError(e) {
-  if (e?.reason) return e.reason;
-  if (e?.message) {
-    const m = e.message;
-    const match = m.match(/"([^"]+)"/);
-    if (match) return match[1];
-    if (m.length < 100) return m;
-  }
-  return "Transaction failed";
-}
-
-let toastTimer;
-function showToast(msg, type = "info") {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `show ${type}`;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.className = '', 3500);
-}
-
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-// Close modals on backdrop click
-document.querySelectorAll('.modal-bg').forEach(bg => {
-  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+/* ============================================================
+   ACTIONS — PLACE BET / ADVANCE / CLAIM / VERIFY
+   ============================================================ */
+document.getElementById("connectBtn").addEventListener("click", () => {
+  if (userAddress) return; // already connected
+  connectInjectedWallet();
 });
+
+document.getElementById("tempWalletBtn").addEventListener("click", () => {
+  if (userAddress && !isTempWallet) {
+    setStatus(document.getElementById("betStatus"), "You're already connected with a browser wallet.", "info");
+    return;
+  }
+  createTempWallet();
+});
+
+document.querySelectorAll("[data-amt]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.getElementById("betAmount").value = btn.dataset.amt;
+    updatePayoutPreview();
+  });
+});
+document.querySelectorAll("[data-mult]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.getElementById("targetMult").value = btn.dataset.mult;
+    updatePayoutPreview();
+  });
+});
+document.getElementById("betAmount").addEventListener("input", updatePayoutPreview);
+document.getElementById("targetMult").addEventListener("input", updatePayoutPreview);
+
+function updatePayoutPreview(){
+  const amt = parseFloat(document.getElementById("betAmount").value) || 0;
+  const mult = parseFloat(document.getElementById("targetMult").value) || 0;
+  const gross = amt * mult;
+  const fee = gross * 0.03; // approx 3% house edge default
+  const net = Math.max(gross - fee, 0);
+  document.getElementById("payoutPreview").textContent = net.toFixed(4) + " AVAX (≈3% fee)";
+}
+updatePayoutPreview();
+
+document.getElementById("placeBetBtn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("betStatus");
+  if (!userAddress || !contract) return;
+
+  const amtStr = document.getElementById("betAmount").value;
+  const multStr = document.getElementById("targetMult").value;
+  const amt = parseFloat(amtStr);
+  const mult = parseFloat(multStr);
+
+  if (!amt || amt <= 0){ setStatus(statusEl, "Enter a valid bet amount.", "error"); return; }
+  if (!mult || mult < 1.01 || mult > 100){ setStatus(statusEl, "Target must be between 1.01x and 100x.", "error"); return; }
+
+  const targetScaled = Math.round(mult * 100);
+  const value = ethers.utils.parseEther(amtStr);
+
+  const btn = document.getElementById("placeBetBtn");
+  btn.disabled = true;
+  setStatus(statusEl, "Confirm the transaction in your wallet…", "info");
+
+  try {
+    const tx = await contract.placeBet(targetScaled, { value });
+    setStatus(statusEl, "Transaction sent: " + shortAddr(tx.hash) + " — waiting for confirmation…", "info");
+    await tx.wait();
+    setStatus(statusEl, `Bet placed: ${amt} AVAX @ ${mult.toFixed(2)}x`, "success");
+    log(`Placed bet of ${amt} AVAX targeting ${mult.toFixed(2)}x`, "");
+    await refreshRoundData();
+    await refreshBalance();
+  } catch (err){
+    console.error(err);
+    setStatus(statusEl, parseError(err), "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("advanceBtn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("advanceStatus");
+  if (!contract){ setStatus(statusEl, "Connect a wallet (or use the test wallet) to call this — anyone can.", "error"); return; }
+  const action = document.getElementById("advanceBtn").dataset.action;
+  const btn = document.getElementById("advanceBtn");
+  btn.disabled = true;
+  setStatus(statusEl, "Sending transaction…", "info");
+  try {
+    let tx;
+    if (action === "trigger") tx = await contract.triggerFlight();
+    else if (action === "settle") tx = await contract.settleRound();
+    else tx = await contract.openNextRound();
+    setStatus(statusEl, "Confirming " + shortAddr(tx.hash) + "…", "info");
+    await tx.wait();
+    setStatus(statusEl, "Done — you earned a small AVAX reward.", "success");
+    log("Round advanced (" + action + ") — caller rewarded 0.001 AVAX", "");
+    await refreshRoundData();
+    await refreshBalance();
+  } catch(err){
+    console.error(err);
+    setStatus(statusEl, parseError(err), "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("claimBtn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("claimStatus");
+  if (!contract) return;
+  const btn = document.getElementById("claimBtn");
+  btn.disabled = true;
+  setStatus(statusEl, "Confirm in your wallet…", "info");
+  try {
+    const tx = await contract.claimWinnings();
+    setStatus(statusEl, "Confirming " + shortAddr(tx.hash) + "…", "info");
+    await tx.wait();
+    setStatus(statusEl, "Winnings claimed!", "success");
+    log("Claimed winnings from vault", "win-row");
+    await refreshPlayerStats();
+    await refreshBalance();
+  } catch(err){
+    console.error(err);
+    setStatus(statusEl, parseError(err), "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("verifyBtn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("verifyStatus");
+  try {
+    const cur = await readContract.currentRoundId();
+    const curNum = cur.toNumber ? cur.toNumber() : Number(cur);
+    let target = curNum - 1;
+    // walk back to find a settled round
+    while (target >= 1){
+      const r = await readContract.getCurrentRound.call ? null : null;
+      const rr = await readContract.getRecentRounds(1).catch(()=>null);
+      break;
+    }
+    if (target < 1){ setStatus(statusEl, "No settled rounds yet.", "error"); return; }
+    const result = await readContract.verifyRound(target);
+    if (result.valid){
+      setStatus(statusEl, `Round #${target} verified ✓ — committed hash matches keccak256(seed).`, "success");
+    } else {
+      setStatus(statusEl, `Round #${target} — hash mismatch (unexpected).`, "error");
+    }
+  } catch(err){
+    console.error(err);
+    setStatus(statusEl, "Could not verify yet — try again once a round has settled. (" + parseError(err) + ")", "error");
+  }
+});
+
+/* export key modal */
+document.getElementById("exportKeyBtn").addEventListener("click", () => {
+  if (!tempWalletInstance) return;
+  document.getElementById("exportKeyText").textContent = tempWalletInstance.privateKey;
+  document.getElementById("exportModal").classList.add("show");
+});
+document.getElementById("closeExportBtn").addEventListener("click", () => {
+  document.getElementById("exportModal").classList.remove("show");
+});
+document.getElementById("copyKeyBtn").addEventListener("click", () => {
+  navigator.clipboard.writeText(tempWalletInstance.privateKey);
+  document.getElementById("copyKeyBtn").textContent = "Copied";
+  setTimeout(()=>{ document.getElementById("copyKeyBtn").textContent = "Copy key"; }, 1500);
+});
+document.getElementById("faucetBtn").addEventListener("click", () => {
+  window.open(FAUCET_URL, "_blank");
+});
+
+function parseError(err){
+  if (err?.error?.message) return err.error.message;
+  if (err?.data?.message) return err.data.message;
+  if (err?.reason) return err.reason;
+  if (err?.message){
+    const m = err.message.match(/reason="([^"]+)"/);
+    if (m) return m[1];
+    return err.message.slice(0, 140);
+  }
+  return "Transaction failed.";
+}
+
+/* ============================================================
+   INIT / POLLING
+   ============================================================ */
+async function init(){
+  await refreshRoundData();
+  await loadHistory();
+  setInterval(refreshRoundData, 2000);
+  setInterval(loadHistory, 15000);
+}
+init();
 </script>
+
 </body>
 </html>
