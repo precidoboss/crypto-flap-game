@@ -1,2076 +1,1236 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Game Pass Bank — Grotto L1</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVIATOR — Grotto Crash Game</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
   :root {
-    --void:    #080B10;
-    --panel:   #0E1420;
-    --slate:   #1A2030;
-    --border:  #1E2A3A;
-    --cyan:    #00E5FF;
-    --cyan-dim:#00B8CC;
-    --steel:   #8899AA;
-    --text:    #D0DDE8;
-    --danger:  #FF3B5C;
-    --success: #00FF88;
-    --warn:    #FFB800;
+    --bg:       #080c14;
+    --surface:  #0e1420;
+    --panel:    #121926;
+    --border:   #1e2d42;
+    --accent:   #e8423a;
+    --accent2:  #ff6b35;
+    --win:      #22d47a;
+    --sky:      #3a8ef6;
+    --muted:    #4a607a;
+    --text:     #d4e1f0;
+    --textdim:  #7a9ab8;
+    --mono:     'Space Mono', monospace;
+    --sans:     'Space Grotesk', sans-serif;
   }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
   body {
-    background: var(--void);
+    background: var(--bg);
     color: var(--text);
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: var(--sans);
     min-height: 100vh;
     overflow-x: hidden;
   }
-  /* ── Scanline overlay ── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0; pointer-events: none; z-index: 999;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,229,255,0.015) 2px, rgba(0,229,255,0.015) 4px);
-  }
 
-  /* ── Header ── */
+  /* ── HEADER ── */
   header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
     border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 100;
-    background: rgba(8,11,16,0.92);
-    backdrop-filter: blur(12px);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
+
   .logo {
-    display: flex; align-items: center; gap: 10px;
-    font-size: 17px; font-weight: 700; letter-spacing: 0.03em; color: var(--cyan);
+    font-family: var(--mono);
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-  .logo-icon {
-    width: 32px; height: 32px;
-    background: var(--cyan);
-    clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .logo-icon svg { width: 16px; height: 16px; }
-  .logo span { color: var(--text); font-weight: 400; }
 
-  #connectBtn {
-    background: transparent;
-    border: 1px solid var(--cyan);
-    color: var(--cyan);
-    padding: 8px 20px;
+  .logo span { color: var(--textdim); -webkit-text-fill-color: var(--textdim); font-size: 0.7rem; letter-spacing: 0.05em; display: block; }
+
+  .header-right { display: flex; gap: 10px; align-items: center; }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 6px 14px;
     border-radius: 6px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 13px; font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    letter-spacing: 0.05em;
-  }
-  #connectBtn:hover { background: var(--cyan); color: var(--void); }
-  #walletAddr {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px; color: var(--steel);
-    background: var(--slate); padding: 6px 12px; border-radius: 6px;
     border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--textdim);
+    cursor: pointer;
+    transition: all .2s;
   }
+  .pill:hover { border-color: var(--accent); color: var(--text); }
+  .pill.connected { border-color: var(--win); color: var(--win); }
 
-  /* ── Main layout ── */
-  main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+  /* ── LAYOUT ── */
+  .app { display: grid; grid-template-columns: 1fr 340px; gap: 0; min-height: calc(100vh - 57px); }
 
-  /* ── Vault hero ── */
-  .vault-hero {
+  .main { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .sidebar { background: var(--surface); border-left: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+
+  /* ── FLIGHT STAGE ── */
+  .flight-stage {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 36px 40px;
-    margin-bottom: 32px;
-    position: relative; overflow: hidden;
-  }
-  .vault-hero::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-  }
-  .vault-title {
-    font-size: 11px; letter-spacing: 0.18em; color: var(--steel);
-    text-transform: uppercase; margin-bottom: 8px;
-  }
-  .vault-headline {
-    font-size: 32px; font-weight: 700; color: var(--text);
-    margin-bottom: 6px; line-height: 1.1;
-  }
-  .vault-headline em { color: var(--cyan); font-style: normal; }
-  .vault-sub {
-    font-size: 14px; color: var(--steel); margin-bottom: 28px; max-width: 480px;
+    border-radius: 12px;
+    height: 320px;
+    position: relative;
+    overflow: hidden;
   }
 
-  /* Vault fill bar */
-  .vault-bar-wrap {
-    margin-bottom: 28px;
-  }
-  .vault-bar-label {
-    display: flex; justify-content: space-between;
-    font-size: 12px; color: var(--steel); margin-bottom: 8px;
-  }
-  .vault-bar-label span { font-family: 'JetBrains Mono', monospace; }
-  .vault-bar-bg {
-    height: 10px; background: var(--slate); border-radius: 99px; overflow: hidden;
-    border: 1px solid var(--border);
-  }
-  .vault-bar-fill {
-    height: 100%; border-radius: 99px;
-    background: linear-gradient(90deg, var(--cyan-dim), var(--cyan));
-    transition: width 0.6s cubic-bezier(.4,0,.2,1);
-    box-shadow: 0 0 12px rgba(0,229,255,0.4);
+  .stage-sky {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, #040b1a 0%, #0a1628 60%, #0d2040 100%);
   }
 
-  /* Stats row */
-  .vault-stats {
-    display: flex; gap: 24px; flex-wrap: wrap;
-  }
-  .stat {
-    flex: 1; min-width: 120px;
-    background: var(--slate); border: 1px solid var(--border);
-    border-radius: 10px; padding: 16px 20px;
-  }
-  .stat-label { font-size: 11px; color: var(--steel); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
-  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 600; color: var(--cyan); }
-  .stat-value.danger { color: var(--danger); }
-  .stat-value.success { color: var(--success); }
+  /* Stars */
+  .stars { position: absolute; inset: 0; }
+  .star { position: absolute; background: white; border-radius: 50%; animation: twinkle 3s infinite; }
 
-  /* ── Tabs ── */
-  .tabs {
-    display: flex; gap: 4px;
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 10px; padding: 4px; margin-bottom: 24px; width: fit-content;
-  }
-  .tab {
-    padding: 8px 22px; border-radius: 7px;
-    font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
-    cursor: pointer; border: none; background: transparent; color: var(--steel);
-    transition: background 0.15s, color 0.15s;
-  }
-  .tab.active { background: var(--cyan); color: var(--void); }
-  .tab:not(.active):hover { color: var(--text); }
+  @keyframes twinkle { 0%,100%{opacity:.3} 50%{opacity:1} }
 
-  /* ── Panels grid ── */
-  .panels {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  /* Ground */
+  .ground {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 50px;
+    background: linear-gradient(180deg, #0a1e35 0%, #071527 100%);
+    border-top: 1px solid #1a3050;
   }
-  @media (max-width: 680px) { .panels { grid-template-columns: 1fr; } }
 
-  .panel {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 14px; padding: 28px;
-    display: none;
+  .ground-grid {
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(30,80,130,.3) 40px, rgba(30,80,130,.3) 41px);
   }
-  .panel.visible { display: block; }
-  .panel-full { grid-column: 1 / -1; }
 
-  .panel-head { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan); margin-bottom: 20px; }
-
-  /* Form elements */
-  .field { margin-bottom: 16px; }
-  label { display: block; font-size: 12px; color: var(--steel); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
-  input, select {
-    width: 100%; background: var(--slate); border: 1px solid var(--border);
-    color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px;
-    padding: 10px 14px; border-radius: 8px; outline: none;
-    transition: border-color 0.15s;
+  /* Multiplier display */
+  .multiplier-display {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -60%);
+    text-align: center;
+    z-index: 10;
   }
-  input:focus, select:focus { border-color: var(--cyan); }
-  select option { background: var(--slate); }
 
-  .btn {
-    width: 100%; padding: 13px;
-    background: var(--cyan); color: var(--void);
-    border: none; border-radius: 8px;
-    font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700;
-    letter-spacing: 0.06em; text-transform: uppercase;
-    cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+  .mult-value {
+    font-family: var(--mono);
+    font-size: 5rem;
+    font-weight: 700;
+    line-height: 1;
+    transition: color .3s;
+  }
+
+  .mult-value.flying { color: var(--win); text-shadow: 0 0 40px rgba(34,212,122,.4); }
+  .mult-value.crashed { color: var(--accent); text-shadow: 0 0 40px rgba(232,66,58,.5); }
+  .mult-value.waiting { color: var(--textdim); }
+
+  .mult-label {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--textdim);
     margin-top: 4px;
   }
-  .btn:hover { opacity: 0.88; }
-  .btn:active { transform: scale(0.98); }
-  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-  .btn.danger { background: var(--danger); color: #fff; }
 
-  /* ── Pass cards ── */
-  .pass-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;
-    margin-top: 8px;
+  /* Plane */
+  .plane {
+    position: absolute;
+    font-size: 2rem;
+    transition: none;
+    filter: drop-shadow(0 0 12px rgba(58,142,246,.8));
+    z-index: 20;
   }
-  .pass-card {
-    background: var(--slate); border: 1px solid var(--border);
-    border-radius: 12px; overflow: hidden;
-    transition: border-color 0.2s, transform 0.15s;
+
+  /* Trail */
+  .trail {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(58,142,246,.6));
+    transform-origin: right center;
+    z-index: 19;
+    pointer-events: none;
   }
-  .pass-card:hover { border-color: var(--cyan-dim); transform: translateY(-2px); }
-  .pass-card-img {
-    width: 100%; height: 130px; object-fit: cover;
-    background: var(--panel);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 40px; color: var(--border);
+
+  /* Round badge */
+  .round-badge {
+    position: absolute;
+    top: 12px; left: 12px;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    padding: 4px 10px;
+    background: rgba(14,20,32,.8);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--textdim);
   }
-  .pass-card-img img { width: 100%; height: 130px; object-fit: cover; }
-  .pass-card-body { padding: 16px; }
-  .pass-card-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
-  .pass-card-meta {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--steel); margin-bottom: 12px;
-    word-break: break-all;
+
+  /* Status bar */
+  .status-bar {
+    position: absolute;
+    top: 12px; right: 12px;
+    display: flex; gap: 6px;
   }
-  .pass-card-balance {
-    display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
-  }
-  .balance-pill {
-    font-family: 'JetBrains Mono', monospace; font-size: 12px;
-    padding: 4px 10px; border-radius: 99px;
-    background: rgba(0,229,255,0.1); color: var(--cyan); border: 1px solid rgba(0,229,255,0.25);
-  }
-  .balance-pill.empty { background: rgba(255,59,92,0.1); color: var(--danger); border-color: rgba(255,59,92,0.25); }
+
   .status-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--success); box-shadow: 0 0 6px var(--success);
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: none;
   }
-  .status-dot.inactive { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
-  .claim-btn {
-    width: 100%; padding: 10px;
-    background: rgba(0,229,255,0.12); color: var(--cyan);
-    border: 1px solid rgba(0,229,255,0.3); border-radius: 7px;
-    font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
-    letter-spacing: 0.08em; text-transform: uppercase;
-    cursor: pointer; transition: background 0.15s;
-  }
-  .claim-btn:hover:not(:disabled) { background: var(--cyan); color: var(--void); }
-  .claim-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-  .claimed-badge {
-    width: 100%; padding: 9px;
-    background: rgba(0,255,136,0.08); color: var(--success);
-    border: 1px solid rgba(0,255,136,0.2); border-radius: 7px;
-    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
-    text-align: center; text-transform: uppercase;
+  .status-dot.open { background: var(--win); animation: pulse 1.5s infinite; }
+  .status-dot.closed { background: var(--accent2); }
+  .status-dot.settled { background: var(--accent); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* History pills */
+  .history-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
   }
 
-  /* ── Toast ── */
-  #toast {
-    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: var(--panel); border: 1px solid var(--border);
-    color: var(--text); font-size: 13px; padding: 12px 22px;
-    border-radius: 10px; opacity: 0; pointer-events: none;
-    transition: opacity 0.25s, transform 0.25s;
-    z-index: 999; white-space: nowrap; max-width: 90vw;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  .history-pill {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    padding: 3px 9px;
+    border-radius: 4px;
+    border: 1px solid;
   }
-  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  #toast.ok { border-color: var(--success); color: var(--success); }
-  #toast.err { border-color: var(--danger); color: var(--danger); }
-  #toast.warn { border-color: var(--warn); color: var(--warn); }
+  .history-pill.low { border-color: rgba(232,66,58,.4); color: var(--accent); background: rgba(232,66,58,.07); }
+  .history-pill.mid { border-color: rgba(255,107,53,.4); color: var(--accent2); background: rgba(255,107,53,.07); }
+  .history-pill.high { border-color: rgba(34,212,122,.4); color: var(--win); background: rgba(34,212,122,.07); }
 
-  /* ── Empty state ── */
-  .empty-state {
-    text-align: center; padding: 52px 20px; color: var(--steel);
-  }
-  .empty-state svg { margin-bottom: 16px; opacity: 0.25; }
-  .empty-state p { font-size: 14px; }
-
-  /* Cooldown bar */
-  .cooldown-info {
-    background: rgba(255,184,0,0.08); border: 1px solid rgba(255,184,0,0.2);
-    border-radius: 8px; padding: 12px 16px;
-    font-size: 12px; color: var(--warn);
-    font-family: 'JetBrains Mono', monospace;
-    margin-bottom: 16px; display: none;
-  }
-  .cooldown-info.visible { display: block; }
-
-  /* Note */
-  .note {
-    font-size: 12px; color: var(--steel); margin-top: 10px;
-    padding: 10px 14px; background: var(--slate); border-radius: 7px;
-    border-left: 3px solid var(--cyan-dim);
-  }
-
-  .section-label {
-    font-size: 11px; color: var(--steel); letter-spacing: 0.12em;
-    text-transform: uppercase; margin-bottom: 14px; margin-top: 28px;
-  }
-  .section-label:first-of-type { margin-top: 0; }
-
-  /* ── Wallet Connect Modal ── */
-  .wc-overlay {
-    position: fixed; inset: 0; z-index: 1000;
-    background: rgba(4,7,12,0.85);
-    backdrop-filter: blur(16px);
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.25s;
-  }
-  .wc-overlay.open { opacity: 1; pointer-events: all; }
-  .wc-modal {
+  /* ── BET PANEL ── */
+  .panel {
     background: var(--panel);
-    border: 1px solid rgba(0,229,255,0.18);
-    border-radius: 20px;
-    padding: 40px 36px 32px;
-    width: 380px; max-width: 95vw;
-    position: relative;
-    box-shadow: 0 0 0 1px rgba(0,229,255,0.06), 0 32px 80px rgba(0,0,0,0.8), 0 0 60px rgba(0,229,255,0.04);
-    transform: translateY(8px);
-    transition: transform 0.25s;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
   }
-  .wc-overlay.open .wc-modal { transform: translateY(0); }
-  .wc-modal::before {
-    content: '';
-    position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
-    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+
+  .panel-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--textdim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    font-family: var(--mono);
   }
-  .wc-close {
-    position: absolute; top: 16px; right: 16px;
-    background: var(--slate); border: 1px solid var(--border);
-    color: var(--steel); width: 30px; height: 30px; border-radius: 50%;
-    cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
-    transition: border-color 0.15s, color 0.15s;
+
+  .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
+
+  .form-group { flex: 1; }
+  .form-group label {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--textdim);
+    margin-bottom: 5px;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
   }
-  .wc-close:hover { border-color: var(--cyan); color: var(--cyan); }
-  .wc-logo {
+
+  .form-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    padding: 9px 12px;
+    border-radius: 7px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .form-input:focus { border-color: var(--sky); }
+  .form-input::placeholder { color: var(--muted); }
+
+  .quick-btns { display: flex; gap: 6px; margin-top: 5px; }
+  .qbtn {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    padding: 4px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--textdim);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .qbtn:hover { border-color: var(--sky); color: var(--sky); }
+
+  .btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 8px;
+    border: none;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white;
+  }
+  .btn-primary:hover { opacity: .85; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+  .btn-sky {
+    background: linear-gradient(135deg, #1d5fad, var(--sky));
+    color: white;
+  }
+  .btn-sky:hover { opacity: .85; }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--textdim);
+  }
+  .btn-outline:hover { border-color: var(--win); color: var(--win); }
+
+  .btn-win {
+    background: linear-gradient(135deg, #15803d, var(--win));
+    color: #030f08;
+    font-weight: 700;
+  }
+
+  /* ── SIDEBAR ── */
+  .section-title {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .wallet-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .wallet-addr {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--sky);
+    word-break: break-all;
+    margin-bottom: 6px;
+  }
+
+  .balance-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .balance-label { font-size: 0.65rem; color: var(--textdim); }
+  .balance-val { font-family: var(--mono); font-size: 0.85rem; color: var(--text); font-weight: 600; }
+  .balance-val.wins { color: var(--win); }
+
+  .divider { height: 1px; background: var(--border); }
+
+  /* Bets list */
+  .bets-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+
+  .bet-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+  }
+
+  .bet-item-top { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .bet-item-addr { color: var(--textdim); }
+  .bet-item-won { color: var(--win); }
+  .bet-item-lost { color: var(--accent); }
+  .bet-item-pending { color: var(--muted); }
+  .bet-item-bottom { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.65rem; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    max-width: 300px;
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all .3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.win { border-color: var(--win); color: var(--win); }
+  #toast.err { border-color: var(--accent); color: var(--accent); }
+  #toast.info { border-color: var(--sky); color: var(--sky); }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(4,8,16,.85);
+    backdrop-filter: blur(4px);
+    z-index: 200;
     display: flex; align-items: center; justify-content: center;
-    margin-bottom: 24px;
+    opacity: 0; pointer-events: none; transition: opacity .3s;
   }
-  .wc-logo-hex {
-    width: 52px; height: 52px;
-    background: linear-gradient(135deg, var(--cyan-dim), var(--cyan));
-    clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 28px rgba(0,229,255,0.3);
-  }
-  .wc-title {
-    text-align: center; font-size: 20px; font-weight: 700; color: var(--text);
-    margin-bottom: 6px; letter-spacing: 0.01em;
-  }
-  .wc-sub {
-    text-align: center; font-size: 13px; color: var(--steel); margin-bottom: 28px;
-    line-height: 1.5;
-  }
-  .wc-options { display: flex; flex-direction: column; gap: 10px; }
-  .wc-option {
-    display: flex; align-items: center; gap: 14px;
-    background: var(--slate); border: 1px solid var(--border);
-    border-radius: 12px; padding: 14px 18px;
-    cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.1s;
-    text-align: left; width: 100%;
-  }
-  .wc-option:hover { border-color: var(--cyan); background: rgba(0,229,255,0.04); transform: translateX(2px); }
-  .wc-option:active { transform: scale(0.98); }
-  .wc-option-icon {
-    width: 40px; height: 40px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; flex-shrink: 0;
-    background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.15);
-  }
-  .wc-option-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-  .wc-option-desc { font-size: 11px; color: var(--steel); }
-  .wc-option-arrow { margin-left: auto; color: var(--steel); font-size: 16px; transition: color 0.15s; }
-  .wc-option:hover .wc-option-arrow { color: var(--cyan); }
-  .wc-divider {
-    display: flex; align-items: center; gap: 12px; margin: 4px 0;
-    font-size: 11px; color: var(--steel); letter-spacing: 0.08em;
-  }
-  .wc-divider::before, .wc-divider::after {
-    content: ''; flex: 1; height: 1px; background: var(--border);
-  }
-  .wc-footer {
-    text-align: center; font-size: 11px; color: var(--steel); margin-top: 20px;
-    line-height: 1.6;
-  }
-  .wc-footer a { color: var(--cyan-dim); text-decoration: none; }
-  .wc-footer a:hover { color: var(--cyan); }
+  .modal-bg.open { opacity: 1; pointer-events: all; }
 
-  /* ── Wallet Badge ── */
-  .wallet-badge {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--slate); border: 1px solid var(--border);
-    border-radius: 8px; padding: 6px 12px; cursor: pointer;
-    transition: border-color 0.15s;
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    width: 420px;
+    max-width: 95vw;
+    transform: scale(.95);
+    transition: transform .3s;
   }
-  .wallet-badge:hover { border-color: var(--cyan-dim); }
-  .wallet-badge-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--success); box-shadow: 0 0 6px var(--success); flex-shrink: 0;
+  .modal-bg.open .modal { transform: scale(1); }
+
+  .modal-title {
+    font-family: var(--mono);
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text);
   }
-  .wallet-badge-addr {
-    font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);
+  .modal-sub { font-size: 0.78rem; color: var(--textdim); margin-bottom: 20px; }
+
+  .modal-section { margin-bottom: 18px; }
+  .modal-section h4 {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
   }
 
-  /* ── My Passes Banner ── */
-  .my-passes-banner {
-    background: linear-gradient(135deg, rgba(0,229,255,0.07), rgba(0,229,255,0.03));
-    border: 1px solid rgba(0,229,255,0.2);
-    border-radius: 12px; padding: 16px 20px;
-    margin-bottom: 20px; display: none;
-  }
-  .my-passes-banner.visible { display: block; }
-  .my-passes-banner-head {
-    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--cyan); margin-bottom: 10px; font-weight: 600;
-  }
-  .my-passes-chips {
-    display: flex; flex-wrap: wrap; gap: 8px;
-  }
-  .my-passes-chip {
-    display: flex; align-items: center; gap: 6px;
-    background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.2);
-    border-radius: 20px; padding: 4px 12px;
-    font-size: 12px; color: var(--cyan);
-  }
-  .my-passes-chip-bal {
-    font-family: 'JetBrains Mono', monospace; font-weight: 600;
-  }
-  .my-passes-chip-name { color: var(--text); }
-
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── Deposit Pass Cards ── */
-  .deposit-card {
-    display: flex; align-items: center; gap: 14px;
-    background: var(--slate); border: 1px solid var(--border);
-    border-radius: 12px; padding: 14px; transition: border-color 0.15s;
-  }
-  .deposit-card:hover { border-color: rgba(0,229,255,0.25); }
-  .deposit-card-img {
-    width: 52px; height: 52px; border-radius: 8px; object-fit: cover;
-    background: rgba(0,229,255,0.06); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px; flex-shrink: 0;
-  }
-  .deposit-card-img img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
-  .deposit-card-info { flex: 1; min-width: 0; }
-  .deposit-card-name {
-    font-size: 14px; font-weight: 600; color: var(--text);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .deposit-card-meta {
-    font-size: 11px; color: var(--steel); font-family: 'JetBrains Mono', monospace;
-    margin-top: 2px;
-  }
-  .deposit-card-balance {
-    font-size: 12px; color: var(--cyan); font-weight: 600; margin-top: 4px;
-  }
-  .deposit-card-controls {
-    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-  }
-  .deposit-amount-input {
-    width: 64px; background: var(--panel); border: 1px solid var(--border);
-    color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px;
-    padding: 8px 10px; border-radius: 6px; outline: none; text-align: center;
-  }
-  .deposit-amount-input:focus { border-color: var(--cyan); }
-  .deposit-max-btn {
-    background: transparent; border: 1px solid var(--border); color: var(--steel);
-    font-size: 11px; padding: 8px 10px; border-radius: 6px; cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
-  }
-  .deposit-max-btn:hover { border-color: var(--cyan); color: var(--cyan); }
-  .deposit-send-btn {
-    background: var(--cyan); color: #04161B; border: none; font-weight: 700;
-    font-size: 12px; padding: 8px 16px; border-radius: 6px; cursor: pointer;
-    transition: opacity 0.15s; white-space: nowrap;
-  }
-  .deposit-send-btn:hover { opacity: 0.85; }
-  .deposit-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .deposit-unregistered-tag {
-    font-size: 10px; color: var(--warn); background: rgba(255,184,0,0.1);
-    border: 1px solid rgba(255,184,0,0.25); border-radius: 4px; padding: 1px 6px;
-    margin-left: 6px;
+  .key-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent2);
+    word-break: break-all;
+    margin-bottom: 6px;
   }
 
+  .warning-box {
+    background: rgba(232,66,58,.07);
+    border: 1px solid rgba(232,66,58,.3);
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 0.72rem;
+    color: rgba(232,66,58,.8);
+    margin-bottom: 14px;
+  }
+
+  .modal-btns { display: flex; gap: 8px; }
+  .modal-btns .btn { flex: 1; padding: 10px; font-size: 0.78rem; }
+
+  /* Operator panel */
+  .op-btn {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .op-btn .btn { flex: 1; padding: 9px; font-size: 0.72rem; min-width: 100px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { border-left: none; border-top: 1px solid var(--border); }
+    .mult-value { font-size: 3.5rem; }
+    .flight-stage { height: 240px; }
+  }
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <header>
   <div class="logo">
-    <div class="logo-icon">
-      <svg viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="#080B10"/></svg>
-    </div>
-    PASS<span>BANK</span>
+    ✈ AVIATOR
+    <span>FUJI TESTNET · AVAX CRASH GAME</span>
   </div>
-  <div id="walletSection">
-    <button id="connectBtn" onclick="openWalletModal()">Connect Wallet</button>
+  <div class="header-right">
+    <div id="networkBadge" class="pill" style="display:none;"></div>
+    <button class="pill" id="walletBtn" onclick="openWalletModal()">Connect Wallet</button>
+    <button class="pill" onclick="showTempWalletModal()" title="Create test wallet">+ Test Wallet</button>
   </div>
 </header>
 
-<main>
+<!-- MAIN APP -->
+<div class="app">
+  <div class="main">
 
-  <!-- Vault Hero -->
-  <div class="vault-hero">
-    <div class="vault-title">Grotto L1 · Community Vault</div>
-    <div class="vault-headline">Game Pass <em>Bank</em></div>
-    <div class="vault-sub">Deposit game passes for the community. One claim per wallet. No bots, no spam.</div>
-
-    <div class="vault-bar-wrap">
-      <div class="vault-bar-label">
-        <span>VAULT CAPACITY</span>
-        <span id="capacityPct">0%</span>
+    <!-- FLIGHT STAGE -->
+    <div class="flight-stage" id="flightStage">
+      <div class="stage-sky" id="stageSky">
+        <div class="stars" id="starsLayer"></div>
       </div>
-      <div class="vault-bar-bg"><div class="vault-bar-fill" id="vaultFill" style="width:0%"></div></div>
+      <div class="ground"><div class="ground-grid"></div></div>
+
+      <div class="round-badge" id="roundBadge">ROUND #—</div>
+
+      <div class="status-bar">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusLabel" style="font-family:var(--mono);font-size:.62rem;color:var(--muted);">IDLE</span>
+      </div>
+
+      <div class="multiplier-display">
+        <div class="mult-value waiting" id="multValue">—</div>
+        <div class="mult-label" id="multLabel">WAITING</div>
+      </div>
+
+      <div class="plane" id="plane" style="bottom:60px;left:60px;">✈</div>
     </div>
 
-    <div class="vault-stats">
-      <div class="stat">
-        <div class="stat-label">Total Passes</div>
-        <div class="stat-value" id="statTotal">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Pass Types</div>
-        <div class="stat-value" id="statTypes">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Claimable Now</div>
-        <div class="stat-value success" id="statClaimable">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Your Claims</div>
-        <div class="stat-value" id="statMyClaims">—</div>
+    <!-- HISTORY -->
+    <div class="panel">
+      <div class="panel-title">Recent Crashes</div>
+      <div class="history-row" id="historyRow">
+        <span style="font-size:.72rem;color:var(--muted);font-family:var(--mono);">No history yet</span>
       </div>
     </div>
-  </div>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('browse')">🎮 Browse Passes</button>
-    <button class="tab" onclick="switchTab('deposit')">📥 Deposit</button>
-    <button class="tab" onclick="switchTab('history')">📜 History</button>
-    <button class="tab" id="adminTab" onclick="switchTab('admin')" style="display:none;">⚙️ Admin</button>
-  </div>
+    <!-- BET PANEL -->
+    <div class="panel">
+      <div class="panel-title">Place Bet</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>BET AMOUNT (AVAX)</label>
+          <input class="form-input" id="betAmount" type="number" step="0.01" min="0.01" placeholder="0.10">
+          <div class="quick-btns">
+            <button class="qbtn" onclick="setAmount(.01)">0.01</button>
+            <button class="qbtn" onclick="setAmount(.05)">0.05</button>
+            <button class="qbtn" onclick="setAmount(.1)">0.1</button>
+            <button class="qbtn" onclick="setAmount(.5)">0.5</button>
+            <button class="qbtn" onclick="setAmount(1)">1</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>TARGET CASHOUT (×)</label>
+          <input class="form-input" id="targetMult" type="number" step="0.01" min="1.01" placeholder="2.00">
+          <div class="quick-btns">
+            <button class="qbtn" onclick="setTarget(1.5)">1.5×</button>
+            <button class="qbtn" onclick="setTarget(2)">2×</button>
+            <button class="qbtn" onclick="setTarget(5)">5×</button>
+            <button class="qbtn" onclick="setTarget(10)">10×</button>
+          </div>
+        </div>
+      </div>
 
-  <!-- Browse Tab -->
-  <div id="tab-browse" class="panel panel-full visible">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-      <div class="panel-head" style="margin-bottom:0;">Available Game Passes</div>
-      <button id="refreshBtn" onclick="refreshAll()"
-        style="background:transparent;border:1px solid var(--border);color:var(--steel);
-          padding:6px 14px;border-radius:6px;font-family:'Space Grotesk',sans-serif;
-          font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;
-          transition:border-color 0.15s,color 0.15s;">
-        <span id="refreshIcon">↻</span> Refresh
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-family:var(--mono);font-size:.7rem;color:var(--textdim);">Potential win:</span>
+        <span style="font-family:var(--mono);font-size:.85rem;color:var(--win);" id="potentialWin">— AVAX</span>
+      </div>
+
+      <button class="btn btn-primary" id="placeBetBtn" onclick="placeBet()" disabled>
+        Place Bet
       </button>
     </div>
-        <div class="my-passes-banner" id="myPassesBanner">
-      <div class="my-passes-banner-head">🎮 Detected In Your Wallet</div>
-      <div class="my-passes-chips" id="myPassesChips"></div>
-    </div>
-    <div id="passGrid" class="pass-grid">
-      <div class="empty-state" style="grid-column:1/-1">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="#8899AA" stroke-width="2"/><path d="M24 16V24M24 32H24.01" stroke="#8899AA" stroke-width="2" stroke-linecap="round"/></svg>
-        <p>No passes in the vault yet.<br>Be the first to deposit!</p>
-      </div>
-    </div>
-  </div>
 
-  <!-- Deposit Tab -->
-  <div id="tab-deposit" style="display:none;" class="panel panel-full">
-    <div class="panel-head">Deposit Game Passes</div>
-
-    <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:20px;">
-      <div>
-        <div class="section-label">Your Game Passes</div>
-        <div id="depositPassList" style="display:flex;flex-direction:column;gap:10px;">
-          <div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
-            Connect your wallet to see passes you can deposit.
-          </div>
+    <!-- CLAIM WINNINGS -->
+    <div class="panel">
+      <div class="panel-title">Winnings</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-size:.7rem;color:var(--textdim);margin-bottom:3px;">Claimable Balance</div>
+          <div style="font-family:var(--mono);font-size:1.4rem;color:var(--win);" id="vaultBalance">0.000 AVAX</div>
         </div>
-        <div class="note">You must <code>setApprovalForAll</code> on the pass contract before depositing. The button will prompt this automatically.</div>
-      </div>
-      <div>
-        <div class="section-label">How It Works</div>
-        <div style="display:flex;flex-direction:column;gap:12px;margin-top:0;">
-          <div class="stat" style="flex:none;">
-            <div class="stat-label">Step 1</div>
-            <div style="font-size:13px;color:var(--text);margin-top:4px;">Connect your wallet above</div>
-          </div>
-          <div class="stat" style="flex:none;">
-            <div class="stat-label">Step 2</div>
-            <div style="font-size:13px;color:var(--text);margin-top:4px;">Select a pass type from the list</div>
-          </div>
-          <div class="stat" style="flex:none;">
-            <div class="stat-label">Step 3</div>
-            <div style="font-size:13px;color:var(--text);margin-top:4px;">Enter amount and confirm. Max 50 per tx.</div>
-          </div>
-          <div class="stat" style="flex:none;">
-            <div class="stat-label">Step 4</div>
-            <div style="font-size:13px;color:var(--text);margin-top:4px;">Passes land in the vault instantly ✓</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- History Tab -->
-  <div id="tab-history" style="display:none;" class="panel panel-full">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-      <div class="panel-head" style="margin-bottom:0;">Transaction History</div>
-      <button id="historyRefreshBtn" onclick="loadTransactionHistory()"
-        style="background:transparent;border:1px solid var(--border);color:var(--steel);
-          padding:6px 14px;border-radius:6px;font-family:'Space Grotesk',sans-serif;
-          font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;
-          transition:border-color 0.15s,color 0.15s;">
-        <span id="historyRefreshIcon">↻</span> Refresh
-      </button>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button class="tab active" id="historyFilterAll" onclick="setHistoryFilter('all')" style="padding:6px 16px;font-size:12px;">All</button>
-      <button class="tab" id="historyFilterDeposit" onclick="setHistoryFilter('deposit')" style="padding:6px 16px;font-size:12px;">Deposits</button>
-      <button class="tab" id="historyFilterClaim" onclick="setHistoryFilter('claim')" style="padding:6px 16px;font-size:12px;">Claims</button>
-    </div>
-    <div id="historyList" style="display:flex;flex-direction:column;gap:8px;">
-      <div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
-        Connect your wallet to view your transaction history.
-      </div>
-    </div>
-  </div>
-
-  <!-- Admin Tab -->
-  <div id="tab-admin" style="display:none;" class="panel panel-full">
-    <div class="panel-head">⚙️ Admin Panel — 👑 Owner Only</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-
-      <!-- Left col -->
-      <div>
-      <div>
-        <div class="section-label">Auto-Discovered Passes</div>
-        <div id="autoDiscoverInfo" style="font-size:12px;color:var(--steel);margin-bottom:10px;">
-          Scanning bank wallet for unregistered passes…
-        </div>
-        <button class="btn" id="registerAllBtn" style="background:rgba(0,255,136,0.1);color:var(--success);border-color:rgba(0,255,136,0.3);margin-bottom:28px;">
-          ⚡ Register All Detected Passes
+        <button class="btn btn-win" style="width:auto;padding:11px 22px;" onclick="claimWinnings()" id="claimBtn">
+          Claim
         </button>
-
-        <div class="section-label">Register New Pass Type</div>
-        <div class="field"><label>Token Contract Address</label><input id="regContract" placeholder="0x..."/></div>
-        <div class="field"><label>Token ID</label><input id="regTokenId" type="number" placeholder="e.g. 1"/></div>
-        <div class="field"><label>Pass Name</label><input id="regName" placeholder="e.g. Grotto Arena Pass"/></div>
-        <div class="field"><label>Image URI (optional)</label><input id="regImage" placeholder="https://..."/></div>
-        <div class="field"><label>Grotto Game</label>
-          <select id="regGameId" style="width:100%;background:var(--slate);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px 14px;border-radius:8px;outline:none;">
-            <option value="">Loading games…</option>
-          </select>
-          <div style="font-size:11px;color:var(--steel);margin-top:4px;">Game list fetched live from Grotto Gateway</div>
-        </div>
-        <button class="btn" id="registerBtn">Register Pass</button>
-
-        <div class="section-label" style="margin-top:28px;">Toggle Pass Active / Inactive</div>
-        <div class="field"><label>Pass Index</label><input id="toggleIndex" type="number" placeholder="0"/></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <button class="btn" id="activateBtn">Activate</button>
-          <button class="btn danger" id="deactivateBtn">Deactivate</button>
-        </div>
-
-        <div class="section-label" style="margin-top:28px;">Pause / Unpause Entire Bank</div>
-        <div id="bankPausedStatus" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--steel);margin-bottom:10px;">Status: loading…</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <button class="btn" id="unpauseBtn">▶ Unpause Bank</button>
-          <button class="btn danger" id="pauseBtn">⏸ Pause Bank</button>
-        </div>
-      </div>
-
-      <!-- Right col -->
-      <div>
-        <div class="section-label">Cooldown Setting</div>
-        <div id="currentCooldown" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--steel);margin-bottom:8px;">Current: loading…</div>
-        <div class="field"><label>New Cooldown (seconds)</label><input id="cooldownInput" type="number" placeholder="86400 = 1 day"/></div>
-        <button class="btn" id="setCooldownBtn">Update Cooldown</button>
-
-        <div class="section-label" style="margin-top:28px;">Max Deposit Per Tx</div>
-        <div id="currentMaxDeposit" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--steel);margin-bottom:8px;">Current: loading…</div>
-        <div class="field"><label>New Max (1–500)</label><input id="maxDepositInput" type="number" placeholder="50"/></div>
-        <button class="btn" id="setMaxDepositBtn">Update Max</button>
-
-        <div class="section-label" style="margin-top:28px;">Reset a Wallet's Claim</div>
-        <div class="field"><label>Pass Index</label><input id="resetIndex" type="number" placeholder="0"/></div>
-        <div class="field"><label>Wallet Address</label><input id="resetWallet" placeholder="0x..."/></div>
-        <button class="btn" id="resetClaimBtn">Reset Claim</button>
-
-        <div class="section-label" style="margin-top:28px;">Emergency Withdraw</div>
-        <div class="field"><label>Pass Index</label><input id="wdIndex" type="number" placeholder="0"/></div>
-        <div class="field"><label>Amount</label><input id="wdAmount" type="number" placeholder="1"/></div>
-        <div class="field"><label>Recipient Address</label><input id="wdTo" placeholder="0x..."/></div>
-        <button class="btn danger" id="withdrawBtn">Withdraw Passes</button>
       </div>
     </div>
 
-    <!-- Claimants viewer — full width -->
-    <div style="margin-top:32px;border-top:1px solid var(--border);padding-top:28px;">
-      <div class="section-label">View All Claimants</div>
-      <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;">
-        <div class="field" style="margin:0;flex:1;"><label>Pass Index</label><input id="claimantsIndex" type="number" placeholder="0"/></div>
-        <button class="btn" id="loadClaimantsBtn" style="width:auto;padding:10px 22px;margin:0;">Load</button>
-      </div>
-      <div id="claimantsList" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--steel);
-        background:var(--slate);border:1px solid var(--border);border-radius:8px;padding:16px;
-        max-height:220px;overflow-y:auto;line-height:2;">
-        Select a pass index and click Load.
-      </div>
-    </div>
   </div>
 
+  <!-- SIDEBAR -->
+  <div class="sidebar">
 
-<!-- Wallet Connect Modal -->
-<div class="wc-overlay" id="wcOverlay" onclick="handleOverlayClick(event)">
-  <div class="wc-modal">
-    <button class="wc-close" onclick="closeWalletModal()">✕</button>
-    <div class="wc-logo">
-      <div class="wc-logo-hex">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-          <path d="M12 3L21 7.5V16.5L12 21L3 16.5V7.5L12 3Z" fill="#080B10"/>
-          <path d="M12 8V12M12 16H12.01" stroke="#00E5FF" stroke-width="2" stroke-linecap="round"/>
-        </svg>
+    <!-- WALLET INFO -->
+    <div>
+      <div class="section-title">Wallet</div>
+      <div class="wallet-card" id="walletCard">
+        <div style="font-size:.75rem;color:var(--muted);font-family:var(--mono);">Not connected</div>
       </div>
     </div>
-    <div class="wc-title">Connect Your Wallet</div>
-    <div class="wc-sub">Choose how you'd like to connect to the<br><strong style="color:var(--cyan)">Grotto L1</strong> Game Pass Bank</div>
-    <div class="wc-options">
-      <button class="wc-option" onclick="connectWith('metamask')">
-        <div class="wc-option-icon">🦊</div>
-        <div>
-          <div class="wc-option-name">MetaMask</div>
-          <div class="wc-option-desc">Browser extension wallet</div>
+
+    <div class="divider"></div>
+
+    <!-- CONTRACT INFO -->
+    <div>
+      <div class="section-title">Contract</div>
+      <div class="wallet-card">
+        <div style="font-size:.62rem;color:var(--textdim);margin-bottom:4px;font-family:var(--mono);">ADDRESS</div>
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--sky);word-break:break-all;margin-bottom:10px;">0x11a58fdDd2641b0C40fe771592DCe4fdB1eC88e9</div>
+        <div class="balance-row">
+          <span class="balance-label">CONTRACT BALANCE</span>
+          <span class="balance-val" id="contractBal">—</span>
         </div>
-        <div class="wc-option-arrow">›</div>
-      </button>
-      <div class="wc-divider">or</div>
-      <button class="wc-option" onclick="connectWith('injected')">
-        <div class="wc-option-icon">💎</div>
-        <div>
-          <div class="wc-option-name">Other Wallet</div>
-          <div class="wc-option-desc">Coinbase, Rabby, Rainbow & more</div>
+        <div class="balance-row">
+          <span class="balance-label">CURRENT ROUND</span>
+          <span class="balance-val" id="sideRound">—</span>
         </div>
-        <div class="wc-option-arrow">›</div>
-      </button>
+        <div class="balance-row">
+          <span class="balance-label">ROUND OPEN</span>
+          <span class="balance-val" id="sideOpen">—</span>
+        </div>
+        <div class="balance-row">
+          <span class="balance-label">MIN BET</span>
+          <span class="balance-val" id="sideMin">—</span>
+        </div>
+        <div class="balance-row">
+          <span class="balance-label">MAX BET</span>
+          <span class="balance-val" id="sideMax">—</span>
+        </div>
+      </div>
     </div>
-    <div class="wc-footer">
-      By connecting you agree to our<br>
-      <a href="#">Terms of Service</a> · <a href="#">Privacy Policy</a>
+
+    <div class="divider"></div>
+
+    <!-- ROUND BETS -->
+    <div style="flex:1;">
+      <div class="section-title">Current Round Bets <span id="betCount" style="color:var(--sky);">0</span></div>
+      <div class="bets-list" id="betsList">
+        <div style="font-size:.7rem;color:var(--muted);font-family:var(--mono);">No bets yet</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- OPERATOR PANEL -->
+    <div id="operatorPanel" style="display:none;">
+      <div class="section-title">⚙ Operator Controls</div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:.65rem;color:var(--textdim);font-family:var(--mono);display:block;margin-bottom:5px;">CRASH MULTIPLIER</label>
+        <input class="form-input" id="crashMult" type="number" step="0.01" min="1.00" placeholder="2.45" style="margin-bottom:8px;">
+      </div>
+      <div class="op-btn">
+        <button class="btn btn-outline" onclick="closeRoundForBets()" style="min-width:unset;flex:1;">Close Bets</button>
+        <button class="btn btn-primary" onclick="settleRound()" style="min-width:unset;flex:1;">Settle Round</button>
+      </div>
+      <div style="margin-top:8px;">
+        <button class="btn btn-sky" onclick="depositLiquidity()" style="font-size:.72rem;padding:9px;">+ Deposit Liquidity</button>
+      </div>
+    </div>
+
+    <div class="divider" id="opDivider" style="display:none;"></div>
+
+    <!-- REFRESH -->
+    <button class="btn btn-outline" onclick="refreshAll()" style="padding:9px;font-size:.72rem;">↻ Refresh Data</button>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- WALLET MODAL -->
+<div class="modal-bg" id="walletModal">
+  <div class="modal">
+    <div class="modal-title">Connect Wallet</div>
+    <div class="modal-sub">Choose how to connect to Aviator on Fuji Testnet.</div>
+
+    <div class="modal-section">
+      <h4>Browser Wallet</h4>
+      <button class="btn btn-sky" onclick="connectMetaMask()" style="margin-bottom:8px;">🦊 Connect MetaMask / Rabby</button>
+      <button class="btn btn-outline" onclick="connectMetaMask()" style="font-size:.78rem;padding:10px;">🔐 WalletConnect (via MetaMask)</button>
+    </div>
+
+    <div class="modal-section">
+      <h4>Import Private Key</h4>
+      <input class="form-input" id="importKey" placeholder="0x... private key" style="margin-bottom:8px;" type="password">
+      <button class="btn btn-primary" onclick="importPrivateKey()">Import & Connect</button>
+    </div>
+
+    <div class="modal-btns" style="margin-top:14px;">
+      <button class="btn btn-outline" onclick="closeModal('walletModal')">Cancel</button>
     </div>
   </div>
 </div>
 
-</main>
+<!-- TEMP WALLET MODAL -->
+<div class="modal-bg" id="tempWalletModal">
+  <div class="modal">
+    <div class="modal-title">Test Wallet</div>
+    <div class="modal-sub">Create a temporary browser wallet for testing. No extension needed.</div>
 
-<div id="toast"></div>
+    <div class="warning-box">
+      ⚠ This wallet is stored only in your browser session. Never use real funds. Back up the private key if you want to reuse it.
+    </div>
+
+    <div id="tempWalletInfo" style="display:none;">
+      <div class="modal-section">
+        <h4>Address</h4>
+        <div class="key-box" id="tempAddr"></div>
+      </div>
+      <div class="modal-section">
+        <h4>Private Key (keep secret)</h4>
+        <div class="key-box" id="tempKey" style="cursor:pointer;" onclick="copyTempKey()" title="Click to copy"></div>
+        <div style="font-size:.65rem;color:var(--muted);margin-top:4px;">Click to copy · Fund this address on <a href="https://faucet.avax.network/" target="_blank" style="color:var(--sky);">AVAX Faucet</a></div>
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="createTempWallet()">Generate New Wallet</button>
+      <button class="btn btn-win" id="useTempBtn" onclick="useTempWallet()" style="display:none;">Use This Wallet</button>
+      <button class="btn btn-outline" onclick="closeModal('tempWalletModal')">Close</button>
+    </div>
+  </div>
+</div>
 
 <script>
-// ── Config — update these before deploying ──────────────────────────────────
-const BANK_ADDRESS    = "0x72060df011186124ed93abf53C3EbD9Ee97307fB";
-const GROTTO_CHAIN_ID = 36463; // Grotto L1
-const ADMIN_ADDRESS   = "0x46914D5DC59598801e435AF2a08928Da87C60dF0";
-const GROTTO_API      = "https://api.enterthegrotto.xyz";
-const GROTTO_RPC      = "https://subnets.avax.network/thegrotto/mainnet/rpc";
-const GROTTO_EXPLORER_API = "https://grottoexplorer.xyz/api/v2";
+// ── CONTRACT ──────────────────────────────────────────────
+const CONTRACT_ADDRESS = "0x11a58fdDd2641b0C40fe771592DCe4fdB1eC88e9";
+const FUJI_CHAIN_ID = 43113;
+const FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
 
-const BANK_ABI = [
-  "function getAllPasses() view returns (tuple(address tokenContract,uint256 tokenId,uint256 balance,string name,string imageURI,string gameId,bool active)[])",
-  "function getPassCount() view returns (uint256)",
-  "function deposit(uint256 passIndex, uint256 amount)",
-  "function requestPass(uint256 passIndex)",
-  "function registerPass(address,uint256,string,string,string)",
-  "function setCooldown(uint256)",
-  "function setMaxDepositPerTx(uint256)",
-  "function withdrawPass(uint256,uint256,address)",
-  "function togglePass(uint256,bool)",
-  "function setPaused(bool)",
-  "function resetClaim(uint256,address)",
-  "function getClaimants(uint256) view returns (address[])",
-  "function canRequest(uint256,address) view returns (bool,string)",
-  "function cooldownRemaining(address) view returns (uint256)",
-  "function hasClaimed(uint256,address) view returns (bool)",
-  "function paused() view returns (bool)",
-  "function maxDepositPerTx() view returns (uint256)",
-  "function requestCooldown() view returns (uint256)",
-  "function owner() view returns (address)",
-  "event PassDeposited(uint256 indexed,address indexed,uint256)",
-  "event PassRequested(uint256 indexed,address indexed)"
+const ABI = [
+  "function currentRoundId() view returns (uint256)",
+  "function isRoundOpen() view returns (bool)",
+  "function gameOperator() view returns (address)",
+  "function minBetAmount() view returns (uint256)",
+  "function maxBetAmount() view returns (uint256)",
+  "function playerVault(address) view returns (uint256)",
+  "function rounds(uint256) view returns (uint256 roundId, uint32 crashMultiplier, bool settled, uint256 totalBetsAmount)",
+  "function getRoundBets(uint256) view returns (tuple(address player, uint256 amount, uint32 targetMultiplier, bool resolved, bool won)[])",
+  "function placeBet(uint32 targetMultiplier) payable",
+  "function settleAndStartNextRound(uint32 crashMultiplier)",
+  "function claimWinnings()",
+  "function closeRoundForBets()",
+  "function depositLiquidity() payable",
+  "function withdrawLiquidity(uint256 amount)",
+  "function setOperator(address newOperator)",
+  "function setBetLimits(uint256 min, uint256 max)",
+  "event RoundStarted(uint256 indexed roundId)",
+  "event BetPlaced(address indexed player, uint256 indexed roundId, uint256 amount, uint32 targetMultiplier)",
+  "event RoundSettled(uint256 indexed roundId, uint32 crashMultiplier, uint256 totalPayout)",
+  "event WinningsClaimed(address indexed player, uint256 amount)"
 ];
 
-const ERC1155_ABI = [
-  "function isApprovedForAll(address owner,address operator) view returns (bool)",
-  "function setApprovalForAll(address operator,bool approved)",
-  "function balanceOf(address account,uint256 id) view returns (uint256)",
-  "function safeTransferFrom(address from,address to,uint256 id,uint256 amount,bytes data)"
-];
+// ── STATE ─────────────────────────────────────────────────
+let provider = null;
+let signer = null;
+let contract = null;
+let readContract = null;
+let userAddress = null;
+let isOperator = false;
+let tempWallet = null;
+let crashHistory = [];
+let planeAnim = null;
+let planeX = 60, planeY = 60;
+let currentMult = 1.0;
+let gamePhase = "waiting"; // waiting | flying | crashed
 
-// ── State ───────────────────────────────────────────────────────────────────
-let provider, signer, bankContract, walletAddress, isOwner = false;
-let passes = [];
+// ── INIT ──────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  generateStars();
+  initReadContract();
+  updatePotentialWin();
+  document.getElementById('betAmount').addEventListener('input', updatePotentialWin);
+  document.getElementById('targetMult').addEventListener('input', updatePotentialWin);
+  setInterval(refreshAll, 10000);
+});
 
-// ── Ethers (loaded from CDN) ─────────────────────────────────────────────────
-const ETHERS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js";
-
-function loadEthers() {
-  return new Promise((res, rej) => {
-    if (window.ethers) return res();
-    const s = document.createElement('script');
-    s.src = ETHERS_CDN; s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
-  });
+function initReadContract() {
+  const readProvider = new ethers.JsonRpcProvider(FUJI_RPC);
+  readContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, readProvider);
+  refreshAll();
 }
 
-// ── Toast ────────────────────────────────────────────────────────────────────
-let toastTimer;
-function toast(msg, type = '') {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'show ' + type;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = ''; }, 3500);
+// ── STARS ─────────────────────────────────────────────────
+function generateStars() {
+  const layer = document.getElementById('starsLayer');
+  for (let i = 0; i < 60; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2 + 1;
+    s.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*85}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*3}s;`;
+    layer.appendChild(s);
+  }
 }
 
-// ── Tabs ─────────────────────────────────────────────────────────────────────
-function switchTab(name) {
-  ['browse','deposit','history','admin'].forEach(t => {
-    const el = document.getElementById('tab-' + t);
-    if (!el) return;
-    el.style.display = 'none'; el.classList.remove('visible');
-  });
-  const el = document.getElementById('tab-' + name);
-  el.style.display = 'block'; el.classList.add('visible');
-  document.querySelectorAll('.tabs > .tab').forEach((b, i) => {
-    b.classList.toggle('active', ['browse','deposit','history','admin'][i] === name);
-  });
-  if (name === 'history') loadTransactionHistory();
-}
+// ── WALLET CONNECT ────────────────────────────────────────
+function openWalletModal() { openModal('walletModal'); }
 
-// ── Wallet Modal ─────────────────────────────────────────────────────────────
-function openWalletModal() {
-  document.getElementById('wcOverlay').classList.add('open');
-}
-function closeWalletModal() {
-  document.getElementById('wcOverlay').classList.remove('open');
-}
-function handleOverlayClick(e) {
-  if (e.target === document.getElementById('wcOverlay')) closeWalletModal();
-}
-window.openWalletModal = openWalletModal;
-window.closeWalletModal = closeWalletModal;
-window.handleOverlayClick = handleOverlayClick;
-
-async function connectWith(type) {
-  closeWalletModal();
-  await connectWallet();
-}
-window.connectWith = connectWith;
-
-// ── Connect ───────────────────────────────────────────────────────────────────
-async function connectWallet() {
+async function connectMetaMask() {
+  if (!window.ethereum) { showToast("No wallet detected. Install MetaMask.", "err"); return; }
   try {
-    await loadEthers();
-    if (!window.ethereum) return toast('No wallet detected. Install MetaMask or a Web3 wallet.', 'err');
-
-    provider = new ethers.BrowserProvider(window.ethereum);
-    const accounts = await provider.send("eth_requestAccounts", []);
-    walletAddress = accounts[0];
-
-    const network = await provider.getNetwork();
-    if (Number(network.chainId) !== GROTTO_CHAIN_ID) {
-      toast(`Wrong network. Please switch to Grotto L1 (chain ${GROTTO_CHAIN_ID})`, 'warn');
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const p = new ethers.BrowserProvider(window.ethereum);
+    const network = await p.getNetwork();
+    if (Number(network.chainId) !== FUJI_CHAIN_ID) {
       try {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x' + GROTTO_CHAIN_ID.toString(16) }]
+          params: [{ chainId: '0xA869' }]
         });
-      } catch(e) { return; }
+      } catch {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: '0xA869',
+            chainName: 'Avalanche Fuji Testnet',
+            nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+            rpcUrls: [FUJI_RPC],
+            blockExplorerUrls: ['https://testnet.snowtrace.io/']
+          }]
+        });
+      }
     }
-
+    provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
-    bankContract = new ethers.Contract(BANK_ADDRESS, BANK_ABI, signer);
-
-    // Admin = hardcoded address only
-    isOwner = walletAddress.toLowerCase() === ADMIN_ADDRESS.toLowerCase();
-
-    // Update UI — replace button with badge
-    const ws = document.getElementById('walletSection');
-    ws.innerHTML = `<div class="wallet-badge" onclick="openWalletModal()">
-      <div class="wallet-badge-dot"></div>
-      <div class="wallet-badge-addr">${walletAddress.slice(0,6)}…${walletAddress.slice(-4)} ${isOwner ? '👑' : ''}</div>
-    </div>`;
-
-    // Show admin tab only for admin wallet
-    document.getElementById('adminTab').style.display = isOwner ? '' : 'none';
-    if (isOwner) populateGamesDropdown();
-
-    enableButtons();
-    await loadPasses();
-    await updateStats();
-    await detectWalletPasses();
-    if (isOwner) await loadAdminState();
-
-    toast('Wallet connected ✓', 'ok');
-    window.ethereum.on('accountsChanged', () => location.reload());
-  } catch(e) {
-    console.error(e);
-    toast('Connection failed: ' + (e.message || e), 'err');
+    userAddress = await signer.getAddress();
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+    await onWalletConnected();
+    closeModal('walletModal');
+  } catch (e) {
+    showToast("Connection failed: " + e.message, "err");
   }
 }
 
-// ── Auto-detect passes in wallet ──────────────────────────────────────────────
-// Known game pass contract — always scanned directly regardless of bank registration
-const GAMEPASS_CONTRACT = "0xFA01e077a78FcA556015B7193baF04bEF58edbC1";
-
-// ── Games API ─────────────────────────────────────────────────────────────────
-let grottoGames = [];
-let gamesLoaded = false;
-
-async function fetchGrottoGames(force = false) {
-  if (gamesLoaded && !force) return grottoGames;
-  grottoGames = [];
-  const seen = new Set();
-
-  // Use search/detailed with broad query — confirmed working endpoint from airdropper.js
-  // Try a wildcard-ish approach: fetch popular/recent/summaries which list all games directly
-  const endpoints = [
-    `${GROTTO_API}/api/games/summaries`,
-    `${GROTTO_API}/api/games/popular`,
-    `${GROTTO_API}/api/games/recent`,
-    `${GROTTO_API}/api/games/upcoming`,
-    `${GROTTO_API}/api/games/on-sale`,
-    `${GROTTO_API}/api/games/`,
-  ];
-
-  for (const url of endpoints) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) continue;
-      const data = await res.json();
-      const arr = Array.isArray(data) ? data
-        : (data.games || data.data || data.results || data.items || []);
-      for (const g of arr) {
-        const id = g.id || g._id || g.slug;
-        if (id && !seen.has(String(id))) {
-          seen.add(String(id));
-          grottoGames.push(g);
-        }
-      }
-    } catch(e) {
-      console.warn('[PassBank] games endpoint failed:', url, e.message);
-    }
-  }
-
-  gamesLoaded = true;
-  console.log('[PassBank] Loaded', grottoGames.length, 'unique games from Grotto API');
-  if (grottoGames.length > 0) {
-    console.log('[PassBank] Sample game object (first result):', JSON.stringify(grottoGames[0], null, 2));
-    console.log('[PassBank] All keys on first game:', Object.keys(grottoGames[0]));
-  }
-  return grottoGames;
-}
-
-// Resolve image URL for a game object — uses thumbnail_url (confirmed Grotto API field)
-function getGameImageUrl(game) {
-  if (!game) return null;
-  // thumbnail_url is the confirmed field used across the Grotto ecosystem (search results)
-  let raw = game.thumbnail_url || game.thumbnailUrl
-    || game.coverImage || game.cover_image || game.coverUrl || game.cover
-    || game.imageUrl || game.image_url || game.image || game.thumbnail
-    || game.banner || game.bannerUrl || game.logoUrl || game.logo
-    || (game.images && (game.images.cover || game.images.thumbnail || game.images[0]))
-    || null;
-
-  if (!raw) return null;
-  if (typeof raw === 'object') raw = raw.url || raw.src || null;
-  if (!raw) return null;
-  if (raw.startsWith('http')) return raw;
-  if (raw.startsWith('ipfs://')) return 'https://ipfs.io/ipfs/' + raw.slice(7);
-  // Relative path — prefix with Grotto API base (assets are served from the API)
-  return `${GROTTO_API}${raw.startsWith('/') ? '' : '/'}${raw}`;
-}
-function getGameById(id) {
-  if (!id) return null;
-  return grottoGames.find(g => String(g.id) === String(id) || g.slug === id) || null;
-}
-
-// Find a game whose license/token contract matches a given address — used to
-// auto-link unregistered passes (no gameId set) to their Grotto game listing
-function getGameByContract(address) {
-  if (!address) return null;
-  const target = address.toLowerCase();
-  return grottoGames.find(g => {
-    const candidates = [g.license_address, g.token_address, g.licenseAddress, g.tokenAddress, g.contractAddress, g.contract_address];
-    return candidates.some(c => c && c.toLowerCase() === target);
-  }) || null;
-}
-// Scan token IDs 0–99 on the known game pass contract
-const GAMEPASS_SCAN_IDS = Array.from({ length: 100 }, (_, i) => i);
-
-// Extended ERC1155 ABI for batch balance queries
-const ERC1155_BATCH_ABI = [
-  "function isApprovedForAll(address owner,address operator) view returns (bool)",
-  "function setApprovalForAll(address operator,bool approved)",
-  "function balanceOf(address account,uint256 id) view returns (uint256)",
-  "function balanceOfBatch(address[] accounts,uint256[] ids) view returns (uint256[])",
-  "function uri(uint256 id) view returns (string)"
-];
-
-let myWalletPasses = []; // global cache of wallet's held passes for deposit UI
-
-async function detectWalletPasses() {
-  if (!walletAddress) return;
-  const chips = [];
-
-  // ── 1. Scan known GAMEPASS_CONTRACT via balanceOfBatch ────────────────────
+async function importPrivateKey() {
+  const key = document.getElementById('importKey').value.trim();
+  if (!key) { showToast("Enter a private key", "err"); return; }
   try {
-    const gpContract = new ethers.Contract(GAMEPASS_CONTRACT, ERC1155_BATCH_ABI, (await getReadProvider()));
-    const accounts   = GAMEPASS_SCAN_IDS.map(() => walletAddress);
-    const balances   = await gpContract.balanceOfBatch(accounts, GAMEPASS_SCAN_IDS);
-
-    for (let i = 0; i < balances.length; i++) {
-      const bal = Number(balances[i]);
-      if (bal > 0) {
-        // Try to find a matching registered pass name
-        const registered = passes.find(p =>
-          p.tokenContract.toLowerCase() === GAMEPASS_CONTRACT.toLowerCase() &&
-          Number(p.tokenId) === i
-        );
-        const name = registered?.name || `Game Pass #${i}`;
-        const imgURI = registered?.imageURI || '';
-        const passIndex = passes.findIndex(p =>
-          p.tokenContract.toLowerCase() === GAMEPASS_CONTRACT.toLowerCase() &&
-          Number(p.tokenId) === i
-        );
-        chips.push({ name, balance: bal, tokenId: i, tokenContract: GAMEPASS_CONTRACT, source: 'gamepass', imgURI, passIndex: passIndex >= 0 ? passIndex : null });
-      }
-    }
-  } catch(batchErr) {
-    // Fallback: individual balanceOf if batch not supported
-    try {
-      const gpContract = new ethers.Contract(GAMEPASS_CONTRACT, ERC1155_ABI, (await getReadProvider()));
-      for (let i = 0; i < 20; i++) {
-        try {
-          const bal = Number(await gpContract.balanceOf(walletAddress, i));
-          if (bal > 0) {
-            const registered = passes.find(p =>
-              p.tokenContract.toLowerCase() === GAMEPASS_CONTRACT.toLowerCase() &&
-              Number(p.tokenId) === i
-            );
-            const passIndex2 = passes.findIndex(p =>
-              p.tokenContract.toLowerCase() === GAMEPASS_CONTRACT.toLowerCase() &&
-              Number(p.tokenId) === i
-            );
-            chips.push({ name: registered?.name || `Game Pass #${i}`, balance: bal, tokenId: i, tokenContract: GAMEPASS_CONTRACT, source: 'gamepass', imgURI: registered?.imageURI || '', passIndex: passIndex2 >= 0 ? passIndex2 : null });
-          }
-        } catch(e) {}
-      }
-    } catch(e) {}
-  }
-
-  // ── 2. Also scan any OTHER contracts registered in the bank ───────────────
-  const otherContracts = [...new Set(
-    passes
-      .map(p => p.tokenContract.toLowerCase())
-      .filter(addr => addr !== GAMEPASS_CONTRACT.toLowerCase())
-  )];
-  for (const contractAddr of otherContracts) {
-    const contractPasses = passes.filter(p => p.tokenContract.toLowerCase() === contractAddr);
-    try {
-      const c = new ethers.Contract(contractAddr, ERC1155_BATCH_ABI, (await getReadProvider()));
-      const accounts = contractPasses.map(() => walletAddress);
-      const ids      = contractPasses.map(p => Number(p.tokenId));
-      const balances = await c.balanceOfBatch(accounts, ids);
-      balances.forEach((bal, idx) => {
-        if (Number(bal) > 0) {
-          const passIdx = passes.findIndex(p =>
-            p.tokenContract.toLowerCase() === contractAddr &&
-            Number(p.tokenId) === ids[idx]
-          );
-          chips.push({ name: contractPasses[idx].name || `Pass #${ids[idx]}`, balance: Number(bal), tokenId: ids[idx], tokenContract: contractAddr, source: 'bank', imgURI: contractPasses[idx].imageURI || '', passIndex: passIdx >= 0 ? passIdx : null });
-        }
-      });
-    } catch(e) {
-      for (const p of contractPasses) {
-        try {
-          const c = new ethers.Contract(contractAddr, ERC1155_ABI, (await getReadProvider()));
-          const bal = Number(await c.balanceOf(walletAddress, p.tokenId));
-          if (bal > 0) {
-            const passIdx2 = passes.findIndex(pp =>
-              pp.tokenContract.toLowerCase() === contractAddr &&
-              Number(pp.tokenId) === Number(p.tokenId)
-            );
-            chips.push({ name: p.name || `Pass #${p.tokenId}`, balance: bal, tokenId: Number(p.tokenId), tokenContract: contractAddr, source: 'bank', imgURI: p.imageURI || '', passIndex: passIdx2 >= 0 ? passIdx2 : null });
-          }
-        } catch(e2) {}
-      }
-    }
-  }
-
-  // ── 3. Scan any contract recognized by the Grotto Games API ──────────────
-  // This lets users deposit ANY pass linked to a Grotto game, even if it's
-  // never been registered in the bank or seen by the bank before.
-  await fetchGrottoGames(); // ensure games are loaded
-  const grottoContracts = new Set();
-  for (const g of grottoGames) {
-    for (const field of ['license_address','token_address','licenseAddress','tokenAddress','contractAddress','contract_address']) {
-      const addr = g[field];
-      if (addr && typeof addr === 'string' && addr.startsWith('0x')) {
-        grottoContracts.add(addr.toLowerCase());
-      }
-    }
-  }
-  // Exclude contracts already scanned above
-  const alreadyScanned = new Set([
-    GAMEPASS_CONTRACT.toLowerCase(),
-    ...passes.map(p => p.tokenContract.toLowerCase())
-  ]);
-  const newContracts = [...grottoContracts].filter(c => !alreadyScanned.has(c));
-
-  for (const contractAddr of newContracts) {
-    try {
-      const c = new ethers.Contract(contractAddr, ERC1155_BATCH_ABI, (await getReadProvider()));
-      const accounts = GAMEPASS_SCAN_IDS.map(() => walletAddress);
-      const balances = await c.balanceOfBatch(accounts, GAMEPASS_SCAN_IDS);
-      for (let i = 0; i < balances.length; i++) {
-        const bal = Number(balances[i]);
-        if (bal > 0) {
-          const game = getGameByContract(contractAddr);
-          const name = game ? (game.title || game.name || `Pass #${i}`) : `Pass #${i}`;
-          const imgURI = getGameImageUrl(game) || '';
-          chips.push({ name, balance: bal, tokenId: i, tokenContract: contractAddr, source: 'grotto-discovery', imgURI, passIndex: null });
-        }
-      }
-    } catch(e) {
-      // Not an ERC1155, or balanceOfBatch unsupported — skip silently
-    }
-  }
-
-  myWalletPasses = chips;
-  populateDepositPanel();
-
-  // ── Render ────────────────────────────────────────────────────────────────
-  const banner  = document.getElementById('myPassesBanner');
-  const chipsEl = document.getElementById('myPassesChips');
-  const headEl  = banner.querySelector('.my-passes-banner-head');
-
-  if (chips.length) {
-    headEl.textContent = '🎮 In Your Wallet';
-    chipsEl.innerHTML = chips.map(d => `
-      <div class="my-passes-chip">
-        ${d.imgURI ? `<img src="${d.imgURI}" style="width:20px;height:20px;border-radius:4px;object-fit:cover;" onerror="this.style.display='none'">` : ''}
-        <span class="my-passes-chip-bal">${d.balance}×</span>
-        <span class="my-passes-chip-name">${d.name}</span>
-        <span style="font-size:10px;color:var(--steel);margin-left:2px;">ID:${d.tokenId}</span>
-      </div>`).join('');
-    banner.classList.add('visible');
-    toast(`${chips.length} game pass type(s) in your wallet ✓`, 'ok');
-  } else {
-    // Hide the banner entirely if nothing in wallet — don't show misleading "not detected"
-    banner.classList.remove('visible');
+    const p = new ethers.JsonRpcProvider(FUJI_RPC);
+    const w = new ethers.Wallet(key, p);
+    provider = p;
+    signer = w;
+    userAddress = w.address;
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+    await onWalletConnected();
+    closeModal('walletModal');
+    showToast("Wallet imported: " + shortAddr(userAddress), "info");
+  } catch (e) {
+    showToast("Invalid private key", "err");
   }
 }
 
-function enableButtons() {
-  // Deposit UI now renders per-card buttons via populateDepositPanel(); nothing global to enable here.
+async function useTempWallet() {
+  if (!tempWallet) return;
+  const p = new ethers.JsonRpcProvider(FUJI_RPC);
+  const w = tempWallet.connect(p);
+  provider = p;
+  signer = w;
+  userAddress = w.address;
+  contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+  await onWalletConnected();
+  closeModal('tempWalletModal');
+  showToast("Test wallet active!", "info");
 }
 
-// ── Load passes ───────────────────────────────────────────────────────────────
-let rawBankPasses = [];
-let readProvider;  // dedicated read-only provider — always available after ethers loads
-
-async function getReadProvider() {
-  if (provider) return provider;
-  if (readProvider) return readProvider;
-  await loadEthers(); // guarantee window.ethers exists before constructing provider
-  readProvider = new ethers.JsonRpcProvider(GROTTO_RPC);
-  return readProvider;
+async function onWalletConnected() {
+  document.getElementById('walletBtn').textContent = shortAddr(userAddress);
+  document.getElementById('walletBtn').classList.add('connected');
+  document.getElementById('networkBadge').textContent = "FUJI";
+  document.getElementById('networkBadge').style.display = '';
+  document.getElementById('placeBetBtn').disabled = false;
+  await checkOperator();
+  await refreshAll();
+  showToast("Connected: " + shortAddr(userAddress), "win");
 }
 
-// Event signatures for ERC1155 transfers
-const TRANSFER_SINGLE_TOPIC = ethers.id("TransferSingle(address,address,address,uint256,uint256)");
-const TRANSFER_BATCH_TOPIC  = ethers.id("TransferBatch(address,address,address,uint256[],uint256[])");
-
-// Pad an address to a 32-byte topic for log filtering
-function addressToTopic(addr) {
-  return ethers.zeroPadValue(addr, 32);
-}
-
-// ── Auto-discover every ERC1155 contract + tokenId ever sent to the bank ──────
-// Scans TransferSingle/TransferBatch logs where `to` == BANK_ADDRESS, across
-// all contracts on the chain. No hardcoded contract address needed.
-async function discoverBankPasses() {
-  const rp = await getReadProvider();
-  const discovered = new Map(); // key: `${contract}-${tokenId}` -> {tokenContract, tokenId}
-  const toTopic = addressToTopic(BANK_ADDRESS);
-
+async function checkOperator() {
   try {
-    const latestBlock = await rp.getBlockNumber();
-    // Scan from genesis in chunks (RPC may limit range per request)
-    const CHUNK = 50000;
-    let fromBlock = 0;
+    const op = await readContract.gameOperator();
+    const owner = await readContract.owner?.().catch(() => null);
+    isOperator = userAddress.toLowerCase() === op.toLowerCase() || (owner && userAddress.toLowerCase() === owner.toLowerCase());
+    document.getElementById('operatorPanel').style.display = isOperator ? '' : 'none';
+    document.getElementById('opDivider').style.display = isOperator ? '' : 'none';
+  } catch {}
+}
 
-    while (fromBlock <= latestBlock) {
-      const toBlock = Math.min(fromBlock + CHUNK - 1, latestBlock);
+// ── TEMP WALLET ───────────────────────────────────────────
+function showTempWalletModal() { openModal('tempWalletModal'); }
 
-      // TransferSingle: topics[0]=sig, topics[1]=operator, topics[2]=from, topics[3]=to
-      try {
-        const singleLogs = await rp.getLogs({
-          fromBlock, toBlock,
-          topics: [TRANSFER_SINGLE_TOPIC, null, null, toTopic]
-        });
-        for (const log of singleLogs) {
-          const tokenId = BigInt(log.data.slice(0, 66)); // first uint256 in data = id
-          const key = `${log.address.toLowerCase()}-${tokenId}`;
-          discovered.set(key, { tokenContract: log.address, tokenId: Number(tokenId) });
-        }
-      } catch(e) { console.warn('[PassBank] TransferSingle log scan failed for range', fromBlock, toBlock, e.message); }
+function createTempWallet() {
+  tempWallet = ethers.Wallet.createRandom();
+  document.getElementById('tempAddr').textContent = tempWallet.address;
+  document.getElementById('tempKey').textContent = tempWallet.privateKey;
+  document.getElementById('tempWalletInfo').style.display = '';
+  document.getElementById('useTempBtn').style.display = '';
+}
 
-      // TransferBatch: topics same positions, data contains two uint256[] arrays (ids, values)
-      try {
-        const batchLogs = await rp.getLogs({
-          fromBlock, toBlock,
-          topics: [TRANSFER_BATCH_TOPIC, null, null, toTopic]
-        });
-        for (const log of batchLogs) {
-          try {
-            const decoded = ethers.AbiCoder.defaultAbiCoder().decode(["uint256[]","uint256[]"], log.data);
-            const ids = decoded[0];
-            for (const id of ids) {
-              const key = `${log.address.toLowerCase()}-${id}`;
-              discovered.set(key, { tokenContract: log.address, tokenId: Number(id) });
+function copyTempKey() {
+  if (!tempWallet) return;
+  navigator.clipboard.writeText(tempWallet.privateKey);
+  showToast("Private key copied!", "info");
+}
+
+// ── CONTRACT READS ────────────────────────────────────────
+async function refreshAll() {
+  try {
+    const [roundId, isOpen, minBet, maxBet] = await Promise.all([
+      readContract.currentRoundId(),
+      readContract.isRoundOpen(),
+      readContract.minBetAmount(),
+      readContract.maxBetAmount()
+    ]);
+
+    const rid = Number(roundId);
+    const open = Boolean(isOpen);
+
+    document.getElementById('roundBadge').textContent = `ROUND #${rid}`;
+    document.getElementById('sideRound').textContent = `#${rid}`;
+    document.getElementById('sideOpen').textContent = open ? '✓ OPEN' : '✗ CLOSED';
+    document.getElementById('sideOpen').style.color = open ? 'var(--win)' : 'var(--accent)';
+    document.getElementById('sideMin').textContent = parseFloat(ethers.formatEther(minBet)).toFixed(3) + ' AVAX';
+    document.getElementById('sideMax').textContent = parseFloat(ethers.formatEther(maxBet)).toFixed(1) + ' AVAX';
+
+    // Contract balance
+    const readProvider = new ethers.JsonRpcProvider(FUJI_RPC);
+    const bal = await readProvider.getBalance(CONTRACT_ADDRESS);
+    document.getElementById('contractBal').textContent = parseFloat(ethers.formatEther(bal)).toFixed(4) + ' AVAX';
+
+    // Round info
+    const round = await readContract.rounds(rid);
+    const settled = round.settled;
+
+    if (!open && !settled) {
+      setGamePhase("waiting");
+    } else if (open && !settled) {
+      setGamePhase("flying");
+    }
+
+    // Bets
+    const bets = await readContract.getRoundBets(rid);
+    renderBets(bets, settled, Number(round.crashMultiplier));
+
+    // Round history — load previous
+    if (rid > 1 && crashHistory.length < 10) {
+      for (let i = Math.max(1, rid - 1); i < rid && crashHistory.length < 10; i++) {
+        try {
+          const r = await readContract.rounds(i);
+          if (r.settled && r.crashMultiplier > 0) {
+            const m = Number(r.crashMultiplier) / 100;
+            if (!crashHistory.find(h => h.id === i)) {
+              crashHistory.unshift({ id: i, m });
             }
-          } catch(e) { /* decode failure, skip */ }
-        }
-      } catch(e) { console.warn('[PassBank] TransferBatch log scan failed for range', fromBlock, toBlock, e.message); }
-
-      fromBlock = toBlock + 1;
-    }
-  } catch(e) {
-    console.warn('[PassBank] discoverBankPasses failed:', e.message);
-  }
-
-  console.log('[PassBank] Discovered', discovered.size, 'unique (contract, tokenId) pairs ever sent to bank');
-  return Array.from(discovered.values());
-}
-
-async function loadPasses() {
-  const rp = await getReadProvider();
-
-  // 1. getAllPasses from bank contract (registered passes)
-  try {
-    const readBank = new ethers.Contract(BANK_ADDRESS, BANK_ABI, rp);
-    passes = await readBank.getAllPasses();
-    console.log('[PassBank] getAllPasses returned', passes.length, 'passes');
-  } catch(e) {
-    console.warn('[PassBank] getAllPasses failed:', e.message);
-    passes = [];
-  }
-
-  // 2. Auto-discover every contract/tokenId ever transferred to the bank via logs
-  rawBankPasses = [];
-  const discovered = await discoverBankPasses();
-
-  // Also always include the known GAMEPASS_CONTRACT token IDs as a fallback,
-  // in case log scanning isn't supported by the RPC (some public RPCs limit getLogs)
-  if (discovered.length === 0) {
-    console.log('[PassBank] Log scan returned nothing — falling back to known GAMEPASS_CONTRACT scan');
-    for (const id of GAMEPASS_SCAN_IDS) {
-      discovered.push({ tokenContract: GAMEPASS_CONTRACT, tokenId: id });
-    }
-  }
-
-  // Group discovered pairs by contract for batch balance checks
-  const byContract = new Map();
-  for (const d of discovered) {
-    const c = d.tokenContract.toLowerCase();
-    if (!byContract.has(c)) byContract.set(c, []);
-    byContract.get(c).push(d.tokenId);
-  }
-
-  for (const [contractAddr, tokenIds] of byContract.entries()) {
-    const c = new ethers.Contract(contractAddr, ERC1155_BATCH_ABI, rp);
-    let balances = null;
-    try {
-      const accounts = tokenIds.map(() => BANK_ADDRESS);
-      balances = await c.balanceOfBatch(accounts, tokenIds);
-    } catch(e) {
-      // Individual fallback
-      balances = [];
-      for (const id of tokenIds) {
-        try { balances.push(await c.balanceOf(BANK_ADDRESS, id)); }
-        catch(e2) { balances.push(0); }
+          }
+        } catch {}
       }
+      renderHistory();
     }
 
-    for (let i = 0; i < tokenIds.length; i++) {
-      const bal = Number(balances[i]);
-      if (bal > 0) {
-        const tokenId = tokenIds[i];
-        const alreadyRegistered = passes.find(p =>
-          p.tokenContract.toLowerCase() === contractAddr &&
-          Number(p.tokenId) === tokenId
-        );
-        console.log(`[PassBank] Bank holds ${bal} of tokenId ${tokenId} from ${contractAddr}${alreadyRegistered ? ' (registered)' : ' (NEW)'}`);
-        rawBankPasses.push({
-          tokenContract: contractAddr, tokenId, balance: bal,
-          name: alreadyRegistered ? (alreadyRegistered.name || `Pass #${tokenId}`) : `Pass #${tokenId}`,
-          imageURI: alreadyRegistered ? (alreadyRegistered.imageURI || '') : '',
-          gameId: alreadyRegistered ? (alreadyRegistered.gameId || '') : '',
-          active: alreadyRegistered ? alreadyRegistered.active : true,
-          unregistered: !alreadyRegistered
-        });
-      }
+    // User vault
+    if (userAddress) {
+      const vault = await readContract.playerVault(userAddress);
+      document.getElementById('vaultBalance').textContent = parseFloat(ethers.formatEther(vault)).toFixed(4) + ' AVAX';
+
+      // User wallet balance
+      const userBal = await readProvider.getBalance(userAddress);
+      updateWalletCard(userAddress, userBal);
+    }
+
+    updateStatus(open, settled);
+
+  } catch (e) {
+    console.warn("Refresh error:", e);
+  }
+}
+
+function setGamePhase(phase) {
+  gamePhase = phase;
+  const multEl = document.getElementById('multValue');
+  const labelEl = document.getElementById('multLabel');
+  const plane = document.getElementById('plane');
+
+  if (phase === "waiting") {
+    multEl.className = 'mult-value waiting';
+    multEl.textContent = '—';
+    labelEl.textContent = 'WAITING FOR ROUND';
+    cancelAnimationFrame(planeAnim);
+    plane.style.bottom = '60px';
+    plane.style.left = '60px';
+  } else if (phase === "flying") {
+    multEl.className = 'mult-value flying';
+    labelEl.textContent = 'FLYING ✈';
+    startPlaneAnimation();
+  } else if (phase === "crashed") {
+    multEl.className = 'mult-value crashed';
+    labelEl.textContent = '💥 CRASHED';
+    cancelAnimationFrame(planeAnim);
+  }
+}
+
+function startPlaneAnimation() {
+  const stage = document.getElementById('flightStage');
+  const plane = document.getElementById('plane');
+  const multEl = document.getElementById('multValue');
+  const start = Date.now();
+  currentMult = 1.0;
+
+  function tick() {
+    const elapsed = (Date.now() - start) / 1000;
+    currentMult = 1 + elapsed * 0.3;
+    multEl.textContent = currentMult.toFixed(2) + '×';
+
+    const w = stage.offsetWidth - 80;
+    const h = stage.offsetHeight - 120;
+    const progress = Math.min(elapsed / 15, 1);
+    const x = 60 + progress * w * 0.7;
+    const y = 60 + progress * h * 0.65;
+
+    plane.style.left = x + 'px';
+    plane.style.bottom = (60 + y) + 'px';
+
+    if (gamePhase === "flying") {
+      planeAnim = requestAnimationFrame(tick);
     }
   }
-
-  console.log('[PassBank] rawBankPasses found:', rawBankPasses.length);
-  renderPassCards();
-  populateDepositPanel();
-  updateAutoDiscoverInfo();
+  tick();
 }
 
-async function updateStats() {
-  let total = 0, claimable = 0, myClaims = 0;
-  const types = passes.length;
+function updateStatus(open, settled) {
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusLabel');
+  dot.className = 'status-dot';
 
-  for (let i = 0; i < passes.length; i++) {
-    const bal = Number(passes[i].balance);
-    total += bal;
-    if (passes[i].active && bal > 0) claimable++;
-    try {
-      const claimed = await bankContract.hasClaimed(i, walletAddress);
-      if (claimed) myClaims++;
-    } catch(e) {}
+  if (settled && !open) {
+    // old state — shouldn't persist; show open for new round
+    dot.classList.add('open');
+    label.textContent = 'OPEN';
+  } else if (open) {
+    dot.classList.add('open');
+    label.textContent = 'OPEN';
+  } else {
+    dot.classList.add('closed');
+    label.textContent = 'CLOSED';
   }
-
-  document.getElementById('statTotal').textContent    = total;
-  document.getElementById('statTypes').textContent    = types;
-  document.getElementById('statClaimable').textContent = claimable;
-  document.getElementById('statMyClaims').textContent  = walletAddress ? myClaims : '—';
-
-  // Fill bar
-  const maxCapacity = 500; // tweak as needed
-  const pct = Math.min(100, Math.round((total / maxCapacity) * 100));
-  document.getElementById('vaultFill').style.width = pct + '%';
-  document.getElementById('capacityPct').textContent = pct + '%';
 }
 
-// ── Render pass cards ─────────────────────────────────────────────────────────
-// Cache for game info keyed by gameId
-const gameInfoCache = {};
+function renderBets(bets, settled, crashMult) {
+  const list = document.getElementById('betsList');
+  document.getElementById('betCount').textContent = bets.length;
 
-async function fetchGameInfo(gameId) {
-  if (!gameId) return null;
-  if (gameInfoCache[gameId]) return gameInfoCache[gameId];
-  // Check local games cache first
-  const cached = getGameById(gameId);
-  if (cached) { gameInfoCache[gameId] = cached; return cached; }
-  try {
-    const res = await fetch(`${GROTTO_API}/api/games/${gameId}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    gameInfoCache[gameId] = data;
-    return data;
-  } catch(e) { return null; }
-}
-
-async function renderPassCards() {
-  const grid = document.getElementById('passGrid');
-  // Combine registered passes + unregistered raw passes found in bank
-  const allPasses = [...passes, ...rawBankPasses];
-  if (!allPasses.length) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="#8899AA" stroke-width="2"/></svg>
-      <p>No passes in the vault yet.<br>Be the first to deposit!</p>
-    </div>`;
+  if (bets.length === 0) {
+    list.innerHTML = '<div style="font-size:.7rem;color:var(--muted);font-family:var(--mono);">No bets yet</div>';
     return;
   }
 
-  let cooldownSecs = 0;
-  if (walletAddress) {
-    try { cooldownSecs = Number(await bankContract.cooldownRemaining(walletAddress)); } catch(e) {}
-  }
-
-  const cards = await Promise.all(allPasses.map(async (p, i) => {
-    // For registered passes, cross-check balance from our on-chain scan (rawBankPasses)
-    // getAllPasses() balance is only updated via deposit(), not manual transfers
-    const rawMatch = rawBankPasses.find(r =>
-      r.tokenContract.toLowerCase() === (p.tokenContract || '').toLowerCase() &&
-      Number(r.tokenId) === Number(p.tokenId)
-    );
-    const bal = rawMatch ? Number(rawMatch.balance) : Number(p.balance);
-    const active = p.active;
-    let claimed = false, canReq = false;
-    if (walletAddress) {
-      try { claimed = await bankContract.hasClaimed(i, walletAddress); } catch(e) {}
-      try {
-        const [ok] = await bankContract.canRequest(i, walletAddress);
-        canReq = ok;
-      } catch(e) {}
+  list.innerHTML = bets.map(b => {
+    const amt = parseFloat(ethers.formatEther(b.amount)).toFixed(3);
+    const tgt = (Number(b.targetMultiplier) / 100).toFixed(2);
+    const addr = shortAddr(b.player);
+    let statusClass = 'bet-item-pending';
+    let statusText = `→ ${tgt}×`;
+    if (b.resolved) {
+      if (b.won) { statusClass = 'bet-item-won'; statusText = '✓ WON'; }
+      else { statusClass = 'bet-item-lost'; statusText = '✗ LOST'; }
     }
-
-    // Fetch linked game from Grotto Gateway (uses local cache)
-    // Prefer explicit gameId, fall back to matching by contract address (for unregistered passes)
-    const gameInfo = p.gameId
-      ? await fetchGameInfo(p.gameId)
-      : getGameByContract(p.tokenContract);
-    const gameImgUrl = getGameImageUrl(gameInfo);
-    const gameTitle  = gameInfo ? (gameInfo.title || gameInfo.name || p.gameId) : null;
-
-    const gameBadge = gameInfo
-      ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;
-           background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.18);
-           border-radius:8px;padding:7px 10px;">
-           ${gameImgUrl
-             ? `<img src="${gameImgUrl}" alt="${gameTitle}"
-                  style="width:24px;height:24px;border-radius:5px;object-fit:cover;flex-shrink:0;"
-                  onerror="this.style.display='none'">`
-             : `<span style="font-size:15px;flex-shrink:0;">🎮</span>`}
-           <span style="font-size:11px;color:var(--cyan);font-weight:600;letter-spacing:0.03em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${gameTitle}</span>
-           <span style="font-size:10px;background:rgba(0,255,136,0.15);color:var(--success);
-             border:1px solid rgba(0,255,136,0.3);border-radius:4px;padding:1px 5px;
-             font-weight:700;flex-shrink:0;">✓ VERIFIED</span>
-         </div>`
-      : p.gameId
-        ? `<div style="font-size:11px;color:var(--steel);margin-bottom:8px;font-family:'JetBrains Mono',monospace;">Game: ${p.gameId}</div>`
-        : '';
-
-    // Card image: prefer pass imageURI, then linked game image, then placeholder
-    const cardImgSrc = p.imageURI || gameImgUrl || null;
-    const imgHtml = cardImgSrc
-      ? `<img src="${cardImgSrc}" alt="${p.name}" loading="lazy" style="width:100%;height:130px;object-fit:cover;"
-           onerror="this.outerHTML='<span style=\'display:flex;align-items:center;justify-content:center;width:100%;height:130px;font-size:40px;\'>🎮</span>'">`
-      : `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:130px;font-size:40px;">🎮</span>`;
-
-    let actionHtml;
-    if (p.unregistered) {
-      // Pass exists in bank but hasn't been registered via registerPass yet
-      actionHtml = isOwner
-        ? `<button class="claim-btn" style="background:rgba(255,184,0,0.12);color:var(--warn);border-color:rgba(255,184,0,0.3);"
-             onclick="prefillRegister('${p.tokenContract}','${p.tokenId}')">
-             ⚙️ Register This Pass
-           </button>`
-        : `<div class="claimed-badge" style="background:rgba(255,184,0,0.08);color:var(--warn);border-color:rgba(255,184,0,0.2);">
-             ⏳ Pending Registration
-           </div>`;
-    } else {
-      actionHtml = !walletAddress
-        ? `<button class="claim-btn" disabled>Connect wallet</button>`
-        : claimed
-          ? `<div class="claimed-badge">✓ Claimed</div>`
-          : cooldownSecs > 0
-            ? `<button class="claim-btn" disabled>Cooldown: ${fmtTime(cooldownSecs)}</button>`
-            : `<button class="claim-btn"
-                 onclick="claimPass(${i})"
-                 ${(!active || bal === 0 || !canReq) ? 'disabled' : ''}>
-                 ${!active ? 'Inactive' : bal === 0 ? 'Empty' : 'Claim Pass'}
-               </button>`;
-    }
-
-    const unregBadge = p.unregistered
-      ? `<div style="font-size:10px;color:var(--warn);font-family:'JetBrains Mono',monospace;
-           margin-bottom:8px;padding:3px 8px;background:rgba(255,184,0,0.08);
-           border:1px solid rgba(255,184,0,0.2);border-radius:4px;display:inline-block;">
-           DETECTED · NOT YET REGISTERED
-         </div>`
-      : '';
-
-    return `<div class="pass-card">
-      <div class="pass-card-img">${imgHtml}</div>
-      <div class="pass-card-body">
-        ${unregBadge}
-        ${gameBadge}
-        <div class="pass-card-name">${p.name || 'Unnamed Pass'}</div>
-        <div class="pass-card-meta">ID: ${p.tokenId} · ${p.tokenContract.slice(0,6)}…${p.tokenContract.slice(-4)}</div>
-        <div class="pass-card-balance">
-          <span class="balance-pill ${bal === 0 ? 'empty' : ''}">${bal} remaining</span>
-          <span class="status-dot ${active ? '' : 'inactive'}" title="${active ? 'Active' : 'Paused'}"></span>
-        </div>
-        ${actionHtml}
+    return `<div class="bet-item">
+      <div class="bet-item-top">
+        <span class="bet-item-addr">${addr}</span>
+        <span class="${statusClass}">${statusText}</span>
       </div>
-    </div>`;
-  }));
-
-  grid.innerHTML = cards.join('');
-}
-
-function fmtTime(secs) {
-  if (secs < 60) return secs + 's';
-  if (secs < 3600) return Math.floor(secs/60) + 'm';
-  return Math.floor(secs/3600) + 'h ' + Math.floor((secs%3600)/60) + 'm';
-}
-
-// ── Claim ─────────────────────────────────────────────────────────────────────
-async function claimPass(index) {
-  try {
-    toast('Sending claim transaction…', 'warn');
-    const tx = await bankContract.requestPass(index);
-    await tx.wait();
-    toast('Pass claimed! Check your wallet ✓', 'ok');
-    logTransaction({ type: 'claim', passName: resolvePassNameByIndex(index), amount: 1, address: walletAddress, txHash: tx.hash });
-    await loadPasses();
-    await updateStats();
-  } catch(e) {
-    console.error(e);
-    const msg = e?.reason || e?.message || 'Transaction failed';
-    toast(msg.length > 80 ? msg.slice(0,80) + '…' : msg, 'err');
-  }
-}
-
-// ── Deposit ───────────────────────────────────────────────────────────────────
-// ── Deposit panel: card list of all passes held in user's wallet ──────────────
-function populateDepositPanel() {
-  const list = document.getElementById('depositPassList');
-  if (!list) return;
-
-  if (!walletAddress) {
-    list.innerHTML = `<div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
-      Connect your wallet to see passes you can deposit.
-    </div>`;
-    return;
-  }
-
-  if (!myWalletPasses.length) {
-    list.innerHTML = `<div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
-      No game passes found in your wallet. Hold a registered pass to deposit it here.
-    </div>`;
-    return;
-  }
-
-  list.innerHTML = myWalletPasses.map((p, i) => {
-    const img = p.imgURI
-      ? `<img src="${p.imgURI}" onerror="this.parentElement.innerHTML='🎮'">`
-      : '🎮';
-    const unregTag = p.passIndex === null
-      ? `<span class="deposit-unregistered-tag">Pending registration</span>`
-      : '';
-    return `
-    <div class="deposit-card">
-      <div class="deposit-card-img">${img}</div>
-      <div class="deposit-card-info">
-        <div class="deposit-card-name">${p.name}${unregTag}</div>
-        <div class="deposit-card-meta">ID: ${p.tokenId} · ${p.tokenContract.slice(0,6)}…${p.tokenContract.slice(-4)}</div>
-        <div class="deposit-card-balance">You hold: ${p.balance}</div>
-      </div>
-      <div class="deposit-card-controls">
-        <input type="number" class="deposit-amount-input" id="depAmt-${i}" min="1" max="${p.balance}" value="${Math.min(1, p.balance)}"/>
-        <button class="deposit-max-btn" onclick="setDepositMax(${i})">MAX</button>
-        <button class="deposit-send-btn" onclick="depositPassAmount(${i})">Deposit</button>
+      <div class="bet-item-bottom">
+        <span>${amt} AVAX</span>
+        <span>cashout ${tgt}×</span>
       </div>
     </div>`;
   }).join('');
 }
-
-function setDepositMax(i) {
-  const p = myWalletPasses[i];
-  const input = document.getElementById(`depAmt-${i}`);
-  if (input) input.value = p.balance;
-}
-window.setDepositMax = setDepositMax;
-
-async function depositPassAmount(i) {
-  const p = myWalletPasses[i];
-
-  const input = document.getElementById(`depAmt-${i}`);
-  const amt = parseInt(input.value);
-  if (isNaN(amt) || amt < 1) return toast('Enter a valid amount', 'warn');
-  if (amt > p.balance) return toast(`You only hold ${p.balance}`, 'warn');
-  if (amt > 50) return toast('Max 50 per transaction', 'warn');
-
-  const btn = document.querySelector(`#depAmt-${i}`).closest('.deposit-card').querySelector('.deposit-send-btn');
-  const origLabel = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Processing…';
-
-  try {
-    const tokenContract = new ethers.Contract(p.tokenContract, ERC1155_ABI, signer);
-
-    if (p.passIndex !== null) {
-      // Registered pass — use the bank's deposit() which requires prior approval
-      const approved = await tokenContract.isApprovedForAll(walletAddress, BANK_ADDRESS);
-      if (!approved) {
-        toast('Approving bank contract…', 'warn');
-        btn.textContent = 'Approving…';
-        const appTx = await tokenContract.setApprovalForAll(BANK_ADDRESS, true);
-        await appTx.wait();
-        toast('Approved ✓ Now depositing…', 'ok');
-      }
-
-      toast(`Depositing ${amt}× ${p.name}…`, 'warn');
-      btn.textContent = 'Depositing…';
-      const tx = await bankContract.deposit(p.passIndex, amt);
-      await tx.wait();
-      toast(`${amt}× ${p.name} deposited ✓`, 'ok');
-    } else {
-      // Unregistered / Grotto-recognized pass — direct transfer to bank.
-      // Admin can then use "Register All Detected Passes" to make it claimable.
-      toast(`Sending ${amt}× ${p.name} to vault…`, 'warn');
-      btn.textContent = 'Sending…';
-      const tx = await tokenContract.safeTransferFrom(walletAddress, BANK_ADDRESS, p.tokenId, amt, "0x");
-      await tx.wait();
-      toast(`${amt}× ${p.name} sent to vault ✓ (awaiting registration)`, 'ok');
-      logTransaction({ type: 'deposit', passName: p.name, tokenId: p.tokenId, amount: amt, address: walletAddress, txHash: tx.hash, pending: true });
-    }
-
-    await loadPasses();
-    await updateStats();
-    await detectWalletPasses(); // refresh wallet balances + deposit panel
-  } catch(e) {
-    console.error(e);
-    toast((e?.reason || e?.message || 'Deposit failed').slice(0, 100), 'err');
-    btn.disabled = false;
-    btn.textContent = origLabel;
-  }
-}
-window.depositPassAmount = depositPassAmount;
-
-// ── Transaction History ────────────────────────────────────────────────────────
-// Reads on-chain PassDeposited / PassRequested events for the connected wallet,
-// plus any locally-tracked raw transfers (logTransaction), and renders a unified feed.
-
-let historyEntries = [];
-let historyFilter = 'all';
-const LOCAL_TX_KEY = 'gamepass_local_tx_log';
-
-// Track a transaction that isn't covered by bank contract events (e.g. raw
-// safeTransferFrom deposits of unregistered passes). Persisted in localStorage
-// so it survives refresh, keyed per-wallet.
-function logTransaction(entry) {
-  try {
-    const all = JSON.parse(localStorage.getItem(LOCAL_TX_KEY) || '{}');
-    const key = (entry.address || walletAddress || '').toLowerCase();
-    if (!all[key]) all[key] = [];
-    all[key].unshift({ ...entry, timestamp: Date.now() });
-    // Keep last 200 entries per wallet
-    all[key] = all[key].slice(0, 200);
-    localStorage.setItem(LOCAL_TX_KEY, JSON.stringify(all));
-  } catch(e) { console.warn('[PassBank] logTransaction failed:', e.message); }
-}
-
-function getLocalTransactions() {
-  if (!walletAddress) return [];
-  try {
-    const all = JSON.parse(localStorage.getItem(LOCAL_TX_KEY) || '{}');
-    return all[walletAddress.toLowerCase()] || [];
-  } catch(e) { return []; }
-}
-
-function resolvePassNameByIndex(passIndex) {
-  const p = passes[passIndex];
-  if (!p) return `Pass #${passIndex}`;
-  const game = getGameByContract(p.tokenContract);
-  return p.name || (game ? (game.title || game.name) : null) || `Pass #${p.tokenId}`;
-}
-
-async function loadTransactionHistory() {
-  const list = document.getElementById('historyList');
-  if (!list) return;
-
-  if (!walletAddress) {
-    list.innerHTML = `<div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
-      Connect your wallet to view your transaction history.
-    </div>`;
-    return;
-  }
-
-  list.innerHTML = `<div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
-    🔍 Scanning your transaction history…
-  </div>`;
-
-  const rp = await getReadProvider();
-  const readBank = new ethers.Contract(BANK_ADDRESS, BANK_ABI, rp);
-  const userTopic = ethers.zeroPadValue(walletAddress, 32);
-  const entries = [];
-
-  // ── PassDeposited(passIndex, depositor, amount) ──────────────────────────
-  try {
-    const depositFilter = {
-      address: BANK_ADDRESS,
-      topics: [
-        ethers.id("PassDeposited(uint256,address,uint256)"),
-        null,
-        userTopic
-      ],
-      fromBlock: 0, toBlock: 'latest'
-    };
-    const logs = await rp.getLogs(depositFilter);
-    for (const log of logs) {
-      const passIndex = Number(BigInt(log.topics[1]));
-      const amount = Number(BigInt(log.data));
-      const block = await rp.getBlock(log.blockNumber);
-      entries.push({
-        type: 'deposit',
-        passName: resolvePassNameByIndex(passIndex),
-        amount,
-        txHash: log.transactionHash,
-        timestamp: block ? block.timestamp * 1000 : Date.now(),
-        blockNumber: log.blockNumber
-      });
-    }
-  } catch(e) {
-    console.warn('[PassBank] PassDeposited log scan failed:', e.message);
-  }
-
-  // ── PassRequested(passIndex, claimer) ────────────────────────────────────
-  try {
-    const claimFilter = {
-      address: BANK_ADDRESS,
-      topics: [
-        ethers.id("PassRequested(uint256,address)"),
-        null,
-        userTopic
-      ],
-      fromBlock: 0, toBlock: 'latest'
-    };
-    const logs = await rp.getLogs(claimFilter);
-    for (const log of logs) {
-      const passIndex = Number(BigInt(log.topics[1]));
-      const block = await rp.getBlock(log.blockNumber);
-      entries.push({
-        type: 'claim',
-        passName: resolvePassNameByIndex(passIndex),
-        amount: 1,
-        txHash: log.transactionHash,
-        timestamp: block ? block.timestamp * 1000 : Date.now(),
-        blockNumber: log.blockNumber
-      });
-    }
-  } catch(e) {
-    console.warn('[PassBank] PassRequested log scan failed:', e.message);
-  }
-
-  // ── Locally-tracked raw transfers (unregistered pass deposits) ──────────
-  for (const local of getLocalTransactions()) {
-    entries.push(local);
-  }
-
-  // Sort newest first
-  entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-  historyEntries = entries;
-  renderHistory();
-}
-
-function setHistoryFilter(filter) {
-  historyFilter = filter;
-  document.querySelectorAll('#historyFilterAll,#historyFilterDeposit,#historyFilterClaim').forEach(b => b.classList.remove('active'));
-  const map = { all: 'historyFilterAll', deposit: 'historyFilterDeposit', claim: 'historyFilterClaim' };
-  document.getElementById(map[filter])?.classList.add('active');
-  renderHistory();
-}
-window.setHistoryFilter = setHistoryFilter;
 
 function renderHistory() {
-  const list = document.getElementById('historyList');
-  if (!list) return;
-
-  const filtered = historyFilter === 'all'
-    ? historyEntries
-    : historyEntries.filter(e => e.type === historyFilter);
-
-  if (!filtered.length) {
-    list.innerHTML = `<div style="font-size:13px;color:var(--steel);padding:14px;background:var(--slate);border:1px solid var(--border);border-radius:10px;">
-      No ${historyFilter === 'all' ? 'transactions' : historyFilter + 's'} found for this wallet yet.
-    </div>`;
+  const row = document.getElementById('historyRow');
+  if (crashHistory.length === 0) {
+    row.innerHTML = '<span style="font-size:.72rem;color:var(--muted);font-family:var(--mono);">No history yet</span>';
     return;
   }
-
-  const explorer = 'https://subnets.avax.network/thegrotto';
-
-  list.innerHTML = filtered.map(e => {
-    const isDeposit = e.type === 'deposit';
-    const icon = isDeposit ? '📥' : '🎁';
-    const label = isDeposit ? 'Deposited' : 'Claimed';
-    const color = isDeposit ? 'var(--cyan)' : 'var(--success)';
-    const date = e.timestamp ? new Date(e.timestamp).toLocaleString() : '—';
-    const pendingTag = e.pending ? `<span class="deposit-unregistered-tag">Pending registration</span>` : '';
-
-    return `
-    <div class="deposit-card">
-      <div class="deposit-card-img" style="font-size:20px;">${icon}</div>
-      <div class="deposit-card-info">
-        <div class="deposit-card-name">${label} ${e.amount}× ${e.passName}${pendingTag}</div>
-        <div class="deposit-card-meta">${date}</div>
-      </div>
-      <div class="deposit-card-controls">
-        ${e.txHash ? `<a href="${explorer}/tx/${e.txHash}" target="_blank" style="font-size:11px;color:${color};text-decoration:none;font-family:'JetBrains Mono',monospace;">View Tx ↗</a>` : ''}
-      </div>
-    </div>`;
+  row.innerHTML = crashHistory.slice(-12).map(h => {
+    const cls = h.m < 1.5 ? 'low' : h.m < 3 ? 'mid' : 'high';
+    return `<div class="history-pill ${cls}">${h.m.toFixed(2)}×</div>`;
   }).join('');
 }
 
-// ── Admin ─────────────────────────────────────────────────────────────────────
-
-// Load current contract settings into admin panel
-async function loadAdminState() {
-  if (!isOwner || !bankContract) return;
-  try {
-    const cd = Number(await bankContract.requestCooldown());
-    document.getElementById('currentCooldown').textContent = `Current: ${fmtTime(cd)} (${cd}s)`;
-  } catch(e) {}
-  try {
-    const mx = Number(await bankContract.maxDepositPerTx());
-    document.getElementById('currentMaxDeposit').textContent = `Current: ${mx}`;
-  } catch(e) {}
-  try {
-    const isPaused = await bankContract.paused();
-    document.getElementById('bankPausedStatus').textContent = `Status: ${isPaused ? '⏸ PAUSED' : '▶ Running'}`;
-    document.getElementById('bankPausedStatus').style.color = isPaused ? 'var(--danger)' : 'var(--success)';
-  } catch(e) {}
+function updateWalletCard(addr, bal) {
+  const card = document.getElementById('walletCard');
+  const balStr = parseFloat(ethers.formatEther(bal)).toFixed(4);
+  card.innerHTML = `
+    <div class="wallet-addr">${addr}</div>
+    <div class="balance-row">
+      <span class="balance-label">AVAX BALANCE</span>
+      <span class="balance-val">${balStr} AVAX</span>
+    </div>
+  `;
 }
 
-document.getElementById('registerAllBtn').addEventListener('click', async () => {
-  const unregistered = rawBankPasses.filter(p => p.unregistered);
-  if (!unregistered.length) return toast('No unregistered passes detected', 'warn');
+// ── PLACE BET ─────────────────────────────────────────────
+function setAmount(v) { document.getElementById('betAmount').value = v; updatePotentialWin(); }
+function setTarget(v) { document.getElementById('targetMult').value = v; updatePotentialWin(); }
 
-  toast(`Registering ${unregistered.length} pass(es)…`, 'warn');
-  let success = 0, failed = 0;
+function updatePotentialWin() {
+  const amt = parseFloat(document.getElementById('betAmount').value) || 0;
+  const tgt = parseFloat(document.getElementById('targetMult').value) || 0;
+  const win = amt * tgt;
+  document.getElementById('potentialWin').textContent = win > 0 ? win.toFixed(4) + ' AVAX' : '— AVAX';
+}
 
-  for (const p of unregistered) {
-    try {
-      // Auto-resolve name/image/gameId from matching Grotto game
-      const game = getGameByContract(p.tokenContract);
-      const name  = game ? (game.title || game.name || `Pass #${p.tokenId}`) : `Pass #${p.tokenId}`;
-      const image = game ? (getGameImageUrl(game) || '') : '';
-      const gameId = game ? String(game.id || game.slug || '') : '';
+async function placeBet() {
+  if (!contract) { showToast("Connect wallet first", "err"); return; }
+  const amt = parseFloat(document.getElementById('betAmount').value);
+  const tgt = parseFloat(document.getElementById('targetMult').value);
+  if (!amt || amt <= 0) { showToast("Enter a valid bet amount", "err"); return; }
+  if (!tgt || tgt < 1.01) { showToast("Target must be ≥ 1.01×", "err"); return; }
 
-      const tx = await bankContract.registerPass(p.tokenContract, p.tokenId, name, image, gameId);
-      await tx.wait();
-      success++;
-      toast(`Registered: ${name} ✓`, 'ok');
-    } catch(e) {
-      failed++;
-      toast(`Failed to register Pass #${p.tokenId}: ${(e?.reason || e?.message || '').slice(0,60)}`, 'err');
-    }
-  }
+  const targetScaled = Math.round(tgt * 100);
 
-  toast(`Done — ${success} registered, ${failed} failed`, success > 0 ? 'ok' : 'err');
-  await loadPasses();
-});
+  try {
+    const btn = document.getElementById('placeBetBtn');
+    btn.disabled = true;
+    btn.textContent = 'Placing...';
 
-function updateAutoDiscoverInfo() {
-  const el = document.getElementById('autoDiscoverInfo');
-  if (!el) return;
-  const unregistered = rawBankPasses.filter(p => p.unregistered);
-  const btn = document.getElementById('registerAllBtn');
-  if (unregistered.length === 0) {
-    el.textContent = '✓ All detected passes are registered.';
-    el.style.color = 'var(--success)';
-    if (btn) btn.disabled = true;
-  } else {
-    el.innerHTML = `<strong style="color:var(--warn)">${unregistered.length}</strong> unregistered pass(es) detected in bank wallet — click below to register them all with auto-fetched names &amp; images from Grotto.`;
-    el.style.color = 'var(--steel)';
-    if (btn) btn.disabled = false;
+    const tx = await contract.placeBet(targetScaled, {
+      value: ethers.parseEther(amt.toString())
+    });
+    showToast("Bet submitted! Waiting...", "info");
+    await tx.wait();
+    showToast(`Bet placed: ${amt} AVAX @ ${tgt}×`, "win");
+    refreshAll();
+  } catch (e) {
+    showToast(parseError(e), "err");
+  } finally {
+    const btn = document.getElementById('placeBetBtn');
+    btn.disabled = false;
+    btn.textContent = 'Place Bet';
   }
 }
 
-document.getElementById('registerBtn').addEventListener('click', async () => {
-  const contract = document.getElementById('regContract').value.trim();
-  const tokenId  = document.getElementById('regTokenId').value.trim();
-  const name     = document.getElementById('regName').value.trim();
-  const image    = document.getElementById('regImage').value.trim();
-  const gameId   = document.getElementById('regGameId').value.trim();
-  if (!contract || !tokenId || !name) return toast('Contract, Token ID, and Name required', 'warn');
-
+// ── CLAIM ─────────────────────────────────────────────────
+async function claimWinnings() {
+  if (!contract) { showToast("Connect wallet first", "err"); return; }
   try {
-    toast('Registering pass…', 'warn');
-    const tx = await bankContract.registerPass(contract, tokenId, name, image, gameId);
+    const btn = document.getElementById('claimBtn');
+    btn.disabled = true;
+    btn.textContent = 'Claiming...';
+    const tx = await contract.claimWinnings();
     await tx.wait();
-    toast('Pass type registered ✓', 'ok');
-    await loadPasses();
-  } catch(e) {
-    toast((e?.reason || e?.message || 'Failed').slice(0,100), 'err');
+    showToast("Winnings claimed! 🎉", "win");
+    refreshAll();
+  } catch (e) {
+    showToast(parseError(e), "err");
+  } finally {
+    const btn = document.getElementById('claimBtn');
+    btn.disabled = false;
+    btn.textContent = 'Claim';
   }
-});
-
-document.getElementById('activateBtn').addEventListener('click', async () => {
-  const idx = document.getElementById('toggleIndex').value.trim();
-  if (idx === '') return toast('Enter a pass index', 'warn');
-  try {
-    toast('Activating pass…', 'warn');
-    const tx = await bankContract.togglePass(Number(idx), true);
-    await tx.wait();
-    toast('Pass activated ✓', 'ok');
-    await loadPasses();
-  } catch(e) { toast((e?.reason || e?.message || 'Failed').slice(0,100), 'err'); }
-});
-
-document.getElementById('deactivateBtn').addEventListener('click', async () => {
-  const idx = document.getElementById('toggleIndex').value.trim();
-  if (idx === '') return toast('Enter a pass index', 'warn');
-  try {
-    toast('Deactivating pass…', 'warn');
-    const tx = await bankContract.togglePass(Number(idx), false);
-    await tx.wait();
-    toast('Pass deactivated ✓', 'ok');
-    await loadPasses();
-  } catch(e) { toast((e?.reason || e?.message || 'Failed').slice(0,100), 'err'); }
-});
-
-document.getElementById('pauseBtn').addEventListener('click', async () => {
-  try {
-    toast('Pausing bank…', 'warn');
-    const tx = await bankContract.setPaused(true);
-    await tx.wait();
-    toast('Bank paused ⏸', 'ok');
-    await loadAdminState();
-  } catch(e) { toast((e?.reason || e?.message || 'Failed').slice(0,100), 'err'); }
-});
-
-document.getElementById('unpauseBtn').addEventListener('click', async () => {
-  try {
-    toast('Unpausing bank…', 'warn');
-    const tx = await bankContract.setPaused(false);
-    await tx.wait();
-    toast('Bank unpaused ▶', 'ok');
-    await loadAdminState();
-  } catch(e) { toast((e?.reason || e?.message || 'Failed').slice(0,100), 'err'); }
-});
-
-document.getElementById('setCooldownBtn').addEventListener('click', async () => {
-  const val = parseInt(document.getElementById('cooldownInput').value);
-  if (isNaN(val) || val < 0) return toast('Enter a valid cooldown in seconds', 'warn');
-  try {
-    toast('Updating cooldown…', 'warn');
-    const tx = await bankContract.setCooldown(val);
-    await tx.wait();
-    toast(`Cooldown set to ${fmtTime(val)} ✓`, 'ok');
-    await loadAdminState();
-  } catch(e) {
-    toast((e?.reason || e?.message || 'Failed').slice(0,100), 'err');
-  }
-});
-
-document.getElementById('setMaxDepositBtn').addEventListener('click', async () => {
-  const val = parseInt(document.getElementById('maxDepositInput').value);
-  if (isNaN(val) || val < 1 || val > 500) return toast('Enter a value between 1 and 500', 'warn');
-  try {
-    toast('Updating max deposit…', 'warn');
-    const tx = await bankContract.setMaxDepositPerTx(val);
-    await tx.wait();
-    toast(`Max deposit set to ${val} ✓`, 'ok');
-    await loadAdminState();
-  } catch(e) { toast((e?.reason || e?.message || 'Failed').slice(0,100), 'err'); }
-});
-
-document.getElementById('resetClaimBtn').addEventListener('click', async () => {
-  const idx    = document.getElementById('resetIndex').value.trim();
-  const wallet = document.getElementById('resetWallet').value.trim();
-  if (!idx || !wallet) return toast('Pass index and wallet required', 'warn');
-  try {
-    toast('Resetting claim…', 'warn');
-    const tx = await bankContract.resetClaim(Number(idx), wallet);
-    await tx.wait();
-    toast('Claim reset — wallet can claim again ✓', 'ok');
-  } catch(e) { toast((e?.reason || e?.message || 'Failed').slice(0,100), 'err'); }
-});
-
-document.getElementById('withdrawBtn').addEventListener('click', async () => {
-  const idx = document.getElementById('wdIndex').value.trim();
-  const amt = document.getElementById('wdAmount').value.trim();
-  const to  = document.getElementById('wdTo').value.trim();
-  if (!idx || !amt || !to) return toast('All fields required', 'warn');
-  try {
-    toast('Withdrawing…', 'warn');
-    const tx = await bankContract.withdrawPass(Number(idx), Number(amt), to);
-    await tx.wait();
-    toast('Withdrawn ✓', 'ok');
-    await loadPasses();
-    await updateStats();
-  } catch(e) {
-    toast((e?.reason || e?.message || 'Failed').slice(0,100), 'err');
-  }
-});
-
-document.getElementById('loadClaimantsBtn').addEventListener('click', async () => {
-  const idx = document.getElementById('claimantsIndex').value.trim();
-  if (idx === '') return toast('Enter a pass index', 'warn');
-  const el = document.getElementById('claimantsList');
-  el.textContent = 'Loading…';
-  try {
-    const list = await bankContract.getClaimants(Number(idx));
-    if (!list.length) {
-      el.textContent = 'No claimants yet for this pass.';
-    } else {
-      el.innerHTML = list.map((addr, n) =>
-        `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);">
-          <span style="color:var(--text);">#${n+1} ${addr}</span>
-          <span style="color:var(--steel);font-size:10px;cursor:pointer;"
-            onclick="document.getElementById('resetIndex').value='${idx}';
-                     document.getElementById('resetWallet').value='${addr}';
-                     toast('Address copied to Reset Claim fields','ok');">↗ reset</span>
-        </div>`
-      ).join('');
-    }
-  } catch(e) { el.textContent = 'Error: ' + (e?.reason || e?.message || 'Failed'); }
-});
-
-// ── claimPass exposed globally for inline onclick ─────────────────────────────
-window.claimPass = claimPass;
-
-// ── Populate games dropdown in admin panel ────────────────────────────────────
-async function populateGamesDropdown() {
-  const sel = document.getElementById('regGameId');
-  if (!sel) return;
-  const games = await fetchGrottoGames();
-  if (!games.length) {
-    sel.innerHTML = '<option value="">No games found — enter ID manually</option>';
-    // Fallback: convert back to text input
-    sel.outerHTML = '<input id="regGameId" placeholder="e.g. abc123 (from Grotto Gateway)" style="width:100%;background:var(--slate);border:1px solid var(--border);color:var(--text);font-family:JetBrains Mono,monospace;font-size:13px;padding:10px 14px;border-radius:8px;outline:none;">';
-    return;
-  }
-  sel.innerHTML = '<option value="">— No game linked —</option>' +
-    games.map(g => {
-      const label = g.title || g.name || g.slug || g.id;
-      const id    = g.id || g.slug;
-      return `<option value="${id}">${label}</option>`;
-    }).join('');
-  console.log('[PassBank] Games dropdown populated with', games.length, 'games');
 }
 
-// ── Refresh all ───────────────────────────────────────────────────────────────
-async function refreshAll() {
-  const btn  = document.getElementById('refreshBtn');
-  const icon = document.getElementById('refreshIcon');
-  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
-  if (icon) icon.style.animation = 'spin 0.8s linear infinite';
-  // Reset games cache
-  gamesLoaded = false;
-  await loadPasses();
-  await fetchGrottoGames();
-  await renderPassCards();
-  if (walletAddress) {
-    await updateStats();
-    await detectWalletPasses();
+// ── OPERATOR ──────────────────────────────────────────────
+async function closeRoundForBets() {
+  if (!contract) return;
+  try {
+    const tx = await contract.closeRoundForBets();
+    await tx.wait();
+    showToast("Round closed for bets", "info");
+    setGamePhase("crashed");
+    refreshAll();
+  } catch (e) {
+    showToast(parseError(e), "err");
   }
-  if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
-  if (icon) icon.style.animation = '';
-  toast('Refreshed ✓', 'ok');
-}
-window.refreshAll = refreshAll;
-
-// ── Page init — load passes publicly (no wallet needed for read) ──────────────
-async function pageInit() {
-  await loadEthers();
-  // Create a read-only provider for public pass loading
-  readProvider = new ethers.JsonRpcProvider(GROTTO_RPC);
-  // Scan bank for passes (registered + raw)
-  await loadPasses();
-  // Fetch all games in parallel — re-render when done to fill in game info
-  fetchGrottoGames().then(() => renderPassCards());
 }
 
-// Start on DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', pageInit);
-} else {
-  pageInit();
+async function settleRound() {
+  if (!contract) return;
+  const v = parseFloat(document.getElementById('crashMult').value);
+  if (!v || v < 1) { showToast("Enter crash multiplier ≥ 1.00", "err"); return; }
+  const scaled = Math.round(v * 100);
+  try {
+    const tx = await contract.settleAndStartNextRound(scaled);
+    showToast("Settling round...", "info");
+    await tx.wait();
+
+    // Add to history
+    crashHistory.push({ id: Date.now(), m: v });
+    renderHistory();
+
+    setGamePhase("crashed");
+    setTimeout(() => {
+      setGamePhase("flying");
+      gamePhase = "flying";
+    }, 2000);
+
+    showToast(`Round settled @ ${v.toFixed(2)}× crash`, "win");
+    refreshAll();
+  } catch (e) {
+    showToast(parseError(e), "err");
+  }
 }
 
-// ── prefillRegister: auto-fill admin register form for unregistered passes ──
-function prefillRegister(contract, tokenId) {
-  switchTab('admin');
-  document.getElementById('regContract').value = contract;
-  document.getElementById('regTokenId').value  = tokenId;
-  toast('Fill in the name and click Register Pass', 'warn');
+async function depositLiquidity() {
+  if (!contract) return;
+  const amt = prompt("Amount of AVAX to deposit:");
+  if (!amt) return;
+  try {
+    const tx = await contract.depositLiquidity({ value: ethers.parseEther(amt) });
+    await tx.wait();
+    showToast(`Deposited ${amt} AVAX`, "win");
+    refreshAll();
+  } catch (e) {
+    showToast(parseError(e), "err");
+  }
 }
-window.prefillRegister = prefillRegister;
+
+// ── HELPERS ───────────────────────────────────────────────
+function shortAddr(a) { return a ? a.slice(0,6) + '…' + a.slice(-4) : ''; }
+
+function parseError(e) {
+  if (e?.reason) return e.reason;
+  if (e?.message) {
+    const m = e.message;
+    const match = m.match(/"([^"]+)"/);
+    if (match) return match[1];
+    if (m.length < 100) return m;
+  }
+  return "Transaction failed";
+}
+
+let toastTimer;
+function showToast(msg, type = "info") {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', 3500);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+});
 </script>
 </body>
 </html>
